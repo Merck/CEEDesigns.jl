@@ -1,0 +1,13 @@
+[deps]
+BetaML = "024491cd-cc6b-443e-8034-08ea7eb7db2b"
+CEED = "e939450b-799e-4198-a5f5-3f2f7fb1c671"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+MCTS = "e12ccd36-dcad-5f33-8774-9175229e7b33"
+MLJ = "add582a8-e3ab-11e8-2d5e-e98b27df1bc7"
+MLJModels = "d491faf4-2d78-11e9-2867-c94bc002c0b7"
+PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
+PlotlyKaleido = "f2990250-8cf9-495f-b13a-cce12b45703c"
+ScientificTypes = "321657f4-b219-11e9-178b-2701a2544e81"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"

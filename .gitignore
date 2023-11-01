@@ -1,0 +1,16 @@
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+docs/build/
+docs/site/
+tmp.gif
+gks.*
+Manifest.toml
+.vscode/
+LocalPreferences.toml
+.DS_Store
+
+_*
+tutorials/build
+.env
+.ipynb_checkpoints

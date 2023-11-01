@@ -1,0 +1,13 @@
+In order to use CEED.jl, it is necessary to download and install several third-party Julia packages, which may be distributed under various licenses. For the most recent list of these packages, refer to `Project.toml` and consult the license terms of the individual packages.
+
+You must agree to the terms of these licenses, in addition to the CEED.jl source code license, in order to use this software.
+
+--------------------------------------------------
+Third party software listed by License type
+--------------------------------------------------
+
+MIT License (or adaptations) (https://www.opensource.org/licenses/MIT)
+  * The Julia Language - https://github.com/JuliaLang/julia/blob/master/LICENSE.md
+
+Attribution 4.0 International (https://creativecommons.org/licenses/by/4.0/legalcode)
+  * Heart Disease Dataset - https://archive.ics.uci.edu/dataset/45/heart+disease 
