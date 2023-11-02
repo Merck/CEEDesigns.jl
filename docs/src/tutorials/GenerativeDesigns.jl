@@ -17,7 +17,7 @@
 # We conceptualize the triage as a Markov decision process, in which we iteratively choose to conduct a subset of experiments $S \subseteq E$ and then, based on the experimental evidence, update our belief about the distribution of outcomes for the experiments that have not yet been conducted.
 
 # Within the framework,
-# - _state_ is modeled as the set of experiments conducted so far along with the acquired experimental evidence;
+# - _state_ is modeled as the set of experiments conducted so far along with the acquired experimental evidence and accumulated costs;
 # - _actions_ are subsets of experiments that have not yet been conducted; the size of these subsets is restricted by the maximum number of parallel experiments.
 
 # Importantly, the outcome of a set $S$ of experiments is modeled as a random variable $e_S$, conditioned on the current state, i.e., combined evidence. This means that if in a given state outcomes from experiments in $S \subseteq E$ are available, the outcome of experiments in $S' \subseteq E \setminus S$ is drawn from a posterior $r \sim q(e_{S'} | e_S)$.
@@ -56,8 +56,9 @@
 
 # ### Objective Sense
 # The reward and stopping condition of the triage process can be interpreted in various ways. 
-# - In our implementation, the triage continues until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the triage (considered as a 'negative' reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with a 'minus infinite' reward.
-# - Alternatively, one could aim to minimize the expected uncertainty while being constrained by the costs of the experiment.
+# - The triage may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the triage (considered as a 'negative' reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with a 'minus infinite' reward.
+# - We may aim to minimize the expected uncertainty while being constrained by the costs of the experiment.
+# - Alternatively, we could maximize the value of experimental evidence, adjusted for the incurred experimental costs.
 
 # ### Policy Search
 # Standard MDP algorithms can be used to solve this problem (offline learning) or construct the policy (online learning) for the sequential decision-making.
@@ -117,53 +118,14 @@ using CEED, CEED.GenerativeDesigns
 # As previously discussed, we provide a dataset of historical records, the target variable, along with an information-theoretic measure to quantify the uncertainty about the target variable.
 
 # In what follows, we obtain three functions:
-# - `sampler`: this is a function of `(state, features, rng)`, in which `state` denotes the current experimental state, `features` represent the set of features we want to sample from, and `rng` is a random number generator;
-# - `uncertainty`: this is a function of `state`,
-# - `weights`: this represents a function of `state` that distributes probabilistic weights across the rows in the dataset.
+# - `sampler`: this is a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator;
+# - `uncertainty`: this is a function of `evidence`,
+# - `weights`: this represents a function of `evidence` that distributes probabilistic weights across the rows in the dataset.
+
+# Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
 (; sampler, uncertainty, weights) =
     DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
-
-# Let us inspect the distribution of belief for the following experimental evidence:
-
-state = State("Age" => 55, "Sex" => "M")
-#
-using StatsBase: countmap
-using Plots
-#
-target_belief = countmap(data[!, "HeartDisease"], weights(state))
-p = bar(
-    0:1,
-    [target_belief[0], target_belief[1]];
-    xrot = 40,
-    c = :teal,
-    ylabel = "probability",
-    title = "unc: $(round(uncertainty(state), digits=1))",
-    kind = :bar,
-    legend = false,
-);
-xticks!(p, 0:1, ["no disease", "disease"]);
-p
-
-# Let us next add an outcome of blood pressure measurement:
-
-state_with_bp = merge(state, Dict("RestingBP" => 190))
-
-target_belief = countmap(data[!, "HeartDisease"], weights(state_with_bp))
-p = bar(
-    0:1,
-    [target_belief[0], target_belief[1]];
-    xrot = 40,
-    c = :teal,
-    ylabel = "probability",
-    title = "unc: $(round(uncertainty(state_with_bp), digits=2))",
-    kind = :bar,
-    legend = false,
-);
-xticks!(p, 0:1, ["no disease", "disease"]);
-p
-
-# ## Cost-Efficient Designs
 
 # The CEED package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
@@ -178,6 +140,47 @@ experiments = Dict(
     "HeartDisease" => 100.0,
 )
 
+# Let us inspect the distribution of belief for the following experimental evidence:
+
+evidence = Evidence("Age" => 55, "Sex" => "M")
+#
+using StatsBase: countmap
+using Plots
+#
+target_belief = countmap(data[!, "HeartDisease"], weights(evidence))
+p = bar(
+    0:1,
+    [target_belief[0], target_belief[1]];
+    xrot = 40,
+    ylabel = "probability",
+    title = "unc: $(round(uncertainty(evidence), digits=1))",
+    kind = :bar,
+    legend = false,
+);
+xticks!(p, 0:1, ["no disease", "disease"]);
+p
+
+# Let us next add an outcome of blood pressure measurement:
+
+evidence_with_bp = merge(evidence, Dict("RestingBP" => 190))
+
+target_belief = countmap(data[!, "HeartDisease"], weights(evidence_with_bp))
+p = bar(
+    0:1,
+    [target_belief[0], target_belief[1]];
+    xrot = 40,
+    ylabel = "probability",
+    title = "unc: $(round(uncertainty(evidence_with_bp), digits=2))",
+    kind = :bar,
+    legend = false,
+);
+xticks!(p, 0:1, ["no disease", "disease"]);
+p
+
+# ## Cost-Efficient Experimental Designs for Uncertainty Reduction
+
+# In this experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
+
 # We use the provided function `efficient_designs` to construct the set of cost-efficient experimental designs for various levels of uncertainty threshold. In the following example, we generate 6 thresholds spaces evenly between 0 and 1, inclusive.
 
 # Internally, for each choice of the uncertainty threshold, an instance of a Markov decision problem in [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) is created, and the `POMDPs.solve` is called on the problem. Afterwards, a number of simulations of the decision-making problem is run, all starting with the experimental `state`.
@@ -186,16 +189,20 @@ experiments = Dict(
 using Random: seed!
 seed!(1)
 #
-state = State("Age" => 35, "Sex" => "M")
+evidence = Evidence("Age" => 35, "Sex" => "M")
 #
 ## use less number of iterations to speed up build process
-solver = GenerativeDesigns.DPWSolver(; n_iterations = 20_000, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(;
+    n_iterations = 20_000,
+    exploration_constant = 5.0,
+    tree_in_info = true,
+)
 designs = efficient_designs(
     experiments,
     sampler,
     uncertainty,
     6,
-    state;
+    evidence;
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -228,13 +235,17 @@ experiments = Dict(
 ## minimize time, two concurrent experiments at maximum
 seed!(1)
 ## use less number of iterations to speed up build process
-solver = GenerativeDesigns.DPWSolver(; n_iterations = 30_000, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(;
+    n_iterations = 20_000,
+    exploration_constant = 5.0,
+    tree_in_info = true,
+)
 designs = efficient_designs(
     experiments,
     sampler,
     uncertainty,
     6,
-    state;
+    evidence;
     solver,
     mdp_options = (; max_parallel = 2, costs_tradeoff = [0, 1.0]),
     repetitions = 5,
@@ -243,3 +254,35 @@ designs = efficient_designs(
 # We plot the Pareto-efficient actions:
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
+
+# ## Efficient Value Experimental Designs
+
+# In this experimental setup, we aim to maximize the value of experimental evidence, adjusted for the incurred experimental costs.
+
+# For this purpose, we need to specify a function that quantifies the 'value' of decision-process making state, modeled as a tuple of experimental evidence and costs.
+
+value = function (evidence, (monetary_cost, execution_time))
+    return (1 - uncertainty(evidence)) - (0.005 * sum(monetary_cost))
+end
+
+# Considering a discount factor $\lambda$, the total reward associated with the experimental state in an $n$-step decision process is given by $r = r_1 + \sum_{i=2}^n \lambda^{i-1} (r_i - r_{i-1})$, where $r_i$ is the value associated with the $i$-th state.
+
+# In the following example, we also limit the maximum rollout horizon to 4.
+#
+seed!(1)
+## use less number of iterations to speed up build process
+solver =
+    GenerativeDesigns.DPWSolver(; n_iterations = 20_000, depth = 4, tree_in_info = true)
+design = efficient_value(
+    experiments,
+    sampler,
+    value,
+    evidence;
+    solver,
+    repetitions = 5,
+    mdp_options = (; discount = 0.8),
+);
+#
+design[1] # optimized cost-adjusted value
+#
+d3tree = D3Tree(design[2].tree; init_expand = 2)

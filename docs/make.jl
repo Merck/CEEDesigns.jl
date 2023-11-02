@@ -4,7 +4,7 @@ using CEED
 # Literate for tutorials
 const literate_dir = joinpath(@__DIR__, "..", "tutorials")
 const tutorials_src =
-    ["StaticDesigns.jl", "StaticDesignsFiltration.jl", "GenerativeDesigns.jl", "paper.jl"]
+    ["StaticDesigns.jl", "StaticDesignsFiltration.jl", "GenerativeDesigns.jl"]
 const generated_dir = joinpath(@__DIR__, "src", "tutorials/")
 
 # copy tutorials src
@@ -45,3 +45,5 @@ makedocs(;
     ),
     pages,
 )
+
+deploydocs(; repo = "github.com/Merck/CEED.jl.git")

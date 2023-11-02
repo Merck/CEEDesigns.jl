@@ -5,9 +5,9 @@
 Return an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / (2*σ2)`, where `σ2` is the variance of `col` calculated with respect to `prior`.
 """
 QuadraticStandardizedDistance(; λ = 1) = function (x, col; prior = ones(length(col)))
-    σ2 = var(col, Weights(prior); corrected=false)
+    σ2 = var(col, Weights(prior); corrected = false)
 
-    λ * (x .- col) .^ 2 / (2 * σ2)
+    return λ * (x .- col) .^ 2 / (2 * σ2)
 end
 
 """
@@ -16,7 +16,7 @@ end
 Return an anonymous function `(x, col) -> λ * (x .== col)`.
 """
 DiscreteMetric(; λ = 1) = function (x, col; _...)
-    map(y -> y == x ? λ : 0.0, col)
+    return map(y -> y == x ? λ : 0.0, col)
 end
 
 # default similarity functional
@@ -30,7 +30,7 @@ Exponential(; λ = 1) = x -> exp(-λ * sum(x; init = 0))
 # default uncertainty functionals
 compute_variance(data::AbstractVector; weights) = var(data, Weights(weights))
 
-compute_variance(data; weights) = var(Matrix(data), Weights(repeat(weights, size(data, 2))))
+compute_variance(data; weights) = sum(var(Matrix(data), Weights(weights), 1))
 
 """
     Variance(data; prior)
@@ -67,9 +67,9 @@ Compute distances between experimental evidence and historical readouts, and app
 
 A named tuple with the following fields:
 
-  - `sampler`: a function of `(state, features, rng)`, in which `state` denotes the current experimental state, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `uncertainty`: a function of `state`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
-  - `weights`: a function of `state`; it returns probabilities (posterior) acrss the rows in `data`.
+  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
+  - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
+  - `weights`: a function of `evidence`; it returns probabilities (posterior) acrss the rows in `data`.
 
 # Arguments
 
@@ -119,17 +119,17 @@ function DistanceBased(
 
     prior = Weights(prior)
     targets = target isa AbstractVector ? target : [target]
-    compute_weights = function (state::State)
-        if isempty(state)
+    compute_weights = function (evidence::Evidence)
+        if isempty(evidence)
             return prior
         else
-            array_distances = zeros((nrow(data), length(state)))
-            for (i, colname) in enumerate(keys(state))
+            array_distances = zeros((nrow(data), length(evidence)))
+            for (i, colname) in enumerate(keys(evidence))
                 if colname ∈ targets
                     continue
                 else
                     array_distances[:, i] .=
-                        distances[colname](state[colname], data[!, colname]; prior)
+                        distances[colname](evidence[colname], data[!, colname]; prior)
                 end
             end
 
@@ -138,24 +138,24 @@ function DistanceBased(
                 map(i -> similarity(array_distances[i, :]), 1:size(array_distances, 1))
 
             # hard match on target columns
-            for colname in collect(keys(state)) ∩ targets
-                similarities .*= data[!, colname] .== state[colname]
+            for colname in collect(keys(evidence)) ∩ targets
+                similarities .*= data[!, colname] .== evidence[colname]
             end
 
             return Weights(similarities ./ sum(similarities))
         end
     end
 
-    sampler = function (state::State, columns, rng = default_rng())
-        observed = data[sample(rng, compute_weights(state)), :]
+    sampler = function (evidence::Evidence, columns, rng = default_rng())
+        observed = data[sample(rng, compute_weights(evidence)), :]
 
-        Dict(c => observed[c] for c in columns)
+        return Dict(c => observed[c] for c in columns)
     end
 
     f_uncertainty = uncertainty(data[!, target]; prior)
-    compute_uncertainty = function (state::State)
-        f_uncertainty(compute_weights(state))
+    compute_uncertainty = function (evidence::Evidence)
+        return f_uncertainty(compute_weights(evidence))
     end
 
-    (; sampler, uncertainty = compute_uncertainty, weights = compute_weights)
+    return (; sampler, uncertainty = compute_uncertainty, weights = compute_weights)
 end

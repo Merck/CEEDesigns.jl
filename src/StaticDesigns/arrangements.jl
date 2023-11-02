@@ -18,7 +18,9 @@ Base.@kwdef struct ArrangementMDP{T1<:Number,T2<:Number} <:
 end
 
 function POMDPs.actions(m::ArrangementMDP, state)
-    Set.(collect(powerset(collect(setdiff(m.experiments, state)), 1, m.max_parallel)))
+    return Set.(
+        collect(powerset(collect(setdiff(m.experiments, state)), 1, m.max_parallel))
+    )
 end
 
 POMDPs.isterminal(m::ArrangementMDP, state) = m.experiments == state
@@ -27,14 +29,14 @@ POMDPs.initialstate(::ArrangementMDP) = Deterministic(Set{String}())
 
 function POMDPs.transition(::ArrangementMDP, state, action)
     # readout features 
-    Deterministic(state ∪ action)
+    return Deterministic(state ∪ action)
 end
 
 function POMDPs.reward(m::ArrangementMDP, state, action)
     monetary_cost = m.evals[state].filtration * sum(a -> m.experimental_costs[a][1], action)
     time = maximum(a -> m.experimental_costs[a][2], action)
 
-    -sum(m.tradeoff .* (monetary_cost, time))
+    return -sum(m.tradeoff .* (monetary_cost, time))
 end
 
 POMDPs.discount(::ArrangementMDP) = 1.0

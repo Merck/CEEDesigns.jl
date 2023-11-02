@@ -1,7 +1,6 @@
 module CEED
 
 using DataFrames, Plots
-
 export front, plot_front
 export make_labels, plot_evals
 

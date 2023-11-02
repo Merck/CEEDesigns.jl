@@ -14,11 +14,17 @@ CEED.StaticDesigns.evaluate_experiments
 ## `GenerativeDesigns`
 
 ```@docs
-CEED.GenerativeDesigns.ResearchMDP
+CEED.GenerativeDesigns.UncertaintyReductionMDP
+CEED.GenerativeDesigns.EfficientValueMDP
 CEED.GenerativeDesigns.State
-CEED.GenerativeDesigns.efficient_designs
 CEED.GenerativeDesigns.Variance
 CEED.GenerativeDesigns.Entropy
+```
+
+```@docs
+CEED.GenerativeDesigns.efficient_design
+CEED.GenerativeDesigns.efficient_designs
+CEED.GenerativeDesigns.efficient_value
 ```
 
 ### Distance-Based Sampling

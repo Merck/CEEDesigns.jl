@@ -5,7 +5,7 @@
 
 _______
 
-[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)]()
+[![Docs](https://img.shields.io/badge/docs-stable-blue.svg)](https://merck.github.io/CEED.jl/)
 
 A decision-making framework for the cost-efficient design of experiments, balancing the value of acquired experimental evidence and incurred costs. We have considered two different experimental setups, which are outlined below.
 
@@ -32,6 +32,7 @@ At the beginning of the triage process, an entity's prior data is used to projec
 
 We conceptualized the triage as a Markov decision process, in which we iteratively choose to conduct a subset of experiments and then, based on the experimental evidence, update our belief about the distribution of outcomes for the experiments that have not yet been conducted. The information value associated with the state, derived from experimental evidence, can be modeled through any statistical or information-theoretic measure such as the variance or uncertainty associated with the target variable posterior.
 
+We implemented the following two variants of the decision-making process: Firstly, assuming that the decision-making process only terminates when the uncertainty drops below a given threshold, we minimize the expected resource spend. Secondly, we can optimize the value of experimental evidence, adjusted for the incurred experimental costs.
 
 ## Context: Dynamics of Value Evolution (DyVE)
  
