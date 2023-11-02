@@ -21,7 +21,7 @@ data = coerce(data, types);
 
 using CEED, CEED.GenerativeDesigns
 
-state = State("Age" => 35, "Sex" => "M")
+evidence = Evidence("Age" => 35, "Sex" => "M")
 
 # test `DistanceBased` sampler
 r = DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
@@ -30,10 +30,10 @@ r = DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
 
 # test signatures
 using Random: default_rng
-@test applicable(sampler, state, ["HeartDisease"], default_rng)
+@test applicable(sampler, evidence, ["HeartDisease"], default_rng)
 
-@test applicable(uncertainty, state)
-@test applicable(weights, state)
+@test applicable(uncertainty, evidence)
+@test applicable(weights, evidence)
 
 experiments = Dict(
     ## experiment => features
@@ -44,16 +44,75 @@ experiments = Dict(
     "HeartDisease" => 100.0,
 )
 
-solver = GenerativeDesigns.DPWSolver(; n_iterations = 10_000, tree_in_info = true)
+# test `UncertaintyReductionMDP`
+
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 100, tree_in_info = true)
+
+design = efficient_design(
+    experiments,
+    sampler,
+    uncertainty,
+    0.0,
+    evidence;
+    solver,
+    mdp_options = (; max_parallel = 1),
+    repetitions = 5,
+);
+
+@test design isa Tuple
+
 designs = efficient_designs(
     experiments,
     sampler,
     uncertainty,
     4,
-    state;
+    evidence;
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
 );
 
 @test designs isa Vector
+@test all(design -> (design[1][1] == 0) || hasproperty(design[2], :stats), designs)
+
+designs = efficient_designs(
+    experiments,
+    sampler,
+    uncertainty,
+    4,
+    evidence;
+    solver,
+    mdp_options = (; max_parallel = 1),
+);
+
+@test !hasproperty(designs[1][2], :stats)
+
+designs = efficient_designs(
+    experiments,
+    sampler,
+    uncertainty,
+    4,
+    evidence;
+    solver,
+    realized_uncertainty = true,
+    mdp_options = (; max_parallel = 1),
+);
+
+@test designs[begin][1][2] == uncertainty(evidence)
+
+# test `EfficientValueMDP``
+
+value = function (evidence, (monetary_cost, execution_time))
+    return (1 - uncertainty(evidence)) - (0.005 * sum(monetary_cost))
+end
+
+## use less number of iterations to speed up build process
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 100, depth = 2, tree_in_info = true)
+
+design = efficient_value(experiments, sampler, value, evidence; solver, repetitions = 5);
+@test design isa Tuple
+@test hasproperty(design[2], :stats)
+
+design = efficient_value(experiments, sampler, value, evidence; solver);
+@test design isa Tuple
+@test !hasproperty(design[2], :stats)

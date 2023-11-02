@@ -30,6 +30,8 @@ include("arrangements.jl")
 
 Evaluate predictive accuracy over subsets of experiments, and return the metrics. The evaluation is facilitated by `MLJ.evaluate`; additional keyword arguments to this function will be passed to `evaluate`.
 
+Evaluations are run in parallel.
+
 # Arguments
 
   - `experiments`: a dictionary containing pairs `experiment => (cost =>) features`, where `features` is a subset of column names in `data`.
@@ -39,6 +41,7 @@ Evaluate predictive accuracy over subsets of experiments, and return the metrics
 
 # Keyword arguments
 
+  - `max_cardinality`: maximum cardinality of experimental subsets (defaults to the number of experiments).
   - `zero_cost_features`: additional zero-cost features available for each experimental subset (defaults to an empty list).
   - `evaluate_empty_subset`: flag indicating whether to evaluate empty experimental subset. A constant column will be added if `zero_cost_features` is empty (defaults to true).
   - `return_full_metrics`: flag indicating whether to return full `MLJ.PerformanceEvaluation` metrics. Otherwise return an aggregate "measurement" for the first measure (defaults to false).
@@ -61,14 +64,20 @@ function evaluate_experiments(
     model,
     X,
     y;
+    max_cardinality = length(experiments),
     zero_cost_features = [],
     evaluate_empty_subset::Bool = true,
     return_full_metrics::Bool = false,
     kwargs...,
 ) where {T}
+    # predictive accuracy scores over subsets of experiments
     scores = Dict{Set{String},return_full_metrics ? PerformanceEvaluation : Float64}()
+    # generate all the possible subsets from the set of experiments, with a minimum size of 1 and maximum size of 'max_cardinality'
+    experimental_subsets = collect(powerset(collect(keys(experiments)), 1, max_cardinality))
+    # lock
+    lk = ReentrantLock()
 
-    for exp_set in powerset(collect(keys(experiments)), 1)
+    Threads.@threads for exp_set in collect(experimental_subsets)
         features = eltype(names(X))[zero_cost_features...]
         foreach(
             x -> append!(
@@ -79,10 +88,14 @@ function evaluate_experiments(
         )
         perf_eval = evaluate(model, X[:, features], y; kwargs...)
 
-        push!(
-            scores,
-            Set(exp_set) => return_full_metrics ? perf_eval : first(perf_eval.measurement),
-        )
+        # acquire the lock to prevent race conditions
+        lock(lk) do
+            return push!(
+                scores,
+                Set(exp_set) =>
+                    return_full_metrics ? perf_eval : first(perf_eval.measurement),
+            )
+        end
     end
 
     if evaluate_empty_subset
@@ -99,13 +112,15 @@ function evaluate_experiments(
         )
     end
 
-    scores
+    return scores
 end
 
 """
     evaluate_experiments(experiments, X; zero_cost_features=[], evaluate_empty_subset=true)
 
 Evaluate discriminative power for subsets of experiments, and return the metrics.
+
+Evaluations are run in parallel.
 
 # Arguments
 
@@ -157,7 +172,7 @@ function evaluate_experiments(
         push!(scores, Set{String}() => (; loss = perf_eval, filtration = perf_eval))
     end
 
-    scores
+    return scores
 end
 
 """
@@ -210,8 +225,12 @@ function efficient_designs(
         end for (s, e) in evals
     )
 
+    # find the optimal arrangement for each experimental subset
     designs = []
-    for design in evals
+    # lock to prevent race condition
+    lk = ReentrantLock()
+
+    Threads.@threads for design in collect(evals)
         arrangement = optimal_arrangement(
             experimental_costs,
             evals,
@@ -221,20 +240,22 @@ function efficient_designs(
             mdp_kwargs,
         )
 
-        push!(
-            designs,
-            (
-                (arrangement.combined_cost, design[2].loss),
-                (;
-                    arrangement = arrangement.arrangement,
-                    monetary_cost = arrangement.monetary_cost,
-                    time = arrangement.time,
+        lock(lk) do
+            return push!(
+                designs,
+                (
+                    (arrangement.combined_cost, design[2].loss),
+                    (;
+                        arrangement = arrangement.arrangement,
+                        monetary_cost = arrangement.monetary_cost,
+                        time = arrangement.time,
+                    ),
                 ),
-            ),
-        )
+            )
+        end
     end
 
-    front(x -> x[1], designs)
+    return front(x -> x[1], designs)
 end
 
 """
@@ -268,7 +289,7 @@ function efficient_designs(
 ) where {T}
     evals = evaluate_experiments(experiments, args...; eval_options...)
 
-    efficient_designs(experiments, evals; arrangement_options...)
+    return efficient_designs(experiments, evals; arrangement_options...)
 end
 
 end

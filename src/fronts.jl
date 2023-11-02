@@ -37,7 +37,7 @@ front(v; atol2 = 0.2)
 function front end
 
 function front(v::T; atol1::Float64 = 0.0, atol2::Float64 = atol1) where {T<:AbstractVector}
-    front(identity, v; atol1, atol2)
+    return front(identity, v; atol1, atol2)
 end
 
 function front(
@@ -66,7 +66,7 @@ function front(
         end
     end
 
-    v_sorted
+    return v_sorted
 end
 
 """
@@ -110,7 +110,7 @@ function plot_front(
         end
     end
 
-    p
+    return p
 end
 
 """
@@ -139,11 +139,11 @@ Create a stick plot that visualizes the performance measures evaluated for subse
 function plot_evals(evals; ylabel = "information measure", kwargs...)
     xs = sort!(collect(keys(evals)); by = x -> length(x))
     ys = map(xs) do x
-        evals[x] isa Number ? evals[x] : evals[x].loss
+        return evals[x] isa Number ? evals[x] : evals[x].loss
     end
     xformatter = i -> isempty(xs[Int(i)]) ? "∅" : join(xs[Int(i)], ", ")
 
-    sticks(
+    return sticks(
         1:length(evals),
         ys;
         ticks = 1:length(evals),
@@ -151,7 +151,6 @@ function plot_evals(evals; ylabel = "information measure", kwargs...)
         guidefontsize = 8,
         tickfontsize = 8,
         ylabel,
-        c = :teal,
         label = nothing,
         xrotation = 30,
     )
