@@ -4,23 +4,21 @@
 
 # ## Theoretical Framework
 
-# Let us consider a set of $n$ experiments $E = \{ e_1, \ldots, e_n\}$.
-
-# For each subset $S \subseteq E$ of experiments, we denote by $v_S$ the value of information acquired from conducting experiments in $S$.
+# Let us consider a set of $n$ experiments $E = \{ e_1, \ldots, e_n\}$. For each subset $S \subseteq E$ of experiments, we denote by $v_S$ the value of information acquired from conducting experiments in $S$.
 
 # In the cost-sensitive setting of CEEDesigns, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
 
-# To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is modeled as a sequence of mutually disjoint subsets of $S$. In other words, $o = (o_1, \ldots, o_l)$ for a given $l\in\mathbb N$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
+# To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is a partition of $S$. In other words, $o = (o_1, \ldots, o_l)$ for $l \leq |S|$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
 
-# Given a subset $S$ of experiments and their arrangement $o$, the total monetary cost and execution time of the experimental design is given as $m_o = \sum_{e\in S} m_e$ and $t_o = \sum_{i=1}^l \max \{ t_e : e\in o_i\}$, respectively.
+# Given a subset $S$ of experiments and their arrangement $o$, the total monetary cost and total execution time of the experimental design is given as $m_o = \sum_{e\in S} m_e$ and $t_o = \sum_{i=1}^l \max \{ t_e : e\in o_i\}$, respectively.
 
 # For instance, consider the experiments $e_1,\, e_2,\, e_3$, and $e_4$ with associated costs $(1, 1)$, $(1, 3)$, $(1, 2)$, and $(1, 4)$. If we conduct experiments $e_1$ through $e_4$ in sequence, this would correspond to an arrangement $o = (\{ e_1 \}, \{ e_2 \}, \{ e_3 \}, \{ e_4 \})$ with a total cost of $m_o = 4$ and $t_o = 10$.
 
 # However, if we decide to conduct $e_1$ in parallel with $e_3$, and $e_2$ with $e_4$, we would obtain an arrangement $o = (\{ e_1, e_3 \}, \{ e_2, e_4 \})$ with a total cost of $m_o = 4$, and $t_o = 3 + 4 = 7$.
 
-# Given the constraint on the maximum number of parallel experiments, we devise an arrangement $o$ of experiments $S$ such that, for a fixed tradeoff between monetary cost and execution time, the expected combined cost $c_{(o, \lambda)} = \lambda m_o + (1-\lambda) t_o$ is minimized (i.e., the execution time is minimized).
+# Given the constraint on the maximum number of parallel experiments, we devise an arrangement $o$ of experiments $S$ such that, for a fixed tradeoff between monetary cost and execution time, the expected combined cost $c_{s} = \lambda m_o + (1-\lambda) t_o$ is minimized (i.e., the execution time is minimized).
 
-# In fact, it can be readily demonstrated that the optimal arrangement can be found by ordering the experiments in set $S$ in descending order according to their execution times. Consequently, the experiments are grouped sequentially into sets whose size equals the maximum number of parallel experiments, except possibly for the final set.
+# Because $t_{o}$ is the sum of the maximum times of each partition of $S$, to minimize $t_{o}$, experiments with long execution times should be grouped together. Therefore, the optimal arrangement is one such that each partition's size equals the maximum number of parallel experiments, except possibly for the final partition, and that assignment into partitions is done in order of execution time.
 
 # Continuing our example and assuming a maximum of two parallel experiments, the optimal arrangement is to conduct $e_1$ in parallel with $e_2$, and $e_3$ with $e_4$. This results in an arrangement $o = (\{ e_1, e_2 \}, \{ e_3, e_4 \})$ with a total cost of $m_o = 4$ and $t_o = 2 + 4 = 6$.
 
@@ -112,8 +110,8 @@ perf_eval = evaluate_experiments(
     measure = LogLoss(),
 )
 
-# We plot performance measures evaluated for subsets of experiments.
-plot_evals(perf_eval; ylabel = "logloss")
+# We plot performance measures evaluated for subsets of experiments, sorted by performance measure.
+plot_evals(perf_eval; f = x->sort(collect(keys(x)), by = k->x[k], rev=true), ylabel = "logloss")
 
 # ## Cost-Efficient Designs
 
@@ -134,7 +132,7 @@ plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 
 # ### Parallel Experiments
 
-# We may exploit parallelism in the experimental arrangement. To that end, we first specify the monetary cost and execution time for each experiment, respectively.
+# The previous example assumed that experiments had to be run sequentially. We can see how the optimal arrangement changes if we assume multiple experiments can be run in parallel. To that end, we first specify the monetary cost and execution time for each experiment, respectively.
 
 experiments_costs = Dict(
     ## experiment => (monetary cost, execution time) => features
