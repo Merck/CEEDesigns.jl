@@ -132,12 +132,15 @@ function make_labels(designs)
 end
 
 """
-    plot_evals(eval; ylabel="information measure")
+    plot_evals(eval, f; ylabel="information measure")
 
 Create a stick plot that visualizes the performance measures evaluated for subsets of experiments.
+Argument `evals` should be the output of `evaluate_experiments` and the kwarg `f` (if provided) is a function that
+should take as input `evals` and return a list of its keys in the order to be plotted on the x-axis. 
+By default they are sorted by length.
 """
-function plot_evals(evals; ylabel = "information measure", kwargs...)
-    xs = sort!(collect(keys(evals)); by = x -> length(x))
+function plot_evals(evals; ylabel = "information measure", f = x -> sort(collect(keys(x)), by=length))
+    xs = f(evals)
     ys = map(xs) do x
         return evals[x] isa Number ? evals[x] : evals[x].loss
     end
