@@ -171,7 +171,6 @@ p = bar(
     [target_belief[0], target_belief[1]];
     xrot = 40,
     ylabel = "probability",
-    color = :teal,
     title = "unc: $(round(uncertainty(evidence_with_bp), digits=2))",
     kind = :bar,
     legend = false,

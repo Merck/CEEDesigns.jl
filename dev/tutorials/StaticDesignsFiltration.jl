@@ -148,7 +148,7 @@ p = scatter(
     map(x -> x[1][1], designs_no_filtration),
     map(x -> x[1][2], designs_no_filtration);
     label = "designs with filtration disabled",
-    c = :blue,
+    c = CEED.colorant"rgb(104,140,232)",
     mscolor = nothing,
     fontsize = 16,
 )
@@ -159,7 +159,7 @@ scatter!(
     xlabel = "combined cost",
     ylabel = "discriminative power",
     label = "designs with filtration enabled",
-    c = :teal,
+    c = CEED.colorant"rgb(110,206,178)",
     mscolor = nothing,
     fontsize = 16,
 )
