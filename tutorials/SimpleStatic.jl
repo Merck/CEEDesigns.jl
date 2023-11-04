@@ -1,4 +1,4 @@
-using Revise, CEED, CEED.StaticDesigns
+using CEED, CEED.StaticDesigns
 using Combinatorics: powerset
 using DataFrames
 using POMDPs
