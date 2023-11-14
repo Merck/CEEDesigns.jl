@@ -43,53 +43,58 @@ DataFrame(
     value=collect(values(experiments_evals))
 )
 
-# call `efficient_designs`
-max_parallel = 2
-tradeoff = (0.5, 0.5)
-mdp_kwargs = CEED.StaticDesigns.default_mdp_kwargs
+# # call `efficient_designs`
+# max_parallel = 2
+# tradeoff = (0.5, 0.5)
+# mdp_kwargs = CEED.StaticDesigns.default_mdp_kwargs
 
-experimental_costs = Dict(e => v isa Pair ? v[1] : v for (e, v) in experiments_costs)
+# experimental_costs = Dict(e => v isa Pair ? v[1] : v for (e, v) in experiments_costs)
 
-evals = Dict{Set{String},CEED.StaticDesigns.ExperimentalEval}(
-    if e isa Number
-        s => (; loss = convert(Float64, e), filtration = 1.0)
-    else
-        s => (;
-            loss = convert(Float64, e.loss),
-            filtration = convert(Float64, e.filtration),
-        )
-    end for (s, e) in experiments_evals
-)
+# evals = Dict{Set{String},CEED.StaticDesigns.ExperimentalEval}(
+#     if e isa Number
+#         s => (; loss = convert(Float64, e), filtration = 1.0)
+#     else
+#         s => (;
+#             loss = convert(Float64, e.loss),
+#             filtration = convert(Float64, e.filtration),
+#         )
+#     end for (s, e) in experiments_evals
+# )
 
-# note that collect(evals) will give us the possible subsets S 
-# of experiments E. For each one, we want to find it's optimal arrangement.
+# # note that collect(evals) will give us the possible subsets S 
+# # of experiments E. For each one, we want to find it's optimal arrangement.
 
-# the for loop within `efficient_designs`
-designs = []
+# # the for loop within `efficient_designs`
+# designs = []
 
-for design in collect(evals)
-    arrangement = CEED.StaticDesigns.optimal_arrangement(
-        experimental_costs,
-        evals,
-        design[1];
-        max_parallel,
-        tradeoff,
-        mdp_kwargs,
-    )
+# for design in collect(evals)
+#     arrangement = CEED.StaticDesigns.optimal_arrangement(
+#         experimental_costs,
+#         evals,
+#         design[1];
+#         max_parallel,
+#         tradeoff,
+#         mdp_kwargs,
+#     )
 
-    push!(
-        designs,
-        (
-            (arrangement.combined_cost, design[2].loss),
-            (;
-                arrangement = arrangement.arrangement,
-                monetary_cost = arrangement.monetary_cost,
-                time = arrangement.time,
-            ),
-        ),
-    )
-end
+#     push!(
+#         designs,
+#         (
+#             (arrangement.combined_cost, design[2].loss),
+#             (;
+#                 arrangement = arrangement.arrangement,
+#                 monetary_cost = arrangement.monetary_cost,
+#                 time = arrangement.time,
+#             ),
+#         ),
+#     )
+# end
 
-pareto_designs = front(x -> x[1], designs)
+# pareto_designs = front(x -> x[1], designs)
 
-plot_front(pareto_designs; labels = make_labels(pareto_designs), ylabel = "loss")
+# plot_front(pareto_designs; labels = make_labels(pareto_designs), ylabel = "loss")
+
+# or by using the function we have that wraps this
+designs = efficient_designs(experiments_costs, experiments_evals, max_parallel=max_parallel, tradeoff=tradeoff)
+
+plot_front(designs; labels = make_labels(pareto_designs), ylabel = "loss")
