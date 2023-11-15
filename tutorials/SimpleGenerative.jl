@@ -18,23 +18,66 @@ make_friedman1 = function(n, noise=0)
     return X
 end
 
-make_friedman2 = function(n, noise=0)
+# simulate random draws from 4d gaussian copula specified by
+# correlations and the marginal distributions
+gaussian_copula_4d = function(n, r12, r13, r14, r23, r24, r34, d)
+    # so ugly
+    Σ = zeros(4,4)
+    Σ[1,1] = 1
+    Σ[2,2] = 1
+    Σ[3,3] = 1
+    Σ[4,4] = 1
+    Σ[1,2] = r12
+    Σ[2,1] = r12
+    Σ[1,3] = r13
+    Σ[3,1] = r13
+    Σ[1,4] = r14
+    Σ[4,1] = r14
+    Σ[2,3] = r23
+    Σ[3,2] = r23
+    Σ[2,4] = r24
+    Σ[4,2] = r24
+    Σ[3,4] = r34
+    Σ[4,3] = r34
+    U = transpose(rand(Distributions.MvNormal(Σ), n))
+    X = zeros(n,4)
+    for i in 1:4
+        # X[:,i] = Float64.(Distributions.quantile.(d[i], U[:,i]))
+        X[:,i] = Float64.(Distributions.quantile.(d[i], cdf.(Distributions.Normal(), U[:,i])))
+    end
+    return X
+end
+
+# X = gaussian_copula_4d(
+#     1000, 0.8, 0.5, 0.3, 0.5, 0.25, 0.4, 
+#     [
+#         Distributions.Binomial(10,0.5),
+#         Distributions.Exponential(),
+#         Distributions.Uniform(-5,-1.5),
+#         Distributions.Poisson(100)
+#     ]
+# )
+
+# # check that the empirical correlation is roughly correct with what we put in
+# cor(X)
+
+make_friedman2 = function(n, U, noise=0)
+    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
     X = DataFrame(zeros(Float64, n, 4), :auto)
-    X[:,1] .= rand(Distributions.Uniform(0,100), n)
-    X[:,2] .= rand(Distributions.Uniform(40*π,560*π), n)
-    X[:,3] .= rand(Distributions.Uniform(0,1), n)
-    X[:,4] .= rand(Distributions.Uniform(1,11), n)
+    for i in 1:4
+        X[:,i] .= U[:,i]
+    end
     ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
     X.y = @. (X[:,1]^2 + (X[:,2] * X[:,3]  - 1 / (X[:,2] * X[:,4]))^2)^0.5 + ϵ
     return X
 end
 
-make_friedman3 = function(n, noise=0)
+make_friedman3 = function(n, U, noise=0)
+    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
     X = DataFrame(zeros(Float64, n, 4), :auto)
-    X[:,1] .= rand(Distributions.Uniform(0,100), n)
-    X[:,2] .= rand(Distributions.Uniform(40*π,560*π), n)
-    X[:,3] .= rand(Distributions.Uniform(0,1), n)
-    X[:,4] .= rand(Distributions.Uniform(1,11), n)
+    for i in 1:4
+        X[:,i] .= U[:,i]
+    end
     ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
     X.y = @. atan((X[:,2] * X[:,3] - 1 / (X[:,2] * X[:,4])) / X[:,1]) + ϵ
     return X
@@ -45,26 +88,18 @@ end
 # let's generate some synthetic "historical data"
 n_hist = 1000
 
-# data = DataFrame(
-#     x1=rand(Distributions.Uniform(-10,10),n_hist),
-#     x2=rand(Distributions.Exponential(), n_hist),
-#     x3=rand(Distributions.Binomial(50,0.25),n_hist),
-#     x4=rand(Distributions.Gamma(10),n_hist)
-# )
+# the strange marginals are also from https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
+copula_sample = gaussian_copula_4d(
+    n_hist, 0.8, 0.5, 0.3, 0.5, 0.25, 0.4, 
+    [
+        Distributions.Uniform(0,100),
+        Distributions.Uniform(40*π,560*π),
+        Distributions.Uniform(0,1),
+        Distributions.Uniform(1,11)
+    ]
+)
 
-# data.y = @. 50*sin(data.x1) + 2.5*data.x2^0.5 + 5*(data.x2*data.x3)^0.95 + (20*data.x4 / (1 + data.x4))
-
-
-# data = DataFrame(
-#     x1=rand(Distributions.Normal(),n_hist),
-#     x2=rand(Distributions.Norma(), n_hist),
-#     x3=rand(Distributions.Norma(),n_hist),
-#     x4=rand(Distributions.Norma(),n_hist)
-# )
-
-# data.y = @. 5*data.x1 + 2*data.x2 + 3*data.x3 + 6*data.x4 + 1.5*(data.x1*data.x2) + 3.25*(data.x3*data.x4) + 0.5*(data.x1*data.x2*data.x4)
-
-data = make_friedman3(n_hist)
+data = make_friedman3(n_hist, copula_sample)
 
 types = Dict(
     :x1 => ScientificTypes.Continuous,
@@ -91,22 +126,6 @@ histogram(data.y, legend=false, ylab="Count", xlab="y")
 
 (; sampler, uncertainty, weights) = DistanceBased(data, "y", Variance, GenerativeDesigns.Exponential(; λ = 5));
 
-# we can view the posterior distribution over the outcome conditioned on the current state
-using StatsPlots, StatsBase
-
-evidence = Evidence("x4" => mean(data.x4))
-plot_weights = StatsBase.weights(weights(evidence))
-
-p1 = StatsPlots.density(
-    data.y, weights=plot_weights, 
-    legend=false, ylabel="Density", title="q(y|eₛ), uncertainty $(round(uncertainty(evidence), digits=1))"
-)
-p2 = Plots.histogram(
-    data.y, weights=plot_weights, 
-    legend=false, ylabel="Density", title="q(y|eₛ)"
-)
-plot(p1, p2, layout=(1,2), legend=false)
-
 # we may also look at the uncertainty from each marginal distribution
 data_uncertainties = [i => uncertainty(Evidence(i => mean(data[:,i]))) for i in names(data)[1:4]]
 sort!(data_uncertainties, by=x->x[2], rev=true)
@@ -119,12 +138,29 @@ sticks(
     ylab="Uncertainty"
 )
 
+# we can view the posterior distribution over the outcome conditioned on the current state
+using StatsPlots, StatsBase
+
+evidence = Evidence("x1" => mean(data.x1))
+plot_weights = StatsBase.weights(weights(evidence))
+
+p1 = StatsPlots.density(
+    data.y, weights=plot_weights, 
+    legend=false, ylabel="Density", title="q(y|eₛ), uncertainty $(round(uncertainty(evidence), digits=1))"
+)
+p2 = Plots.histogram(
+    data.y, weights=plot_weights, 
+    legend=false, ylabel="Density", title="q(y|eₛ)"
+)
+plot(p1, p2, layout=(1,2), legend=false)
+
+
 # we'll set up the costs such that experiments corresponding to more informative marginals are more expensive
 experiments_costs = Dict(
-    "e1" => (2,2) => ["x1"],
+    "e1" => (1,1) => ["x1"],
     "e2" => (3,3) => ["x2"],
     "e3" => (4,4) => ["x3"],
-    "e4" => (1,1) => ["x4"]
+    "e4" => (2,2) => ["x4"]
 )
 
 # make a nice dataframe display of the exp costs and what they measure
