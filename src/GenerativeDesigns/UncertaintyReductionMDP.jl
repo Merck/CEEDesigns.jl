@@ -17,7 +17,7 @@ Internally, a state of the decision process is modeled as a tuple `(evidence::Ev
 
 # Keyword Arguments
 
-  - `costs_tradeoff`: tradeoff between monetary cost and execution time of an experimental designs, modeled as a vector of length two.
+  - `costs_tradeoff`: tradeoff between monetary cost and execution time of an experimental designs, given as a tuple of floats.
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
   - `bigM`: it refers to the penalty that arises in a scenario where further experimental action is not an option, yet the uncertainty exceeds the allowable limit.
@@ -32,7 +32,7 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     # actions and costs
     costs::Dict{String,ActionCost}
     # monetary cost v. time tradeoff
-    costs_tradeoff::Vector{Float64}
+    costs_tradeoff::NTuple{2,Float64}
     # maximum number of assays that can be run in parallel
     max_parallel::Int
     # discount
@@ -53,13 +53,13 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
         uncertainty,
         threshold,
         evidence = Evidence();
-        costs_tradeoff = [1, 0],
+        costs_tradeoff = (1, 0),
         max_parallel::Int = 1,
         discount = 1.0,
         bigM = const_bigM,
         max_experiments = bigM,
     )
-        state = State((evidence, zeros(2)))
+        state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
         @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
@@ -70,12 +70,12 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
             try
                 if action isa Pair && action[2] isa Pair
                     string(action[1]) => (;
-                        costs = Float64[action[2][1]..., 0][1:2],
+                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
                         features = convert(Vector{String}, action[2][2]),
                     )
                 elseif action isa Pair
                     string(action[1]) => (;
-                        costs = Float64[action[2]..., 0][1:2],
+                        costs = Tuple(Float64[action[2]..., 0][1:2]),
                         features = String[action[1]],
                     )
                 else
@@ -132,10 +132,10 @@ function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
         Deterministic(merge(state, Dict(eox => -1), [0.0, 0.0]))
     else
         # costs
-        costs = zeros(2)
+        cost_m, cost_t = 0.0, 0.0
         for experiment in action_set
-            costs[1] += m.costs[experiment].costs[1] # monetary cost
-            costs[2] = max(costs[2], m.costs[experiment].costs[2]) # time
+            cost_m += m.costs[experiment].costs[1] # monetary cost
+            cost_t = max(cost_t, m.costs[experiment].costs[2]) # time
         end
 
         # readout features 
@@ -145,7 +145,7 @@ function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
             observation = m.sampler(state.evidence, features, rng)
 
             # create new evidence, add new information
-            return merge(state, observation, costs)
+            return merge(state, observation, (cost_m, cost_t))
         end
     end
 end
@@ -154,7 +154,8 @@ function POMDPs.reward(m::UncertaintyReductionMDP, _, action, state)
     if action == [eox]
         -m.bigM
     else
-        -state.costs' * m.costs_tradeoff
+        # -state.costs' * m.costs_tradeoff
+        -sum(state.costs .* m.costs_tradeoff)
     end
 end
 
