@@ -1,6 +1,5 @@
 using Revise, CEED, CEED.GenerativeDesigns
 using Combinatorics: powerset
-using DataFrames
 using ScientificTypes
 using Distributions
 using POMDPs
@@ -10,12 +9,53 @@ using Plots
 using StatsPlots, StatsBase
 
 # --------------------------------------------------------------------------------
-# synthetic data gen; see https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
+# In this file we want to develop 2 simple examples of using the generative designs
+# solver. 
+#   * One for continuous outcomes using the Variance based `uncertainty` function.
+#   * One for discrete outcomes using the Entropy based `uncertainty` function. 
+
+
+# --------------------------------------------------------------------------------
+# 
+# First example is for the continuous outcome.
+# 
+# --------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
+# We want to generate synthetic data (see https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression)
+# We'll sample the predictors from a 4D Gaussian copula, so that there is specified covariance
+# between the predictors. Otherwise the similarity metric will not be very meaningful, because if all
+# predictors are independent similarity will essentially be uniformly distributed.
+
+# these are the 3 sample functions for synthetic regression data from
+# https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
 
 make_friedman1 = function(n, noise=0)
     X = DataFrame(rand(Float64, (n,5)), :auto)
     ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
     X.y = @. 10 * sin(π * X[:,1] * X[:,2]) + 20 * (X[:,3] - 0.5)^2 + 10 * X[:,4] + 5 * X[:,5] + ϵ
+    return X
+end
+
+make_friedman2 = function(n, U, noise=0)
+    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
+    X = DataFrame(zeros(Float64, n, 4), :auto)
+    for i in 1:4
+        X[:,i] .= U[:,i]
+    end
+    ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
+    X.y = @. (X[:,1]^2 + (X[:,2] * X[:,3]  - 1 / (X[:,2] * X[:,4]))^2)^0.5 + ϵ
+    return X
+end
+
+make_friedman3 = function(n, U, noise=0)
+    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
+    X = DataFrame(zeros(Float64, n, 4), :auto)
+    for i in 1:4
+        X[:,i] .= U[:,i]
+    end
+    ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
+    X.y = @. atan((X[:,2] * X[:,3] - 1 / (X[:,2] * X[:,4])) / X[:,1]) + ϵ
     return X
 end
 
@@ -43,11 +83,12 @@ gaussian_copula_4d = function(n, r12, r13, r14, r23, r24, r34, d)
     U = transpose(rand(Distributions.MvNormal(Σ), n))
     X = zeros(n,4)
     for i in 1:4
-        # X[:,i] = Float64.(Distributions.quantile.(d[i], U[:,i]))
         X[:,i] = Float64.(Distributions.quantile.(d[i], cdf.(Distributions.Normal(), U[:,i])))
     end
     return X
 end
+
+# how to use the copula sampler and check that it is getting approx the right empirical correlation matrix
 
 # X = gaussian_copula_4d(
 #     1000, 0.8, 0.5, 0.3, 0.5, 0.25, 0.4, 
@@ -62,31 +103,10 @@ end
 # # check that the empirical correlation is roughly correct with what we put in
 # cor(X)
 
-make_friedman2 = function(n, U, noise=0)
-    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
-    X = DataFrame(zeros(Float64, n, 4), :auto)
-    for i in 1:4
-        X[:,i] .= U[:,i]
-    end
-    ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
-    X.y = @. (X[:,1]^2 + (X[:,2] * X[:,3]  - 1 / (X[:,2] * X[:,4]))^2)^0.5 + ϵ
-    return X
-end
-
-make_friedman3 = function(n, U, noise=0)
-    size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
-    X = DataFrame(zeros(Float64, n, 4), :auto)
-    for i in 1:4
-        X[:,i] .= U[:,i]
-    end
-    ϵ = noise > 0 ? rand(Distributions.Normal(0,noise),size(X,1)) : 0
-    X.y = @. atan((X[:,2] * X[:,3] - 1 / (X[:,2] * X[:,4])) / X[:,1]) + ϵ
-    return X
-end
-
 
 # --------------------------------------------------------------------------------
-# let's generate some synthetic "historical data"
+# Generate synthetic "historical data"
+
 n_hist = 1000
 
 # the strange marginals are also from https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
@@ -123,7 +143,7 @@ histogram(data.y, legend=false, ylab="Count", xlab="y")
 
 
 # --------------------------------------------------------------------------------
-# uncertainty and similarity based sampling
+# set up the distance based method for weights and uncertainty evaluation
 
 (; sampler, uncertainty, weights) = DistanceBased(data, "y", Variance, GenerativeDesigns.Exponential(; λ = 5));
 
@@ -154,12 +174,12 @@ p2 = Plots.histogram(
 plot(p1, p2, layout=(1,2), legend=false)
 
 
-# we'll set up the costs such that experiments corresponding to more informative marginals are more expensive
+# we'll set up the costs of each experiment
 experiments_costs = Dict(
     "e1" => (1,1) => ["x1"],
-    "e2" => (3,3) => ["x2"],
-    "e3" => (4,4) => ["x3"],
-    "e4" => (2,2) => ["x4"]
+    "e2" => (1,1) => ["x2"],
+    "e3" => (1,1) => ["x3"],
+    "e4" => (1,1) => ["x4"]
 )
 
 # make a nice dataframe display of the exp costs and what they measure
@@ -171,15 +191,11 @@ experiments_costs_df
 # --------------------------------------------------------------------------------
 # find efficient actions
 
-costs=experiments_costs
-# sampler
-# uncertainty
+# options
 n_thresholds=6
-# evidence=Evidence()
-# evidence=Evidence("x4"=>mean(data.x4))
+evidence=Evidence()
 solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
-realized_uncertainty = false
 mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=[0.5,0.5])
 
 designs = efficient_designs(
@@ -196,10 +212,15 @@ designs = efficient_designs(
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
 
+# --------------------------------------------------------------------------------
+# 
+# Second example is for the discrete outcome.
+# 
+# --------------------------------------------------------------------------------
 
 # --------------------------------------------------------------------------------
-# redo as classification problem.
-# data was generated by
+# data for classification problem was generated by this function
+# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html#sklearn.datasets.make_classification
 
 # using PyCall
 # sklearn = PyCall.pyimport_conda("sklearn", "scikit-learn")
@@ -215,7 +236,7 @@ plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 # dat.y = y
 # CSV.write("./class.csv",dat)
 
-using CSV, DataFrames
+using CSV
 
 data = CSV.read("./data/class.csv", DataFrame)
 
@@ -263,7 +284,7 @@ p = bar(
 xticks!(p, 0:1, ["0", "1"]);
 p
 
-# we'll set up the costs such that experiments corresponding to more informative marginals are more expensive
+# experimental costs
 experiments_costs = Dict(
     "e1" => (1,1) => ["x1"],
     "e2" => (1,1) => ["x2"],
@@ -280,15 +301,10 @@ experiments_costs_df
 # --------------------------------------------------------------------------------
 # find efficient actions
 
-costs=experiments_costs
-# sampler
-# uncertainty
 n_thresholds=6
 evidence=Evidence()
-# evidence=Evidence("x4"=>mean(data.x4))
 solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
-realized_uncertainty = false
 mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=[0.5,0.5])
 
 designs = efficient_designs(
