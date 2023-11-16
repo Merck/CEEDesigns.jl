@@ -154,7 +154,6 @@ function POMDPs.reward(m::UncertaintyReductionMDP, _, action, state)
     if action == [eox]
         -m.bigM
     else
-        # -state.costs' * m.costs_tradeoff
         -sum(state.costs .* m.costs_tradeoff)
     end
 end
