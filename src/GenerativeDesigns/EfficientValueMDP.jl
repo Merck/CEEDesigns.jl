@@ -16,10 +16,8 @@ Internally, the reward associated with a particular experimental `evidence` and 
 
 # Keyword Arguments
 
-  - 'costs_tradeoff': a vector of weights that trade off monetary cost and execution time. Defaults to `[1, 0]`.
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
-  - `bigM`: it refers to the penalty that arises in a scenario where further experimental action is not an option, yet the uncertainty exceeds the allowable limit.
 """
 struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
     # initial state
@@ -45,7 +43,7 @@ struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
         max_parallel::Int = 1,
         discount = 1.0,
     )
-        state = State((evidence, zeros(2)))
+        state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
         @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
@@ -56,12 +54,12 @@ struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
             try
                 if action isa Pair && action[2] isa Pair
                     string(action[1]) => (;
-                        costs = Float64[action[2][1]..., 0][1:2],
+                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
                         features = convert(Vector{String}, action[2][2]),
                     )
                 elseif action isa Pair
                     string(action[1]) => (;
-                        costs = Float64[action[2]..., 0][1:2],
+                        costs = Tuple(Float64[action[2]..., 0][1:2]),
                         features = String[action[1]],
                     )
                 else
@@ -93,10 +91,10 @@ POMDPs.initialstate(m::EfficientValueMDP) = Deterministic(m.initial_state)
 
 function POMDPs.transition(m::EfficientValueMDP, state, action_set)
     # costs
-    costs = zeros(2)
+    cost_m, cost_t = 0.0, 0.0
     for experiment in action_set
-        costs[1] += m.costs[experiment].costs[1] # monetary cost
-        costs[2] = max(costs[2], m.costs[experiment].costs[2]) # time
+        cost_m += m.costs[experiment].costs[1] # monetary cost
+        cost_t = max(cost_t, m.costs[experiment].costs[2]) # time
     end
 
     # readout features
@@ -106,7 +104,7 @@ function POMDPs.transition(m::EfficientValueMDP, state, action_set)
         observation = m.sampler(state.evidence, features, rng)
 
         # create new evidence, add new information
-        return merge(state, observation, costs)
+        return merge(state, observation, (cost_m, cost_t))
     end
 end
 

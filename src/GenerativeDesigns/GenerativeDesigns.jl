@@ -37,7 +37,7 @@ Evidence(p1::Pair, pairs::Pair...) = merge(Evidence(), Dict(p1, pairs...))
 """
 Represent experimental state as a tuple of experimental costs and evidence.
 """
-const State = NamedTuple{(:evidence, :costs),Tuple{Evidence,<:Vector{Real}}}
+const State = NamedTuple{(:evidence, :costs),Tuple{Evidence,NTuple{2,Float64}}}
 
 function Base.merge(state::State, evidence, costs)
     return State((merge(state.evidence, evidence), state.costs .+ costs))
@@ -46,9 +46,9 @@ end
 include("distancebased.jl")
 
 """
-Represent action as a named tuple `(; costs=[monetary cost, time], features)`.
+Represent action as a named tuple `(; costs=(monetary cost, time), features)`.
 """
-const ActionCost = NamedTuple{(:costs, :features),<:Tuple{Vector{Float64},Vector{String}}}
+const ActionCost = NamedTuple{(:costs, :features),<:Tuple{NTuple{2,Float64},Vector{String}}}
 
 const const_bigM = 1_000_000
 
