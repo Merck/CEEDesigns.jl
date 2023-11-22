@@ -175,15 +175,24 @@ p2 = Plots.histogram(
 plot(p1, p2, layout=(1,2), legend=false)
 
 
-# we'll set up the costs of each experiment
-experiments_costs = Dict(
-    "e1" => (1,1) => ["x1"],
-    "e2" => (1,1) => ["x2"],
-    "e3" => (1,1) => ["x3"],
-    "e4" => (1,1) => ["x4"]
-)
+# # we'll set up the costs of each experiment
+# experiments_costs = Dict(
+#     "e1" => (1,1) => ["x1"],
+#     "e2" => (1,1) => ["x2"],
+#     "e3" => (1,1) => ["x3"],
+#     "e4" => (1,1) => ["x4"]
+# )
 
-# make a nice dataframe display of the exp costs and what they measure
+# # make a nice dataframe display of the exp costs and what they measure
+# experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
+# push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
+# experiments_costs_df
+
+# we'll set up the experimental costs such that experiments which have less marginal uncertinaty
+# are more costly
+observables_experiments = Dict(["x$i" => "e$i" for i in 1:4])
+experiments_costs = Dict([observables_experiments[e[1]] => (i,i) => [e[1]] for (i,e) in enumerate(sort(data_uncertainties, by=x->x[2], rev=true))])
+
 experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
 push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
 experiments_costs_df
