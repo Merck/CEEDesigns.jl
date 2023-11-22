@@ -193,6 +193,9 @@ plot(p1, p2, layout=(1,2), legend=false)
 observables_experiments = Dict(["x$i" => "e$i" for i in 1:4])
 experiments_costs = Dict([observables_experiments[e[1]] => (i,i) => [e[1]] for (i,e) in enumerate(sort(data_uncertainties, by=x->x[2], rev=true))])
 
+# add a final very expensive experiment directly on the target variable
+experiments_costs["ey"] = (100,100) => ["y"]
+
 experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
 push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
 experiments_costs_df
@@ -202,7 +205,7 @@ experiments_costs_df
 # find efficient actions
 
 # options
-n_thresholds=6
+n_thresholds=7
 evidence=Evidence()
 solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
@@ -266,7 +269,9 @@ data = coerce(data, types);
 (; sampler, uncertainty, weights) = DistanceBased(data, "y", Entropy, GenerativeDesigns.Exponential(; λ = 5));
 
 # we may also look at the uncertainty from each marginal distribution
-data_uncertainties = [i => uncertainty(Evidence(i => mean(data[:,i]))) for i in names(data)[1:end-1]]
+# this is a bit nonsensical as the data generating function will create multimodal clusters
+# so it will look artifically as if nothing is informative, but that is not the case.
+data_uncertainties = [i => uncertainty(Evidence(i => mode(data[:,i]))) for i in names(data)[1:end-1]]
 sort!(data_uncertainties, by=x->x[2], rev=true)
 
 sticks(
@@ -294,15 +299,27 @@ p = bar(
 xticks!(p, 0:1, ["0", "1"]);
 p
 
-# experimental costs
-experiments_costs = Dict(
-    "e1" => (1,1) => ["x1"],
-    "e2" => (1,1) => ["x2"],
-    "e3" => (1,1) => ["x3"],
-    "e4" => (1,1) => ["x4"]
-)
+# # experimental costs
+# experiments_costs = Dict(
+#     "e1" => (1,1) => ["x1"],
+#     "e2" => (1,1) => ["x2"],
+#     "e3" => (1,1) => ["x3"],
+#     "e4" => (1,1) => ["x4"]
+# )
 
-# make a nice dataframe display of the exp costs and what they measure
+# # make a nice dataframe display of the exp costs and what they measure
+# experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
+# push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
+# experiments_costs_df
+
+# we'll set up the experimental costs such that experiments which have less marginal uncertinaty
+# are more costly
+observables_experiments = Dict(["x$i" => "e$i" for i in 1:5])
+experiments_costs = Dict([observables_experiments[e[1]] => (i,i) => [e[1]] for (i,e) in enumerate(sort(data_uncertainties, by=x->x[2], rev=true))])
+
+# add a final very expensive experiment directly on the target variable
+experiments_costs["ey"] = (100,100) => ["y"]
+
 experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
 push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
 experiments_costs_df
@@ -311,11 +328,11 @@ experiments_costs_df
 # --------------------------------------------------------------------------------
 # find efficient actions
 
-n_thresholds=6
+n_thresholds=7
 evidence=Evidence()
 solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
-mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=[0.5,0.5])
+mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=(0.5,0.5))
 
 designs = efficient_designs(
     experiments_costs,
