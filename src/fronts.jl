@@ -105,9 +105,7 @@ function plot_front(
         fontsize = 16,
     )
     for i = 2:length(designs)
-        if xs[i] < 10_000
-            scatter!(p, [xs[i]], [ys[i]]; label = labels[i], c = grad[i], mscolor = nothing)
-        end
+        scatter!(p, [xs[i]], [ys[i]]; label = labels[i], c = grad[i], mscolor = nothing)
     end
 
     return p

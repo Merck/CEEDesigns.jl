@@ -1,7 +1,8 @@
 using Revise, CEED, CEED.GenerativeDesigns
+using DataFrames
 using Combinatorics: powerset
 using ScientificTypes
-using Distributions
+import Distributions
 using POMDPs
 using POMDPTools
 using MCTS
@@ -83,7 +84,7 @@ gaussian_copula_4d = function(n, r12, r13, r14, r23, r24, r34, d)
     U = transpose(rand(Distributions.MvNormal(Σ), n))
     X = zeros(n,4)
     for i in 1:4
-        X[:,i] = Float64.(Distributions.quantile.(d[i], cdf.(Distributions.Normal(), U[:,i])))
+        X[:,i] = Float64.(Distributions.quantile.(d[i], Distributions.cdf.(Distributions.Normal(), U[:,i])))
     end
     return X
 end
