@@ -206,7 +206,7 @@ n_thresholds=6
 evidence=Evidence()
 solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
-mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=[0.5,0.5])
+mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tradeoff=(0.5,0.5))
 
 designs = efficient_designs(
     experiments_costs,
