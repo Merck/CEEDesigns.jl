@@ -129,7 +129,7 @@ POMDPs.initialstate(m::UncertaintyReductionMDP) = Deterministic(m.initial_state)
 
 function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
     if action_set == [eox]
-        Deterministic(merge(state, Dict(eox => -1), [0.0, 0.0]))
+        Deterministic(merge(state, Dict(eox => -1), (0.0, 0.0)))
     else
         # costs
         cost_m, cost_t = 0.0, 0.0
