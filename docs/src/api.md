@@ -31,8 +31,9 @@ CEED.GenerativeDesigns.efficient_value
 
 ```@docs
 CEED.GenerativeDesigns.DistanceBased
-CEED.GenerativeDesigns.QuadraticStandardizedDistance
-CEED.GenerativeDesigns.DiscreteMetric
+CEED.GenerativeDesigns.QuadraticDistance
+CEED.GenerativeDesigns.DiscreteDistance
+CEED.GenerativeDesigns.MahalanobisDistance
 CEED.GenerativeDesigns.Exponential
 ```
 

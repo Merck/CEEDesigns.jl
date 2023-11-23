@@ -1,21 +1,23 @@
-# default readout-column distance functionals
+# function to compute the distance between a readout and column entries
 """
-    QuadraticStandardizedDistance(; λ=1)
+    QuadraticDistance(; λ=1, standardize=true)
 
-Return an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / (2*σ2)`, where `σ2` is the variance of `col` calculated with respect to `prior`.
+This returns an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / σ`.
+If `standardize` is set to `true`, `σ` represents `col`'s variance calculated in relation to `prior`, otherwise `σ` equals one.
 """
-QuadraticStandardizedDistance(; λ = 1) = function (x, col; prior = ones(length(col)))
-    σ2 = var(col, Weights(prior); corrected = false)
+QuadraticDistance(; λ = 1, standardize = true) =
+    function (x, col; prior = ones(length(col)))
+        σ = standardize ? var(col, Weights(prior); corrected = false) : 1
 
-    return λ * (x .- col) .^ 2 / (2 * σ2)
-end
+        return λ * (x .- col) .^ 2 / σ
+    end
 
 """
-    DiscreteMetric(; λ=1)
+    DiscreteDistance(; λ=1)
 
 Return an anonymous function `(x, col) -> λ * (x .== col)`.
 """
-DiscreteMetric(; λ = 1) = function (x, col; _...)
+DiscreteDistance(; λ = 1) = function (x, col; _...)
     return map(y -> y == x ? λ : 0.0, col)
 end
 
@@ -25,7 +27,7 @@ end
 
 Return an anonymous function `x -> exp(-λ * sum(x; init=0))`.
 """
-Exponential(; λ = 1) = x -> exp(-λ * sum(x; init = 0))
+Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
 # default uncertainty functionals
 compute_variance(data::AbstractVector; weights) = var(data, Weights(weights))
@@ -35,7 +37,7 @@ compute_variance(data; weights) = sum(var(Matrix(data), Weights(weights), 1))
 """
     Variance(data; prior)
 
-Return a function of `weights` that computes the percentage of variance in the data, compared to the variance calculated with respect to a specified `prior`.
+Return a function of `weights` that computes the fraction of variance in the data, relative to the variance calculated with respect to a specified `prior`.
 """
 function Variance(data; prior)
     initial = compute_variance(data; weights = prior)
@@ -50,7 +52,7 @@ end
 """
     Entropy(labels; prior)
 
-Return a function of `weights` that computes the percentage of information entropy, compared to the entropy calculated with respect to a specified `prior`.
+Return a function of `weights` that computes the fraction of information entropy, relative to the entropy calculated with respect to a specified `prior`.
 """
 function Entropy(labels; prior)
     @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
@@ -58,12 +60,89 @@ function Entropy(labels; prior)
     return (weights -> compute_entropy(labels; weights) / initial)
 end
 
+# Return a function that calculates the sum of distances in each row, column-wise, and applies weights based on the prior.
+function sum_of_distances(data::DataFrame, targets::Vector, distances; prior::Weights)
+    function (evidence::Evidence)
+        if isempty(evidence)
+            return zeros(nrow(data))
+        else
+            array_distances = zeros((nrow(data), length(evidence)))
+            for (i, colname) in enumerate(keys(evidence))
+                if colname ∈ targets
+                    continue
+                else
+                    array_distances[:, i] .=
+                        distances[colname](evidence[colname], data[!, colname]; prior)
+                end
+            end
+
+            distances_sum = vec(sum(array_distances; init = 0.0, dims = 2))
+
+            return distances_sum
+        end
+    end
+end
+
 """
-    DistanceBased(data, target, uncertainty, similarity=Exponential(), distances=Dict(); prior=ones(nrow(data)))
+    MahalanobisDistance(; diagonal=0)
+
+Returns a function that computes [Mahalanobis distance](https://en.wikipedia.org/wiki/Mahalanobis_distance) between each row of `data` and the evidence.
+For a singular covariance matrix, consider adding entries to the matrix's diagonal via the `diagonal` keyword.
+
+# Arguments
+
+  - `diagonal`: A scalar or vector to be added to the diagonal entries of the covariance matrix.
+
+# Returns
+
+It returns a high-level function of `(data, targets, prior)`.
+When called, that function will return an internal function `compute_distances` that takes an `Evidence` and computes the Mahalanobis distance based on the input data and the evidence.
+"""
+function MahalanobisDistance(; diagonal = 0)
+    function (data, targets, prior)
+        non_targets = setdiff(names(data), targets)
+        Σ = cov(Matrix(data[!, non_targets]), Weights(prior))
+        println(non_targets)
+        # add diagonal entries
+        diagonal = diagonal isa Number ? fill(diagonal, size(Σ, 1)) : diagonal
+        foreach(i -> Σ[i, i] += diagonal[i], axes(Σ, 1))
+
+        if rank(Σ) < length(non_targets)
+            #error("singular covariance matrix Σ (rank $(rank(Σ))). Consider adding entries to diagonal via `diagonal` keyword.")
+        end
+
+        # get inverse of Σ
+        Λ = inv(Σ)
+
+        compute_distances = function (evidence::Evidence)
+            if isempty(evidence)
+                return zeros(nrow(data))
+            else
+                vec_evidence = map(colname -> get(evidence, colname, 0), non_targets)
+                distances = map(eachrow(data)) do row
+                    vec_row = map(
+                        colname -> haskey(evidence, colname) ? row[colname] : 0,
+                        non_targets,
+                    )
+                    (vec_evidence - vec_row)' * Λ * (vec_evidence - vec_row)
+                end
+
+                return distances
+            end
+        end
+
+        return compute_distances
+    end
+end
+
+"""
+    DistanceBased(data, target, uncertainty, similarity=Exponential(), distance=Dict(); prior=ones(nrow(data)))
 
 Compute distances between experimental evidence and historical readouts, and apply a 'similarity' functional to obtain probability mass for each row.
 
-# Return Value
+Consider using [`QuadraticDistance`](@ref), [`DiscreteDistance`](@ref), and [`MahalanobisDistance`](@ref).
+
+# Return value
 
 A named tuple with the following fields:
 
@@ -77,7 +156,7 @@ A named tuple with the following fields:
   - `target`: target column name or a vector of target columns names.
   - `uncertainty`: a function that takes the subdataframe containing columns in targets along with prior, and returns an anonymous function taking a single argument (a probability vector over observations) and returns an uncertainty measure over targets.
   - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
-  - `distances`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticStandardizedDistance`](@ref) and [`DiscreteMetric`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
+  - `distance`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticDistance`](@ref) and [`DiscreteDistance`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
 
 # Keyword Argumets
 
@@ -95,55 +174,49 @@ function DistanceBased(
     target,
     uncertainty,
     similarity = Exponential(),
-    distances = Dict();
+    distance = Dict();
     prior = ones(nrow(data)),
 )
-    distances = Dict(
-        try
-            if haskey(distances, colname)
-                string(colname) => distances[colname]
-            elseif elscitype(data[!, colname]) <: Continuous
-                string(colname) => QuadraticStandardizedDistance()
-            elseif elscitype(data[!, colname]) <: Multiclass
-                string(colname) => DiscreteMetric()
-            else
-                error()
-            end
-        catch
-            error(
-                """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
-            Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
-            )
-        end for colname in names(data[!, Not(target)])
-    )
-
     prior = Weights(prior)
     targets = target isa AbstractVector ? target : [target]
-    compute_weights = function (evidence::Evidence)
-        if isempty(evidence)
-            return prior
-        else
-            array_distances = zeros((nrow(data), length(evidence)))
-            for (i, colname) in enumerate(keys(evidence))
-                if colname ∈ targets
-                    continue
+
+    if distance isa Dict
+        distances = Dict(
+            try
+                if haskey(distance, colname)
+                    string(colname) => distance[colname]
+                elseif elscitype(data[!, colname]) <: Continuous
+                    string(colname) => QuadraticDistance()
+                elseif elscitype(data[!, colname]) <: Multiclass
+                    string(colname) => DiscreteDistance()
                 else
-                    array_distances[:, i] .=
-                        distances[colname](evidence[colname], data[!, colname]; prior)
+                    error()
                 end
-            end
+            catch
+                error(
+                    """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
+                Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
+                )
+            end for colname in names(data[!, Not(target)])
+        )
 
-            similarities =
-                prior .*
-                map(i -> similarity(array_distances[i, :]), 1:size(array_distances, 1))
+        compute_distances = sum_of_distances(data, targets, distances; prior)
+    elseif applicable(distance, data, targets, prior)
+        compute_distances = distance(data, targets, prior)
+    else
+        error("distance $distance does not accept `(data, targets, prior)`")
+    end
 
-            # hard match on target columns
-            for colname in collect(keys(evidence)) ∩ targets
-                similarities .*= data[!, colname] .== evidence[colname]
-            end
+    # convert distances into probabilistic weights
+    compute_weights = function (evidence::Evidence)
+        similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
 
-            return Weights(similarities ./ sum(similarities))
+        # hard match on target columns
+        for colname in collect(keys(evidence)) ∩ targets
+            similarities .*= data[!, colname] .== evidence[colname]
         end
+
+        return Weights(similarities ./ sum(similarities))
     end
 
     sampler = function (evidence::Evidence, columns, rng = default_rng())
