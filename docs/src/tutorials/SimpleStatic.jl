@@ -25,15 +25,11 @@
 
 # Let $E = \{ e_1, \ldots, e_n\}$ be a set of $n$ experiments (i.e., $|E|=n$). Each experiment $e \in E$ has an
 # associated tuple $(m_{e},t_{e})$, giving the monetary cost and time duration required to perform experiment $e$.
-
-# ![experiments](assets/static_experiments.png)
-
+# 
 # Consider $P(E)$, the power set of experiments (i.e., every possible subset of experiments). Each subset of
 # experiments $S\in P(E)$ has an associated value $v_{S}$, which is the value of the experiments contained in $S$.
 # This may be given by the loss function associated with a prediction task where the information yielded from $S$
 # is used as predictor variables, or some other notion of information value.
-
-# ![experiments](assets/static_powerset.png)
 
 # ### Arrangements
 
@@ -44,8 +40,6 @@
 # Let $l$ be the number of partitions, and $o_{i}$ a partition in $O_{S}$. Then the arrangement is a surjection from $S$
 # onto $O_{S}$. If no experiments can be done in parallel, then $l=|S|$. If all experiments are done in parallel, then
 # $l=1$. Other arrangements fall between these extremes.
-
-# ![experiments](assets/static_arrangement.png)
 
 # ### Optimal Arrangements
 
