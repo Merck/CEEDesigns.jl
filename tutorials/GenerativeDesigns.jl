@@ -132,7 +132,7 @@ using CEED, CEED.GenerativeDesigns
 # You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
 
 # Alternatively, you can provide a dictionary of `feature => distance` pairs. The implemented distance functionals are `DiscreteMetric(; λ)` and `QuadraticDistance(; λ, standardize=true)`. In that case, the specified distance will be applied to the respective feature, after which the distances will be collated across the range of features.
-        
+
 # You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`).
 
 # The package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
@@ -246,7 +246,7 @@ experiments = Dict(
 seed!(1)
 ## use less number of iterations to speed up build process
 solver = GenerativeDesigns.DPWSolver(;
-    n_iterations = 20_000,
+    n_iterations = 2_000,
     exploration_constant = 5.0,
     tree_in_info = true,
 )
@@ -257,7 +257,7 @@ designs = efficient_designs(
     6,
     evidence;
     solver,
-    mdp_options = (; max_parallel = 2, costs_tradeoff = [0, 1.0]),
+    mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),
     repetitions = 5,
 );
 
@@ -281,8 +281,7 @@ end
 #
 seed!(1)
 ## use less number of iterations to speed up build process
-solver =
-    GenerativeDesigns.DPWSolver(; n_iterations = 20_000, depth = 4, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 2_000, depth = 4, tree_in_info = true)
 design = efficient_value(
     experiments,
     sampler,

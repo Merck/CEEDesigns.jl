@@ -48,6 +48,8 @@
 
 # Therefore, given an experimental state with readouts over the feature set $F \subseteq X$, we can calculate the total distance from the entity recorded in the $j$-th row as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout for feature $x$ for the entity being tested and the entity recorded in $j$-th column, respectively. 
 
+# Alternatively, we could use the [Mahalanobis distance](https://en.wikipedia.org/wiki/Mahalanobis_distance#Definition).
+
 # Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
 
 # Importantly, the proper choice of the distance functionals and the 'similarity' functional discussed above is a question of hyper-optimization. 
@@ -127,7 +129,13 @@ using CEED, CEED.GenerativeDesigns
 (; sampler, uncertainty, weights) =
     DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
 
-# The CEED package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+# You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
+
+# Alternatively, you can provide a dictionary of `feature => distance` pairs. The implemented distance functionals are `DiscreteMetric(; λ)` and `QuadraticDistance(; λ, standardize=true)`. In that case, the specified distance will be applied to the respective feature, after which the distances will be collated across the range of features.
+
+# You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`).
+
+# The package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 # We specify the experiments along with the associated features:
 
@@ -249,7 +257,7 @@ designs = efficient_designs(
     6,
     evidence;
     solver,
-    mdp_options = (; max_parallel = 2, costs_tradeoff = [0, 1.0]),
+    mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),
     repetitions = 5,
 );
 
