@@ -24,10 +24,10 @@ evidence = Evidence()
 # test `DistanceBased` sampler
 r = DistanceBased(
     data;
-    target="HeartDisease",
-    uncertainty=Variance,
-    similarity=Exponential(; λ = 5),
-    distance=MahalanobisDistance(; diagonal = 1),
+    target = "HeartDisease",
+    uncertainty = Variance,
+    similarity = Exponential(; λ = 5),
+    distance = MahalanobisDistance(; diagonal = 1),
 );
 @test all(x -> hasproperty(r, x), [:sampler, :uncertainty, :weights])
 (; sampler, uncertainty, weights) = r
@@ -56,7 +56,7 @@ design = efficient_design(
     experiments;
     sampler,
     uncertainty,
-    threshold=0.0,
+    threshold = 0.0,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -69,7 +69,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -83,7 +83,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -95,7 +95,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     realized_uncertainty = true,
@@ -113,7 +113,7 @@ end
 ## use less number of iterations to speed up build process
 solver = GenerativeDesigns.DPWSolver(; n_iterations = 100, depth = 2, tree_in_info = true)
 
-design = efficient_value(experiments;sampler, value, evidence, solver, repetitions = 5);
+design = efficient_value(experiments; sampler, value, evidence, solver, repetitions = 5);
 @test design isa Tuple
 @test hasproperty(design[2], :stats)
 

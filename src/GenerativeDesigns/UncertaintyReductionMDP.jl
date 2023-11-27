@@ -181,8 +181,12 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
 # Example
 
 ```julia
-(; sampler, uncertainty, weights) =
-    DistanceBased(data; target="HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 # initialize evidence
 evidence = Evidence("Age" => 35, "Sex" => "M")
 # set up solver (or use default)
@@ -192,7 +196,7 @@ designs = efficient_design(
     experiments,
     sampler,
     uncertainty,
-    threshold=0.6,
+    threshold = 0.6,
     evidence,
     solver,            # planner
     mdp_options = (; max_parallel = 1),
@@ -308,8 +312,12 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
 # Example
 
 ```julia
-(; sampler, uncertainty, weights) =
-    DistanceBased(data; target= "HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 # initialize evidence
 evidence = Evidence("Age" => 35, "Sex" => "M")
 # set up solver (or use default)
@@ -319,7 +327,7 @@ designs = efficient_designs(
     experiments,
     sampler,
     uncertainty,
-    thresholds=6,
+    thresholds = 6,
     evidence,
     solver,            # planner
     mdp_options = (; max_parallel = 1),

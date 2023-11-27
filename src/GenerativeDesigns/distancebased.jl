@@ -162,8 +162,12 @@ A named tuple with the following fields:
 # Example
 
 ```julia
-(; sampler, uncertainty, weights) =
-    DistanceBased(data; target = "HeartDisease", uncertainty = Entropy, similarity = Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 ```
 """
 function DistanceBased(

@@ -126,8 +126,12 @@ using CEED, CEED.GenerativeDesigns
 
 # Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
-(; sampler, uncertainty, weights) =
-    DistanceBased(data; target= "HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 
 # You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
 
@@ -211,7 +215,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=6,
+    thresholds = 6,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -254,7 +258,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=6,
+    thresholds = 6,
     evidence,
     solver,
     mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),

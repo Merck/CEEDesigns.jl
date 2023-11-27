@@ -24,7 +24,12 @@ using CEED, CEED.GenerativeDesigns
 evidence = Evidence("Age" => 35, "Sex" => "M")
 
 # test `DistanceBased` sampler
-r = DistanceBased(data; target= "HeartDisease", uncertainty = Entropy, similarity = Exponential(; λ = 5));
+r = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 @test all(x -> hasproperty(r, x), [:sampler, :uncertainty, :weights])
 (; sampler, uncertainty, weights) = r
 
@@ -52,7 +57,7 @@ design = efficient_design(
     experiments;
     sampler,
     uncertainty,
-    threshold=0.0,
+    threshold = 0.0,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -65,7 +70,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -79,7 +84,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -91,7 +96,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=4,
+    thresholds = 4,
     evidence,
     solver,
     realized_uncertainty = true,
