@@ -13,8 +13,8 @@ using MCTS
 
 using ..CEEDesigns: front
 
-export UncertaintyReductionMDP, DistanceBased
-export QuadraticDistance, DiscreteDistance, SquaredMahalanobisDistance
+export UncertaintyReductionMDP, DistanceBased, DistanceBased_active
+export QuadraticStandardizedDistance, DiscreteMetric, MahalanobisDistance
 export Exponential
 export Variance, Entropy
 export Evidence, State
@@ -46,7 +46,7 @@ function Base.merge(state::State, evidence, costs)
 end
 
 include("distancebased.jl")
-
+include("distancebased_active.jl")
 """
 Represent action as a named tuple `(; costs=(monetary cost, time), features)`.
 """
