@@ -1,6 +1,7 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 BetaML = "024491cd-cc6b-443e-8034-08ea7eb7db2b"
+CEED = "e939450b-799e-4198-a5f5-3f2f7fb1c671"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 ConfigEnv = "01234589-554d-41b7-ae5c-7b6ee2db6796"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
