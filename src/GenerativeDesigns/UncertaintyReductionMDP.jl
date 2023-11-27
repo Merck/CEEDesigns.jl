@@ -1,5 +1,5 @@
 """
-    UncertaintyReductionMDP(costs, sampler, uncertainty, threshold, evidence=Evidence(); <keyword arguments>)
+    UncertaintyReductionMDP(costs; sampler, uncertainty, threshold, evidence=Evidence(), <keyword arguments>)
 
 Structure that parametrizes the experimental decision-making process. It is used in the object interface of POMDPs.
 
@@ -10,13 +10,13 @@ Internally, a state of the decision process is modeled as a tuple `(evidence::Ev
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+
+# Keyword Arguments
+
   - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
   - `threshold`: a number representing the acceptable level of uncertainty about the target variable.
   - `evidence=Evidence()`: initial experimental evidence.
-
-# Keyword Arguments
-
   - `costs_tradeoff`: tradeoff between monetary cost and execution time of an experimental designs, given as a tuple of floats.
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
@@ -48,11 +48,11 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     uncertainty::Function
 
     function UncertaintyReductionMDP(
-        costs,
+        costs;
         sampler,
         uncertainty,
         threshold,
-        evidence = Evidence();
+        evidence = Evidence(),
         costs_tradeoff = (1, 0),
         max_parallel::Int = 1,
         discount = 1.0,
@@ -159,20 +159,20 @@ function POMDPs.reward(m::UncertaintyReductionMDP, _, action, state)
 end
 
 """
-    efficient_design(costs, sampler, uncertainty, thresholds, evidence=Evidence(); <keyword arguments>)
+    efficient_design(costs; sampler, uncertainty, threshold, evidence=Evidence(), <keyword arguments>)
 
 In the uncertainty reduction setup, minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
-  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
-  - `thresholds`: uncertainty threshold.
-  - `evidence=Evidence()`: initial experimental evidence.
 
 # Keyword Arguments
 
+  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
+  - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
+  - `threshold`: uncertainty threshold.
+  - `evidence=Evidence()`: initial experimental evidence.
   - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
@@ -182,18 +182,18 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
 
 ```julia
 (; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+    DistanceBased(data; target="HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
 # initialize evidence
 evidence = Evidence("Age" => 35, "Sex" => "M")
 # set up solver (or use default)
 solver = GenerativeDesigns.DPWSolver(; n_iterations = 60_000, tree_in_info = true)
 designs = efficient_design(
-    costs,
+    costs;
     experiments,
     sampler,
     uncertainty,
-    0.6,
-    evidence;
+    threshold=0.6,
+    evidence,
     solver,            # planner
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -201,22 +201,22 @@ designs = efficient_design(
 ```
 """
 function efficient_design(
-    costs,
+    costs;
     sampler,
     uncertainty,
     threshold,
-    evidence = Evidence();
+    evidence = Evidence(),
     solver = default_solver,
     repetitions = 0,
     realized_uncertainty = false,
     mdp_options = (;),
 )
     mdp = UncertaintyReductionMDP(
-        costs,
+        costs;
         sampler,
         uncertainty,
         threshold,
-        evidence;
+        evidence,
         mdp_options...,
     )
     if isterminal(mdp, mdp.initial_state)
@@ -284,7 +284,7 @@ function efficient_design(
 end
 
 """
-    efficient_designs(costs, sampler, uncertainty, n_thresholds, evidence=Evidence(); <keyword arguments>)
+    efficient_designs(costs; sampler, uncertainty, thresholds, evidence=Evidence(), <keyword arguments>)
 
 In the uncertainty reduction setup, minimize the expected experimental resource spend over a range of uncertainty thresholds, and return the set of Pareto-efficient designs in the dimension of cost and uncertainty threshold.
 
@@ -293,13 +293,13 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
-  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
-  - `n_thresholds`: number of thresholds to consider uniformly in the range between 0 and 1, inclusive.
-  - `evidence=Evidence()`: initial experimental evidence.
 
 # Keyword Arguments
 
+  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
+  - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
+  - `thresholds`: number of thresholds to consider uniformly in the range between 0 and 1, inclusive.
+  - `evidence=Evidence()`: initial experimental evidence.
   - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
@@ -309,18 +309,18 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
 
 ```julia
 (; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+    DistanceBased(data; target= "HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
 # initialize evidence
 evidence = Evidence("Age" => 35, "Sex" => "M")
 # set up solver (or use default)
 solver = GenerativeDesigns.DPWSolver(; n_iterations = 60_000, tree_in_info = true)
 designs = efficient_designs(
-    costs,
+    costs;
     experiments,
     sampler,
     uncertainty,
-    6,
-    evidence;
+    thresholds=6,
+    evidence,
     solver,            # planner
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -328,27 +328,27 @@ designs = efficient_designs(
 ```
 """
 function efficient_designs(
-    costs,
+    costs;
     sampler,
     uncertainty,
-    n_thresholds,
-    evidence = Evidence();
+    thresholds,
+    evidence = Evidence(),
     solver = default_solver,
     repetitions = 0,
     realized_uncertainty = false,
     mdp_options = (;),
 )
     designs = []
-    for threshold in range(0.0, 1.0, n_thresholds)
+    for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
         push!(
             designs,
             efficient_design(
-                costs,
+                costs;
                 sampler,
                 uncertainty,
                 threshold,
-                evidence;
+                evidence,
                 solver,
                 repetitions,
                 realized_uncertainty,

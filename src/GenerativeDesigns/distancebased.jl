@@ -102,16 +102,11 @@ function MahalanobisDistance(; diagonal = 0)
     function (data, targets, prior)
         non_targets = setdiff(names(data), targets)
         Σ = cov(Matrix(data[!, non_targets]), Weights(prior))
-        println(non_targets)
         # add diagonal entries
         diagonal = diagonal isa Number ? fill(diagonal, size(Σ, 1)) : diagonal
         foreach(i -> Σ[i, i] += diagonal[i], axes(Σ, 1))
 
-        if rank(Σ) < length(non_targets)
-            #error("singular covariance matrix Σ (rank $(rank(Σ))). Consider adding entries to diagonal via `diagonal` keyword.")
-        end
-
-        # get inverse of Σ
+        # get the inverse of Σ
         Λ = inv(Σ)
 
         compute_distances = function (evidence::Evidence)
@@ -124,7 +119,9 @@ function MahalanobisDistance(; diagonal = 0)
                         colname -> haskey(evidence, colname) ? row[colname] : 0,
                         non_targets,
                     )
-                    (vec_evidence - vec_row)' * Λ * (vec_evidence - vec_row)
+
+                    z = vec_evidence - vec_row
+                    dot(z, Λ * z)
                 end
 
                 return distances
@@ -136,7 +133,7 @@ function MahalanobisDistance(; diagonal = 0)
 end
 
 """
-    DistanceBased(data, target, uncertainty, similarity=Exponential(), distance=Dict(); prior=ones(nrow(data)))
+    DistanceBased(data; target, uncertainty=Entropy, similarity=Exponential(), distance=Dict(); prior=ones(nrow(data)))
 
 Compute distances between experimental evidence and historical readouts, and apply a 'similarity' functional to obtain probability mass for each row.
 
@@ -154,27 +151,27 @@ A named tuple with the following fields:
 
   - `data`: a dataframe with historical data.
   - `target`: target column name or a vector of target columns names.
-  - `uncertainty`: a function that takes the subdataframe containing columns in targets along with prior, and returns an anonymous function taking a single argument (a probability vector over observations) and returns an uncertainty measure over targets.
-  - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
-  - `distance`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticDistance`](@ref) and [`DiscreteDistance`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
 
 # Keyword Argumets
 
+  - `uncertainty`: a function that takes the subdataframe containing columns in targets along with prior, and returns an anonymous function taking a single argument (a probability vector over observations) and returns an uncertainty measure over targets.
+  - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
+  - `distance`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticDistance`](@ref) and [`DiscreteDistance`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
   - `prior`: prior across rows, uniform by default.
 
 # Example
 
 ```julia
 (; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+    DistanceBased(data; target = "HeartDisease", uncertainty = Entropy, similarity = Exponential(; λ = 5));
 ```
 """
 function DistanceBased(
-    data::DataFrame,
+    data::DataFrame;
     target,
-    uncertainty,
+    uncertainty = Variance,
     similarity = Exponential(),
-    distance = Dict();
+    distance = Dict(),
     prior = ones(nrow(data)),
 )
     prior = Weights(prior)

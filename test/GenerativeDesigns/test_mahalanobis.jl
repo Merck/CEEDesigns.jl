@@ -23,11 +23,11 @@ evidence = Evidence()
 
 # test `DistanceBased` sampler
 r = DistanceBased(
-    data,
-    "HeartDisease",
-    Variance,
-    Exponential(; λ = 5),
-    MahalanobisDistance(; diagonal = 1),
+    data;
+    target="HeartDisease",
+    uncertainty=Variance,
+    similarity=Exponential(; λ = 5),
+    distance=MahalanobisDistance(; diagonal = 1),
 );
 @test all(x -> hasproperty(r, x), [:sampler, :uncertainty, :weights])
 (; sampler, uncertainty, weights) = r
@@ -53,11 +53,11 @@ experiments = Dict(
 solver = GenerativeDesigns.DPWSolver(; n_iterations = 100, tree_in_info = true)
 
 design = efficient_design(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    0.0,
-    evidence;
+    threshold=0.0,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -66,11 +66,11 @@ design = efficient_design(
 @test design isa Tuple
 
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    4,
-    evidence;
+    thresholds=4,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -80,11 +80,11 @@ designs = efficient_designs(
 @test all(design -> (design[1][1] ≈ 0) || hasproperty(design[2], :stats), designs)
 
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    4,
-    evidence;
+    thresholds=4,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 1),
 );
@@ -92,11 +92,11 @@ designs = efficient_designs(
 @test !hasproperty(designs[1][2], :stats)
 
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    4,
-    evidence;
+    thresholds=4,
+    evidence,
     solver,
     realized_uncertainty = true,
     mdp_options = (; max_parallel = 1),
@@ -113,10 +113,10 @@ end
 ## use less number of iterations to speed up build process
 solver = GenerativeDesigns.DPWSolver(; n_iterations = 100, depth = 2, tree_in_info = true)
 
-design = efficient_value(experiments, sampler, value, evidence; solver, repetitions = 5);
+design = efficient_value(experiments;sampler, value, evidence, solver, repetitions = 5);
 @test design isa Tuple
 @test hasproperty(design[2], :stats)
 
-design = efficient_value(experiments, sampler, value, evidence; solver);
+design = efficient_value(experiments; sampler, value, evidence, solver);
 @test design isa Tuple
 @test !hasproperty(design[2], :stats)

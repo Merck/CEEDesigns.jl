@@ -127,7 +127,7 @@ using CEED, CEED.GenerativeDesigns
 # Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
 (; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+    DistanceBased(data; target= "HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
 
 # You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
 
@@ -208,11 +208,11 @@ solver = GenerativeDesigns.DPWSolver(;
     tree_in_info = true,
 )
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    6,
-    evidence;
+    thresholds=6,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -246,16 +246,16 @@ experiments = Dict(
 seed!(1)
 ## use less number of iterations to speed up build process
 solver = GenerativeDesigns.DPWSolver(;
-    n_iterations = 20_000,
+    n_iterations = 2_000,
     exploration_constant = 5.0,
     tree_in_info = true,
 )
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    6,
-    evidence;
+    thresholds=6,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),
     repetitions = 5,
@@ -281,13 +281,12 @@ end
 #
 seed!(1)
 ## use less number of iterations to speed up build process
-solver =
-    GenerativeDesigns.DPWSolver(; n_iterations = 20_000, depth = 4, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 2_000, depth = 4, tree_in_info = true)
 design = efficient_value(
-    experiments,
+    experiments;
     sampler,
     value,
-    evidence;
+    evidence,
     solver,
     repetitions = 5,
     mdp_options = (; discount = 0.8),
