@@ -19,7 +19,7 @@ types = Dict(
 )
 data = coerce(data, types);
 
-using CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 evidence = Evidence("Age" => 35, "Sex" => "M")
 

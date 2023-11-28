@@ -1,5 +1,5 @@
 using Random: seed!
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 using CSV, DataFrames
 
 ## predictive model from `MLJ`

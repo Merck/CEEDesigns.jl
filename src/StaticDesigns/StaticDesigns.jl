@@ -7,7 +7,7 @@ using POMDPs
 using POMDPTools: Deterministic
 using MCTS
 
-using ..CEED: front
+using ..CEEDesigns: front
 
 export evaluate_experiments, efficient_designs
 

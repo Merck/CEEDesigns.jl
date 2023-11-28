@@ -14,7 +14,7 @@
 
 # We denote the expected fraction of entities that remain in the triage after conducting a set $S$ of experiments as the filtration rate, $f_S$. In the context of disease triage, this can be interpreted as the fraction of patients for whom the experimental evidence does not provide a 'conclusive' result.
 
-# In the cost-sensitive setting of CEED, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
+# In the cost-sensitive setting of CEEDesigns, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
 
 # To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is modeled as a sequence of mutually disjoint subsets of $S$. In other words, $o = (o_1, \ldots, o_l)$ for a given $l\in\mathbb N$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
 
@@ -90,7 +90,7 @@ data_binary[1:10, :]
 
 # In this scenario, we model the value of information $v_S$ acquired by conducting a set of experiments as the ratio of patients for whom the results across the experiments in $S$ were 'inconclusive', i.e., $|\cap_{e\in S}\{ \text{patient} : \text{inconclusive in } e \}| / |\text{patients}|$. Essentially, the very same measure is used here to estimate the filtration rate.
 
-# The CEED package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+# The CEEDesigns package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 # We specify the experiments along with the associated features:
 
@@ -105,9 +105,9 @@ experiments = Dict(
 # We may also provide additional zero-cost features, which are always available.
 zero_cost_features = ["Age", "Sex", "ChestPainType", "ExerciseAngina"]
 
-# For binary datasets, we may use `evaluate_experiments` from `CEED.StaticDesigns` to evaluate the discriminative power of subsets of experiments.
+# For binary datasets, we may use `evaluate_experiments` from `CEEDesigns.StaticDesigns` to evaluate the discriminative power of subsets of experiments.
 
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 
 #
 
@@ -175,7 +175,7 @@ scatter!(
 using MCTS, D3Trees
 
 experiments = Set(vcat.(designs[end][2].arrangement...)[1])
-(; planner) = CEED.StaticDesigns.optimal_arrangement(
+(; planner) = CEEDesigns.StaticDesigns.optimal_arrangement(
     costs,
     perf_eval,
     experiments;

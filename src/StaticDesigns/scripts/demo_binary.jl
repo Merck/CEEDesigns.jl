@@ -1,5 +1,5 @@
 
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 using CSV, DataFrames
 
 ## synthetic heart disease dataset with binary labels
@@ -23,7 +23,7 @@ perf_eval = evaluate_experiments(experiments, data; zero_cost_features)
 designs = efficient_designs(experiments, perf_eval)
 
 # switch to plotly backend
-CEED.plotly()
+CEEDesigns.plotly()
 
 plot_front(designs; labels = make_labels(designs), ylabel = "discriminative pwr")
 

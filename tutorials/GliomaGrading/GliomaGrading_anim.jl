@@ -55,12 +55,12 @@ end
 
 # ╔═╡ 6ebd71e0-b49a-4d12-b441-4805efc69520
 begin
-    using CEED, CEED.StaticDesigns
+    using CEEDesigns, CEEDesigns.StaticDesigns
 
     md"""
     ### Performance Evaluation
 
-    We use `evaluate_experiments` from `CEED.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as a measure of accuracy. It is possible to pass additional keyword arguments, which will be passed to `MLJ.evaluate` (such as `measure`, shown below).
+    We use `evaluate_experiments` from `CEEDesigns.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as a measure of accuracy. It is possible to pass additional keyword arguments, which will be passed to `MLJ.evaluate` (such as `measure`, shown below).
     """
 end
 
@@ -76,7 +76,7 @@ Let us consider a set of $n$ experiments $E = \{ e_1, \ldots, e_n\}$.
 
 For each subset $S \subseteq E$ of experiments, we denote by $v_S$ the value of information acquired from conducting experiments in $S$.
 
-In the cost-sensitive setting of CEED, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
+In the cost-sensitive setting of CEEDesigns, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
 
 To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is modeled as a sequence of mutually disjoint subsets of $S$. In other words, $o = (o_1, \ldots, o_l)$ for a given $l\in\mathbb N$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
 
@@ -153,7 +153,7 @@ md"Classification target is just the glioma grade"
 target = "Grade"
 
 # ╔═╡ d74684f6-7fd4-41c8-9917-d99dfc1f5f64
-md"In the cost-sensitive setting of CEED, obtaining additional experimental evidence comes with a cost. We assume that each gene mutation is observed individually, while all histological features are gathered in one single experiment."
+md"In the cost-sensitive setting of CEEDesigns, obtaining additional experimental evidence comes with a cost. We assume that each gene mutation is observed individually, while all histological features are gathered in one single experiment."
 
 # ╔═╡ f176f8cf-8941-4257-ba41-60fff864aa56
 # We assume that each feature is measured separately and the measurement incurs a monetary cost.
@@ -363,10 +363,10 @@ function make_plot(specificity, sensitivity, cost, perf_eval)
             xlabel = "combined cost",
             ylabel = "accuracy",
             label = "w/ histology feature",
-            c = CEED.colorant"rgb(110,206,178)",
+            c = CEEDesigns.colorant"rgb(110,206,178)",
             mscolor = nothing,
             fontsize = 16,
-            #fill = (0, CEED.colorant"rgb(110,206,178)"),
+            #fill = (0, CEEDesigns.colorant"rgb(110,206,178)"),
             fillalpha = 0.2,
             legend = :bottomright,
         )
@@ -380,10 +380,10 @@ function make_plot(specificity, sensitivity, cost, perf_eval)
             map(x -> x[1][1], design),
             map(x -> 1 - x[1][2], design);
             label = "w/o histology feature",
-            c = CEED.colorant"rgb(104,140,232)",
+            c = CEEDesigns.colorant"rgb(104,140,232)",
             mscolor = nothing,
             fontsize = 16,
-            #fill = (0, CEED.colorant"rgb(104,140,232)"),
+            #fill = (0, CEEDesigns.colorant"rgb(104,140,232)"),
             fillalpha = 0.15,
             title = "sensitivity = $sensitivity, specificity = $specificity, cost = $cost",
         )

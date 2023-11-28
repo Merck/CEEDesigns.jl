@@ -1,46 +1,46 @@
 # API Documentation
 
 ```@meta
-CurrentModule = CEED
+CurrentModule = CEEDesigns
 ```
 
 ## `StaticDesigns`
 
 ```@docs
-CEED.StaticDesigns.efficient_designs
-CEED.StaticDesigns.evaluate_experiments
+CEEDesigns.StaticDesigns.efficient_designs
+CEEDesigns.StaticDesigns.evaluate_experiments
 ```
 
 ## `GenerativeDesigns`
 
 ```@docs
-CEED.GenerativeDesigns.UncertaintyReductionMDP
-CEED.GenerativeDesigns.EfficientValueMDP
-CEED.GenerativeDesigns.State
-CEED.GenerativeDesigns.Variance
-CEED.GenerativeDesigns.Entropy
+CEEDesigns.GenerativeDesigns.UncertaintyReductionMDP
+CEEDesigns.GenerativeDesigns.EfficientValueMDP
+CEEDesigns.GenerativeDesigns.State
+CEEDesigns.GenerativeDesigns.Variance
+CEEDesigns.GenerativeDesigns.Entropy
 ```
 
 ```@docs
-CEED.GenerativeDesigns.efficient_design
-CEED.GenerativeDesigns.efficient_designs
-CEED.GenerativeDesigns.efficient_value
+CEEDesigns.GenerativeDesigns.efficient_design
+CEEDesigns.GenerativeDesigns.efficient_designs
+CEEDesigns.GenerativeDesigns.efficient_value
 ```
 
 ### Distance-Based Sampling
 
 ```@docs
-CEED.GenerativeDesigns.DistanceBased
-CEED.GenerativeDesigns.QuadraticDistance
-CEED.GenerativeDesigns.DiscreteDistance
-CEED.GenerativeDesigns.MahalanobisDistance
-CEED.GenerativeDesigns.Exponential
+CEEDesigns.GenerativeDesigns.DistanceBased
+CEEDesigns.GenerativeDesigns.QuadraticDistance
+CEEDesigns.GenerativeDesigns.DiscreteDistance
+CEEDesigns.GenerativeDesigns.MahalanobisDistance
+CEEDesigns.GenerativeDesigns.Exponential
 ```
 
 ## Plotting
 
 ```@docs
-CEED.plot_front
-CEED.make_labels
-CEED.plot_evals
+CEEDesigns.plot_front
+CEEDesigns.make_labels
+CEEDesigns.plot_evals
 ```

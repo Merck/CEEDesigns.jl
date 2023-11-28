@@ -125,7 +125,7 @@ nothing #hide
 ## Generative Model for Outcomes Sampling
 
 ````@example GenerativeDesigns
-using CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 ````
 
 As previously discussed, we provide a dataset of historical records, the target variable, along with an information-theoretic measure to quantify the uncertainty about the target variable.
@@ -162,7 +162,10 @@ DistanceBased(
     target = "HeartDisease",
     uncertainty = Entropy,
     similarity = Exponential(; λ = 5),
-    distance = merge(Dict(c => DiscreteDistance() for c in categorical_feats), Dict(c => QuadraticDistance() for c in numeric_feats))
+    distance = merge(
+        Dict(c => DiscreteDistance() for c in categorical_feats),
+        Dict(c => QuadraticDistance() for c in numeric_feats),
+    ),
 );
 nothing #hide
 ````

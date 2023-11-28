@@ -21,7 +21,7 @@ begin
         guidefontsize = 8,
         tickfontsize = 8,
         ylabel = "accuracy",
-        c = CEED.colorant"rgb(110,206,178)",
+        c = CEEDesigns.colorant"rgb(110,206,178)",
         label = "w/ histology",
         xrotation = 50,
     )
@@ -35,7 +35,7 @@ begin
         guidefontsize = 8,
         tickfontsize = 8,
         ylabel = "accuracy",
-        c = CEED.colorant"rgb(104,140,232)",
+        c = CEEDesigns.colorant"rgb(104,140,232)",
         label = "w/o histology",
         width = 2,
         xrotation = 50,
