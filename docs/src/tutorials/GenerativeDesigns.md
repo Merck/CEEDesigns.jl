@@ -137,17 +137,48 @@ In what follows, we obtain three functions:
 
 Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
+You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively.
+
 ````@example GenerativeDesigns
-(; sampler, uncertainty, weights) =
-    DistanceBased(data; target= "HeartDisease", uncertainty=Entropy, similarity=Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 nothing #hide
 ````
 
-You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively.
+Alternatively, you can provide a dictionary of `feature => distance` pairs. The implemented distance functionals are `DiscreteDistance(; λ)` and `QuadraticDistance(; λ, standardize=true)`. In that case, the specified distance will be applied to the respective feature, after which the distances will be collated across the range of features.
 
-Alternatively, you can provide a dictionary of `feature => distance` pairs. The implemented distance functionals are `DiscreteMetric(; λ)` and `QuadraticDistance(; λ, standardize=true)`. In that case, the specified distance will be applied to the respective feature, after which the distances will be collated across the range of features.
+The above call is therefore equivalent to:
 
-You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`).
+````@example GenerativeDesigns
+numeric_feats = filter(c -> c <: Real, eltype.(eachcol(data)))
+categorical_feats = setdiff(names(data), numeric_feats)
+
+DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+    distance = merge(Dict(c => DiscreteDistance() for c in categorical_feats), Dict(c => QuadraticDistance() for c in numeric_feats))
+);
+nothing #hide
+````
+
+You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). For example, we could write:
+
+````@example GenerativeDesigns
+DistanceBased(
+    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]]; # the Mahalanobis distance only works with numeric features, so we selected a few, along with the target variable
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+    distance = MahalanobisDistance(; diagonal = 1),
+);
+nothing #hide
+````
 
 The package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
@@ -240,7 +271,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=6,
+    thresholds = 6,
     evidence,
     solver,
     mdp_options = (; max_parallel = 1),
@@ -292,7 +323,7 @@ designs = efficient_designs(
     experiments;
     sampler,
     uncertainty,
-    thresholds=6,
+    thresholds = 6,
     evidence,
     solver,
     mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),

@@ -101,6 +101,9 @@ When called, that function will return an internal function `compute_distances` 
 function MahalanobisDistance(; diagonal = 0)
     function (data, targets, prior)
         non_targets = setdiff(names(data), targets)
+        if !all(t -> t <: Real, eltype.(eachcol(data[!, non_targets])))
+            @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
+        end
         Σ = cov(Matrix(data[!, non_targets]), Weights(prior))
         # add diagonal entries
         diagonal = diagonal isa Number ? fill(diagonal, size(Σ, 1)) : diagonal
