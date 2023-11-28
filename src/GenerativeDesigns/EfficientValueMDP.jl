@@ -1,5 +1,5 @@
 """
-    EfficientValueMDP(costs, sampler, value, evidence=Evidence(); <keyword arguments>)
+    EfficientValueMDP(costs; sampler, value, evidence=Evidence(), <keyword arguments>)
 
 Structure that parametrizes the experimental decision-making process. It is used in the object interface of POMDPs.
 
@@ -10,12 +10,12 @@ Internally, the reward associated with a particular experimental `evidence` and 
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
-  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `value`: a function of `(evidence)`; it quantifies the utility of experimental evidence.
-  - `evidence=Evidence()`: initial experimental evidence.
 
 # Keyword Arguments
 
+  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
+  - `value`: a function of `(evidence)`; it quantifies the utility of experimental evidence.
+  - `evidence=Evidence()`: initial experimental evidence.
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
 """
@@ -36,10 +36,10 @@ struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
     value::Function
 
     function EfficientValueMDP(
-        costs,
+        costs;
         sampler,
         value,
-        evidence = Evidence();
+        evidence = Evidence(),
         max_parallel::Int = 1,
         discount = 1.0,
     )
@@ -114,7 +114,7 @@ function POMDPs.reward(m::EfficientValueMDP, previous_state::State, _, state::St
 end
 
 """
-    efficient_value(costs, sampler, value, evidence=Evidence(); <keyword arguments>)
+    efficient_value(costs; sampler, value, evidence=Evidence(), <keyword arguments>)
 
 Estimate the maximum value of experimental evidence (such as clinical utility), adjusted for experimental costs.
 
@@ -123,12 +123,12 @@ Internally, an instance of the `EfficientValueMDP` structure is created and a su
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
-  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `value`: a function of `(evidence, (monetary costs, execution time))`; it quantifies the utility of experimental evidence.
-  - `evidence=Evidence()`: initial experimental evidence.
 
 # Keyword Arguments
 
+  - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
+  - `value`: a function of `(evidence, (monetary costs, execution time))`; it quantifies the utility of experimental evidence.
+  - `evidence=Evidence()`: initial experimental evidence.
   - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`EfficientValueMDP`](@ref).
@@ -136,8 +136,12 @@ Internally, an instance of the `EfficientValueMDP` structure is created and a su
 # Example
 
 ```julia
-(; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
 value = (evidence, costs) -> (1 - uncertainty(evidence) + 0.005 * sum(costs));
 # initialize evidence
 evidence = Evidence("Age" => 35, "Sex" => "M")
@@ -145,10 +149,10 @@ evidence = Evidence("Age" => 35, "Sex" => "M")
 solver =
     GenerativeDesigns.DPWSolver(; n_iterations = 10_000, depth = 3, tree_in_info = true)
 design = efficient_value(
-    experiments,
+    experiments;
     sampler,
     value,
-    evidence;
+    evidence,
     solver,            # planner
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -156,15 +160,15 @@ design = efficient_value(
 ```
 """
 function efficient_value(
-    costs,
+    costs;
     sampler,
     value,
-    evidence = Evidence();
+    evidence = Evidence(),
     solver = default_solver,
     repetitions = 0,
     mdp_options = (;),
 )
-    mdp = EfficientValueMDP(costs, sampler, value, evidence; mdp_options...)
+    mdp = EfficientValueMDP(costs; sampler, value, evidence, mdp_options...)
 
     # planner
     planner = solve(solver, mdp)
