@@ -8,7 +8,7 @@
 
 # For each subset $S \subseteq {x_1, ..., x_n}$ of features, we evaluate the accuracy $a_S$ of a predictive model that predicts the value of $y$ based on readouts over features in $S$. Assuming the patient population follows the same distribution as the historical observations, the predictive accuracy serves as a proxy for the information gained from observing the features in $S$.
 
-# In the cost-sensitive setting of CEED, observing the features $S$ incurs a cost $c_S$. Generally, this cost is specified in terms of monetary cost and execution time of an experiment. Considering the constraint of a maximum number of parallel experiments, the algorithm recommends an arrangement of experiments that minimizes the total running time. Eventually, for a fixed tradeoff between monetary cost and execution time, a combined cost $c_S$ is obtained.
+# In the cost-sensitive setting of CEEDesigns, observing the features $S$ incurs a cost $c_S$. Generally, this cost is specified in terms of monetary cost and execution time of an experiment. Considering the constraint of a maximum number of parallel experiments, the algorithm recommends an arrangement of experiments that minimizes the total running time. Eventually, for a fixed tradeoff between monetary cost and execution time, a combined cost $c_S$ is obtained.
 
 # Assuming we know the accuracies $a_S$ and experimental costs $c_S$ for each subset $S \subseteq {x_1, ..., x_n}$, we can generate a set of Pareto-efficient experimental designs considering both predictive accuracy and cost.
 
@@ -21,7 +21,7 @@ data = CSV.File("data/heart_disease.csv") |> DataFrame
 
 # ## Predictive Accuracy
 
-# The CEED package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+# The CEEDesigns package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 # We specify the experiments along with the associated features:
 
@@ -72,9 +72,9 @@ model = classifier(; n_trees = 20, max_depth = 10)
 
 # ### Performance Evaluation
 
-# We use `evaluate_experiments` from `CEED.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as the measure of accuracy. It is possible to pass additional keyword arguments that will propagate `MLJ.evaluate` (such as `measure`).
+# We use `evaluate_experiments` from `CEEDesigns.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as the measure of accuracy. It is possible to pass additional keyword arguments that will propagate `MLJ.evaluate` (such as `measure`).
 
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 perf_eval = evaluate_experiments(
     experiments,
     model,
@@ -103,7 +103,7 @@ costs = Dict(
 designs = efficient_designs(costs, perf_eval)
 
 ## Switch to plotly backend for plotting
-CEED.plotly()
+CEEDesigns.plotly()
 
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 

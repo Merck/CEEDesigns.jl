@@ -1,5 +1,5 @@
 using Test
-using CEED
+using CEEDesigns
 
 @testset "`front(v)` tests" begin
     v = []

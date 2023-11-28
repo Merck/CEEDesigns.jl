@@ -17,7 +17,7 @@ data = coerce(data, types);
 continuous_cols = filter(colname -> eltype(data[!, colname]) == Float64, names(data))
 data = data[!, continuous_cols∪["HeartDisease"]]
 
-using CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 evidence = Evidence()
 

@@ -1,4 +1,4 @@
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 using CSV, DataFrames
 
 ## heart failure prediction dataset
@@ -64,7 +64,7 @@ designs2 = efficient_designs(
 )
 
 # switch to plotly backend
-CEED.plotly()
+CEEDesigns.plotly()
 
 designs = designs2
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")

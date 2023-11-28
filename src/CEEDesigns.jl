@@ -1,4 +1,4 @@
-module CEED
+module CEEDesigns
 
 using DataFrames, Plots
 export front, plot_front

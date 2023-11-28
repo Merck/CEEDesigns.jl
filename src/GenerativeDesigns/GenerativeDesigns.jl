@@ -11,7 +11,7 @@ using StatsBase: Weights, countmap, entropy, sample
 using Random: default_rng, AbstractRNG
 using MCTS
 
-using ..CEED: front
+using ..CEEDesigns: front
 
 export UncertaintyReductionMDP, DistanceBased
 export QuadraticDistance, DiscreteDistance, MahalanobisDistance

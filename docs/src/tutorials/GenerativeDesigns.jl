@@ -115,7 +115,7 @@ data = coerce(data, types);
 
 # ## Generative Model for Outcomes Sampling
 
-using CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 # As previously discussed, we provide a dataset of historical records, the target variable, along with an information-theoretic measure to quantify the uncertainty about the target variable.
 
