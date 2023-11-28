@@ -48,6 +48,8 @@
 
 # Therefore, given an experimental state with readouts over the feature set $F \subseteq X$, we can calculate the total distance from the entity recorded in the $j$-th row as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout for feature $x$ for the entity being tested and the entity recorded in $j$-th column, respectively. 
 
+# Alternatively, we could use the [Mahalanobis distance](https://en.wikipedia.org/wiki/Mahalanobis_distance#Definition).
+
 # Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
 
 # Importantly, the proper choice of the distance functionals and the 'similarity' functional discussed above is a question of hyper-optimization. 
@@ -113,7 +115,7 @@ data = coerce(data, types);
 
 # ## Generative Model for Outcomes Sampling
 
-using CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 # As previously discussed, we provide a dataset of historical records, the target variable, along with an information-theoretic measure to quantify the uncertainty about the target variable.
 
@@ -124,10 +126,44 @@ using CEED, CEED.GenerativeDesigns
 
 # Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
-(; sampler, uncertainty, weights) =
-    DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5));
+# You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
 
-# The CEED package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+(; sampler, uncertainty, weights) = DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+);
+
+# Alternatively, you can provide a dictionary of `feature => distance` pairs. The implemented distance functionals are `DiscreteDistance(; λ)` and `QuadraticDistance(; λ, standardize=true)`. In that case, the specified distance will be applied to the respective feature, after which the distances will be collated across the range of features.
+
+# The above call is therefore equivalent to:
+
+numeric_feats = filter(c -> c <: Real, eltype.(eachcol(data)))
+categorical_feats = setdiff(names(data), numeric_feats)
+
+DistanceBased(
+    data;
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+    distance = merge(
+        Dict(c => DiscreteDistance() for c in categorical_feats),
+        Dict(c => QuadraticDistance() for c in numeric_feats),
+    ),
+);
+
+# You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). For example, we could write:
+
+DistanceBased(
+    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]]; # the Mahalanobis distance only works with numeric features, so we selected a few, along with the target variable
+    target = "HeartDisease",
+    uncertainty = Entropy,
+    similarity = Exponential(; λ = 5),
+    distance = MahalanobisDistance(; diagonal = 1),
+);
+
+# The package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 # We specify the experiments along with the associated features:
 
@@ -200,11 +236,11 @@ solver = GenerativeDesigns.DPWSolver(;
     tree_in_info = true,
 )
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    6,
-    evidence;
+    thresholds = 6,
+    evidence,
     solver,
     mdp_options = (; max_parallel = 1),
     repetitions = 5,
@@ -238,18 +274,18 @@ experiments = Dict(
 seed!(1)
 ## use less number of iterations to speed up build process
 solver = GenerativeDesigns.DPWSolver(;
-    n_iterations = 20_000,
+    n_iterations = 2_000,
     exploration_constant = 5.0,
     tree_in_info = true,
 )
 designs = efficient_designs(
-    experiments,
+    experiments;
     sampler,
     uncertainty,
-    6,
-    evidence;
+    thresholds = 6,
+    evidence,
     solver,
-    mdp_options = (; max_parallel = 2, costs_tradeoff = [0, 1.0]),
+    mdp_options = (; max_parallel = 2, costs_tradeoff = (0, 1.0)),
     repetitions = 5,
 );
 
@@ -273,13 +309,12 @@ end
 #
 seed!(1)
 ## use less number of iterations to speed up build process
-solver =
-    GenerativeDesigns.DPWSolver(; n_iterations = 20_000, depth = 4, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 2_000, depth = 4, tree_in_info = true)
 design = efficient_value(
-    experiments,
+    experiments;
     sampler,
     value,
-    evidence;
+    evidence,
     solver,
     repetitions = 5,
     mdp_options = (; discount = 0.8),
