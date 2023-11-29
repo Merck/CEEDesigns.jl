@@ -1,5 +1,10 @@
 # # Static Experimental Designs
 
+# In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "static experimental designs",
+# arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
+
+# ## Setting
+
 # Consider the following scenario. There exists a set of experiments, each of which, when performed, yields
 # measurements on one or more observables (features). Each subset of observables (and therefore each subset of experiments)
 # has some "information value", which is intentionally vaguely defined for generality, but for example, may be 
@@ -78,7 +83,7 @@
 
 # First we load necessary packages.
 
-using CEED, CEED.StaticDesigns
+using CEEDesigns, CEEDesigns.StaticDesigns
 using Combinatorics: powerset
 using DataFrames
 using POMDPs, POMDPTools, MCTS

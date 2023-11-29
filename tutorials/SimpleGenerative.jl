@@ -1,4 +1,4 @@
-using Revise, CEED, CEED.GenerativeDesigns
+using CEEDesigns, CEEDesigns.GenerativeDesigns
 using DataFrames
 using Combinatorics: powerset
 using ScientificTypes
@@ -38,8 +38,9 @@ make_friedman1 = function(n, noise=0)
     return X
 end
 
-make_friedman2 = function(n, U, noise=0)
+make_friedman2 = function(U, noise=0)
     size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
+    n = size(U,1)
     X = DataFrame(zeros(Float64, n, 4), :auto)
     for i in 1:4
         X[:,i] .= U[:,i]
@@ -49,8 +50,9 @@ make_friedman2 = function(n, U, noise=0)
     return X
 end
 
-make_friedman3 = function(n, U, noise=0)
+make_friedman3 = function(U, noise=0)
     size(U,2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
+    n = size(U,1)
     X = DataFrame(zeros(Float64, n, 4), :auto)
     for i in 1:4
         X[:,i] .= U[:,i]
@@ -60,68 +62,33 @@ make_friedman3 = function(n, U, noise=0)
     return X
 end
 
-# simulate random draws from 4d gaussian copula specified by
-# correlations and the marginal distributions
-gaussian_copula_4d = function(n, r12, r13, r14, r23, r24, r34, d)
-    # so ugly
-    Σ = zeros(4,4)
-    Σ[1,1] = 1
-    Σ[2,2] = 1
-    Σ[3,3] = 1
-    Σ[4,4] = 1
-    Σ[1,2] = r12
-    Σ[2,1] = r12
-    Σ[1,3] = r13
-    Σ[3,1] = r13
-    Σ[1,4] = r14
-    Σ[4,1] = r14
-    Σ[2,3] = r23
-    Σ[3,2] = r23
-    Σ[2,4] = r24
-    Σ[4,2] = r24
-    Σ[3,4] = r34
-    Σ[4,3] = r34
-    U = transpose(rand(Distributions.MvNormal(Σ), n))
-    X = zeros(n,4)
-    for i in 1:4
-        X[:,i] = Float64.(Distributions.quantile.(d[i], Distributions.cdf.(Distributions.Normal(), U[:,i])))
-    end
-    return X
-end
+using Copulas
 
-# how to use the copula sampler and check that it is getting approx the right empirical correlation matrix
+# sample the "predictors" from a Gaussian copula with specified covariance matrix
+# the strange marginals are from https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
+ρ12, ρ13, ρ14, ρ23, ρ24, ρ34 = 0.8, 0.5, 0.3, 0.5, 0.25, 0.4
+Σ = [
+    1 ρ12 ρ13 ρ14;
+    ρ12 1 ρ23 ρ24;
+    ρ13 ρ23 1 ρ34;
+    ρ14 ρ24 ρ34 1
+]
 
-# X = gaussian_copula_4d(
-#     1000, 0.8, 0.5, 0.3, 0.5, 0.25, 0.4, 
-#     [
-#         Distributions.Binomial(10,0.5),
-#         Distributions.Exponential(),
-#         Distributions.Uniform(-5,-1.5),
-#         Distributions.Poisson(100)
-#     ]
-# )
+X1 = Distributions.Uniform(0,100)
+X2 = Distributions.Uniform(40*π,560*π)
+X3 = Distributions.Uniform(0,1)
+X4 = Distributions.Uniform(1,11)
 
-# # check that the empirical correlation is roughly correct with what we put in
-# cor(X)
+# generate the copula distribution
+C = GaussianCopula(Σ)
+D = SklarDist(C, (X1,X2,X3,X4))
 
+X = rand(D, 1000)
+
+data = make_friedman3(transpose(X), 0.01)
 
 # --------------------------------------------------------------------------------
 # Generate synthetic "historical data"
-
-n_hist = 1000
-
-# the strange marginals are also from https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression
-copula_sample = gaussian_copula_4d(
-    n_hist, 0.8, 0.5, 0.3, 0.5, 0.25, 0.4, 
-    [
-        Distributions.Uniform(0,100),
-        Distributions.Uniform(40*π,560*π),
-        Distributions.Uniform(0,1),
-        Distributions.Uniform(1,11)
-    ]
-)
-
-data = make_friedman3(n_hist, copula_sample)
 
 types = Dict(
     :x1 => ScientificTypes.Continuous,
