@@ -1,6 +1,6 @@
 using Test
 using DataFrames
-using CEED.GenerativeDesigns: DistanceBased_active, Evidence
+using CEED.GenerativeDesigns: DistanceBased, Evidence
 using ScientificTypes
 using CEED, CEED.GenerativeDesigns
 
@@ -33,7 +33,7 @@ target_constraints =
 # Define desirable ranges for each dimension
 desirable_range = Dict("A" => (3, 7), "B" => (15, 18))
 # Create the DistanceBased function with the new features
-distance_based_result = DistanceBased_active(
+distance_based_result = DistanceBased(
     data,
     ["Target1", "Target2"],
     dummy_uncertainty,

@@ -56,7 +56,7 @@ function compare_efficient_designs(
         efficient_designs(experiments, sampler, uncertainty, 6, evidence; solver_options...)
 
     # With desirable_range and target_constraints
-    (; sampler, uncertainty, weights) = DistanceBased_active(
+    (; sampler, uncertainty, weights) = DistanceBased(
         data,
         "HeartDisease",
         Entropy,
