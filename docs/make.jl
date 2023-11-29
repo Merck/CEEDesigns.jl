@@ -3,8 +3,12 @@ using CEEDesigns
 
 # Literate for tutorials
 const literate_dir = joinpath(@__DIR__, "..", "tutorials")
-const tutorials_src =
-    ["SimpleStatic.jl", "StaticDesigns.jl", "StaticDesignsFiltration.jl", "GenerativeDesigns.jl"]
+const tutorials_src = [
+    "SimpleStatic.jl",
+    "StaticDesigns.jl",
+    "StaticDesignsFiltration.jl",
+    "GenerativeDesigns.jl",
+]
 const generated_dir = joinpath(@__DIR__, "src", "tutorials/")
 
 # copy tutorials src

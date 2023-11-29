@@ -97,41 +97,44 @@ using POMDPs, POMDPTools, MCTS
 # Therefore, because smaller values are better, any subset containing multiple experiments is guaranteed to be 
 # more "valuable" than any component experiment.
 
-experiments = ["e1","e2","e3"];
+experiments = ["e1", "e2", "e3"];
 experiments_val = Dict([e => rand() for e in experiments]);
 
-experiments_evals = Dict(
-    map(Set.(collect(powerset(experiments)))) do s
-        if length(s) > 0
-            s => prod([experiments_val[i] for i in s])
-        else
-            return s => 1.0
-        end 
+experiments_evals = Dict(map(Set.(collect(powerset(experiments)))) do s
+    if length(s) > 0
+        s => prod([experiments_val[i] for i in s])
+    else
+        return s => 1.0
     end
-);
+end);
 
 # Better experiments are more costly, both in terms of time and monetary cost. We print
 # the data frame showing each experiment and its associated costs.
 
 experiments_costs = Dict(
-    sort(collect(keys(experiments_val)), by=k->experiments_val[k], rev=true) .=> tuple.(1:3,1:3)
+    sort(collect(keys(experiments_val)); by = k -> experiments_val[k], rev = true) .=>
+        tuple.(1:3, 1:3),
 );
 
-DataFrame(
-    experiment=collect(keys(experiments_costs)),
-    time=getindex.(values(experiments_costs),1),
-    cost=getindex.(values(experiments_costs),2)
+DataFrame(;
+    experiment = collect(keys(experiments_costs)),
+    time = getindex.(values(experiments_costs), 1),
+    cost = getindex.(values(experiments_costs), 2),
 )
 
 # We can plot the experiments ordered by their "loss function".
 
-plot_evals(experiments_evals; f = x->sort(collect(keys(x)), by = k->x[k], rev=true), ylabel = "loss")
+plot_evals(
+    experiments_evals;
+    f = x -> sort(collect(keys(x)); by = k -> x[k], rev = true),
+    ylabel = "loss",
+)
 
 # We print the data frame showing each subset of experiments and its overall loss value.
 
-DataFrame(
-    S=collect.(collect(keys(experiments_evals))),
-    value=collect(values(experiments_evals))
+DataFrame(;
+    S = collect.(collect(keys(experiments_evals))),
+    value = collect(values(experiments_evals)),
 )
 
 # Now we are ready to find the subsets of experiments giving an optimal tradeoff between information
@@ -146,6 +149,11 @@ DataFrame(
 max_parallel = 2;
 tradeoff = (0.5, 0.5);
 
-designs = efficient_designs(experiments_costs, experiments_evals, max_parallel=max_parallel, tradeoff=tradeoff);
+designs = efficient_designs(
+    experiments_costs,
+    experiments_evals;
+    max_parallel = max_parallel,
+    tradeoff = tradeoff,
+);
 
 plot_front(designs; labels = make_labels(designs), ylabel = "loss")
