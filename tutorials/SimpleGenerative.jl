@@ -87,6 +87,9 @@ X = rand(D, 1000)
 
 data = make_friedman3(transpose(X), 0.01)
 
+# We can check that the features in the data have roughly given correlation structure:
+cor(Matrix(data[:,Not(:y)]))
+
 # --------------------------------------------------------------------------------
 # Generate synthetic "historical data"
 
@@ -113,33 +116,85 @@ histogram(data.y, legend=false, ylab="Count", xlab="y")
 # --------------------------------------------------------------------------------
 # set up the distance based method for weights and uncertainty evaluation
 
-(; sampler, uncertainty, weights) = DistanceBased(data, "y", Variance, GenerativeDesigns.Exponential(; λ = 5));
+# standard quadratic (Euclidean) distance
+(; sampler, uncertainty, weights) = DistanceBased(
+    data, 
+    target="y", 
+    uncertainty=Variance, 
+    similarity=GenerativeDesigns.Exponential(; λ = 5)
+);
+
+# we may also use Mahalanobis distance which takes into account covaraince
+# (; sampler_mahalanobis, uncertainty_mahalanobis, weights_mahalanobis) = DistanceBased(
+(sampler_mh, uncertainty_mh, weights_mh) = DistanceBased(
+    data, 
+    target="y", 
+    uncertainty=Variance, 
+    similarity=GenerativeDesigns.Exponential(; λ = 5),
+    distance = MahalanobisDistance(; diagonal = 1)
+);
 
 # we may also look at the uncertainty from each marginal distribution
 data_uncertainties = [i => uncertainty(Evidence(i => mean(data[:,i]))) for i in names(data)[1:4]]
 sort!(data_uncertainties, by=x->x[2], rev=true)
 
-sticks(
+p1 = sticks(
     eachindex(data_uncertainties), 
     [i[2] for i in data_uncertainties], 
     xformatter = i->data_uncertainties[Int(i)][1],
     label=false,
-    ylab="Uncertainty"
+    title="Uncertainty\n(Euclidean distance)"
 )
+
+data_uncertainties_mh = [i => uncertainty_mh(Evidence(i => mean(data[:,i]))) for i in names(data)[1:4]]
+sort!(data_uncertainties_mh, by=x->x[2], rev=true)
+
+p2 = sticks(
+    eachindex(data_uncertainties_mh), 
+    [i[2] for i in data_uncertainties_mh], 
+    xformatter = i->data_uncertainties_mh[Int(i)][1],
+    label=false,
+    title="Uncertainty\n(Mahalanobis distance)"
+)
+
+plot(p1, p2, layout=(1,2), legend=false)
+
+
 
 # we can view the posterior distribution over the outcome conditioned on the current state
-evidence = Evidence("x1" => mean(data.x1))
+evidence = Evidence("x3" => mean(data.x3))
 plot_weights = StatsBase.weights(weights(evidence))
+plot_weights_mh = StatsBase.weights(weights_mh(evidence))
 
-p1 = StatsPlots.density(
+# p1 = StatsPlots.density(
+#     data.y, weights=plot_weights, 
+#     legend=false, ylabel="Density", title="q(y|eₛ), uncertainty $(round(uncertainty(evidence), digits=1))\n(Euclidean distance)"
+# )
+# p2 = Plots.histogram(
+#     data.y, weights=plot_weights, 
+#     legend=false, ylabel="Density", title="q(y|eₛ)\n(Euclidean distance)"
+# )
+
+# p3 = StatsPlots.density(
+#     data.y, weights=plot_weights_mh, 
+#     legend=false, ylabel="Density", title="q(y|eₛ), uncertainty $(round(uncertainty(evidence), digits=1))\n(Mahalanobis distance)"
+# )
+# p4 = Plots.histogram(
+#     data.y, weights=plot_weights_mh, 
+#     legend=false, ylabel="Density", title="q(y|eₛ)\n(Mahalanobis distance)"
+# )
+# plot(p1,p2,p3,p4, layout=(2,2), legend=false)
+
+p1 = Plots.histogram(
     data.y, weights=plot_weights, 
-    legend=false, ylabel="Density", title="q(y|eₛ), uncertainty $(round(uncertainty(evidence), digits=1))"
+    legend=false, ylabel="Density", title="q(y|eₛ)\n(Euclidean distance)"
 )
 p2 = Plots.histogram(
-    data.y, weights=plot_weights, 
-    legend=false, ylabel="Density", title="q(y|eₛ)"
+    data.y, weights=plot_weights_mh, 
+    legend=false, ylabel="Density", title="q(y|eₛ)\n(Mahalanobis distance)"
 )
-plot(p1, p2, layout=(1,2), legend=false)
+
+plot(p1,p2, layout=(1,2), legend=false)
 
 
 # # we'll set up the costs of each experiment
@@ -158,7 +213,7 @@ plot(p1, p2, layout=(1,2), legend=false)
 # we'll set up the experimental costs such that experiments which have less marginal uncertinaty
 # are more costly
 observables_experiments = Dict(["x$i" => "e$i" for i in 1:4])
-experiments_costs = Dict([observables_experiments[e[1]] => (i,i) => [e[1]] for (i,e) in enumerate(sort(data_uncertainties, by=x->x[2], rev=true))])
+experiments_costs = Dict([observables_experiments[e[1]] => (i,i) => [e[1]] for (i,e) in enumerate(data_uncertainties_mh)])
 
 # add a final very expensive experiment directly on the target variable
 experiments_costs["ey"] = (100,100) => ["y"]
@@ -180,13 +235,13 @@ mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tra
 
 designs = efficient_designs(
     experiments_costs,
-    sampler,
-    uncertainty,
-    n_thresholds,
-    evidence;
-    solver,
-    mdp_options = mdp_options,
+    sampler=sampler,
+    uncertainty=uncertainty,
+    thresholds=n_thresholds,
+    evidence=evidence,
+    solver=solver,
     repetitions = repetitions,
+    mdp_options = mdp_options
 );
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
@@ -233,7 +288,12 @@ data = coerce(data, types);
 # --------------------------------------------------------------------------------
 # uncertainty and similarity based sampling
 
-(; sampler, uncertainty, weights) = DistanceBased(data, "y", Entropy, GenerativeDesigns.Exponential(; λ = 5));
+(; sampler, uncertainty, weights) = DistanceBased(
+    data, 
+    target="y", 
+    uncertainty=Entropy, 
+    similarity=GenerativeDesigns.Exponential(; λ = 5)
+);
 
 # we may also look at the uncertainty from each marginal distribution
 # this is a bit nonsensical as the data generating function will create multimodal clusters
@@ -303,13 +363,13 @@ mdp_options = (; max_parallel=length(experiments_costs), discount=1.0, costs_tra
 
 designs = efficient_designs(
     experiments_costs,
-    sampler,
-    uncertainty,
-    n_thresholds,
-    evidence;
-    solver,
-    mdp_options = mdp_options,
+    sampler=sampler,
+    uncertainty=uncertainty,
+    thresholds=n_thresholds,
+    evidence=evidence,
+    solver=solver,
     repetitions = repetitions,
+    mdp_options = mdp_options
 );
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
