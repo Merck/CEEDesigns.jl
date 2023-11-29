@@ -184,6 +184,8 @@ A named tuple with the following fields:
   - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
   - `distance`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticDistance`](@ref) and [`DiscreteDistance`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
   - `prior`: prior across rows, uniform by default.
+  - `desirable_range`: a dictionary of pairs `colname => (lower bound, upper bound)`. If there's data in the current state for a specific column specified in this list, only historical observations within the defined range for that column are considered.
+  - `importance_weights`: a dictionary of pairs `colname` with either `weights` or a function `col -> weights`. If data for a given column is available in the current state, the product of the corresponding weights is used to adjust the similarity vector.
 
 # Example
 
@@ -203,6 +205,8 @@ function DistanceBased(
     similarity = Exponential(),
     distance = Dict(),
     prior = ones(nrow(data)),
+    desirable_range = Dict(),
+    importance_weights = Dict(),
 )
     prior = Weights(prior)
     targets = target isa AbstractVector ? target : [target]
@@ -233,6 +237,11 @@ function DistanceBased(
     else
         error("distance $distance does not accept `(data, targets, prior)`")
     end
+
+    # if an "importance weight" is a function, apply it to the column to get a numeric vector
+    importance_weights = Dict(
+        val isa Function ? val(colname) : val for (colname, val) in importance_weights
+    )
 
     # convert distances into probabilistic weights
     compute_weights = function (evidence::Evidence)
