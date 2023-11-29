@@ -9,12 +9,7 @@ types =
     Dict(:A => Continuous, :B => Continuous, :Target1 => Multiclass, :Target2 => Continuous)
 
 # Sample data for testing with all numerical values
-data = DataFrame(;
-    A = 1:10,
-    B = 11:20,
-    Target1 = rand(1:2, 10),  
-    Target2 = rand(1:10, 10),
-)
+data = DataFrame(; A = 1:10, B = 11:20, Target1 = rand(1:2, 10), Target2 = rand(1:10, 10))
 
 # Coerce the data to the correct types
 data = coerce(data, types)
@@ -27,8 +22,7 @@ dummy_similarity = x -> exp(-sum(x))
 
 # Define target constraints for importance sampling with numerical conditions
 target_constraints =
-    Dict("Target1" => x -> x .== 1 ? 2.0 : 1.0,
-         "Target2" => x -> x .> 5 ? 1.5 : 1.0)
+    Dict("Target1" => x -> x .== 1 ? 2.0 : 1.0, "Target2" => x -> x .> 5 ? 1.5 : 1.0)
 
 # Define desirable ranges for each dimension
 desirable_range = Dict("A" => (3, 7), "B" => (15, 18))

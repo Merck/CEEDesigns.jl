@@ -239,9 +239,8 @@ function DistanceBased(
     end
 
     # if an "importance weight" is a function, apply it to the column to get a numeric vector
-    importance_weights = Dict(
-        val isa Function ? val(colname) : val for (colname, val) in importance_weights
-    )
+    importance_weights =
+        Dict(val isa Function ? val(colname) : val for (colname, val) in importance_weights)
 
     # convert distances into probabilistic weights
     compute_weights = function (evidence::Evidence)

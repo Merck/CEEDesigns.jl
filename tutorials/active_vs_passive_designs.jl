@@ -88,8 +88,6 @@ function compare_efficient_designs(
 end
 ##
 
-
-
 # Set seed for reproducibility
 using Random: seed!
 seed!(1)
@@ -116,7 +114,7 @@ desirable_range = Dict("Age" => (mean_age - std_age, mean_age + std_age))
 target_constraints = Dict("HeartDisease" => x -> any(x .== 1) ? 1.5 : 1.0)
 
 # Call the function to compare and plot the results
-active_passive_plt =compare_efficient_designs(
+active_passive_plt = compare_efficient_designs(
     data,
     experiments,
     evidence;
