@@ -1,13 +1,69 @@
+# # Generative Experimental Designs
+
+# This document describes the theoretical background behind tools in CEEDesigns.jl for "generative experimental designs"
+# and demonstrates used on synthetic data examples.
+
+# ## Setting
+
+# In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "generative experimental designs".
+# These differ from static designs in that the experimental design is specific for (or "personalized") to an incoming entity.
+# Based on existing information (if any) about the new entity, and from posterior distributions of unobserved features of that
+# entity generated from similaritiy to historical entities, we can generate cost-efficient experimental designs personalized to the
+# new entity. The entities may be patients, molecular compounds, or any other objects where one has a store of historical data
+# and seeks to find efficient experimental designs to learn more about a new arrival.
+# 
+# The personalized experimental designs are motivated by the fact that the value of information collected from an experiment 
+# often differs across subsets of the population of entities.
+
+# ![information value matrix](assets/information_value_matrix.png)
+
+# In the context of static designs, we do not assume heterogeneity in the population, so all entities are assumed to come from a 
+# homogeneous 'Population', in which case 'Experiment C' would contribute the maximum information value. On the other hand, if we
+# have the ability to discern if the entity belong to subpopulations 'Population 1' or 'Population 2', then we can tailor our
+# design to suggest either 'Experiment A' or `Experiment B`. Clearly, in the limit of a maximally heterogenous population, each
+# entity has its own "row". Our tools are able to handle the entire spectrum of such scenarios though distance based similarity, described below.
+
+# ## Theoretical Framework
+
+# ### Historical Data
+
+# Like static designs, we consider a set $E$ of $n$ experiments, each with an associated tuple $(m_{e},t_{e})$ of monetary and
+# time costs. 
+# 
+# Additionally, consider a historical dataset giving measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
+# (with entities and features representing rows and columns, respectively). Each experiment $e$ may yield measurements on some
+# subset of features $(X_{e}\subseteq X)$.
+# 
+# Furthermore there is an additional column $y$ which is a target variable we want to predict (CEEDesigns.jl may allow $y$ 
+# to be a vector, but we assume a scalar for ease of presentation).
+# 
+# If we assume $m=3$, then the historical dataset may be visualized as the following table:
+
+# ![historical data](assets/generative_historical.png)
+
+# ### New Entity
+
+# When a new entity arrives, it will have an unknown outcome $y$ and unknown values on some or all features $x_{i} \in X$.
+# We call the _state_ of the new entity the set of experiments conducted upon it so far (if any), along with the 
+# measurements on any features produced by those experiments (if any), called _evidence_.
+# 
+# Consider the case where there are $n=3$ experiments, each of which yields a measurement on a single feature. Then
+# the state of a new entity arriving for which $e_{1}$ has already been performed will look like:
+
+# ![state](assets/generative_state.png)
+
+
+
+
+
+
+
 using CEEDesigns, CEEDesigns.GenerativeDesigns
 using DataFrames
-using Combinatorics: powerset
 using ScientificTypes
 import Distributions
-using POMDPs
-using POMDPTools
-using MCTS
-using Plots
-using StatsPlots, StatsBase
+using POMDPs, POMDPTools, MCTS
+using Plots, StatsPlots, StatsBase
 
 # --------------------------------------------------------------------------------
 # In this file we want to develop 2 simple examples of using the generative designs

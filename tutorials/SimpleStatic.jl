@@ -2,6 +2,7 @@
 
 # In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "static experimental designs",
 # arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
+# We also show an example with synthetic data.
 
 # ## Setting
 
@@ -12,7 +13,7 @@
 # Finally, each experiment has some monetary cost and execution time to perform the experiment, and
 # the user has some known tradeoff between overall execution time and cost.
 # 
-# CEED.jl provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
+# CEEDesigns.jl provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
 # subset of experiments that form a Pareto front along the tradeoff between information gain and total combined cost
 # (monetary and time). This allows informed decisions to be made, for example, regarding how to allocate scarce
 # resources to a set of experiments that attain some acceptable level of information (or, conversely, reduce
@@ -81,6 +82,8 @@
 
 # ## Synthetic Data Example
 
+# We now present an example of finding cost-efficient designs using synthetic data using the CEEDesigns.jl package.
+# 
 # First we load necessary packages.
 
 using CEEDesigns, CEEDesigns.StaticDesigns
@@ -88,7 +91,6 @@ using Combinatorics: powerset
 using DataFrames
 using POMDPs, POMDPTools, MCTS
 
-# This tutorial presents a synthetic example of using CEED to optimize static experimental design.
 # We consider a situation where there are 3 experiments, and we draw a value of their "loss function"
 # or "entropy" from the uniform distribution on the unit interval for each. 
 # 
