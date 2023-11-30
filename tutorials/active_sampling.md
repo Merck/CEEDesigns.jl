@@ -22,7 +22,7 @@ In this scenario, conditional sampling becomes essential. By conditioning the sa
 
 In summary, conditional sampling in MOO, especially in contexts involving active learning or RL, is crucial for ensuring that the optimized solutions are not only theoretically optimal with respect to the primary objectives but are also practically viable and relevant when additional domain-specific features or constraints are considered. This approach enhances the applicability and effectiveness of the optimization results in real-world scenarios.
 
-For more information, refer to the article: 
+For more information, refer to the following articles: 
 
 [Evolutionary Multiobjective Optimization via Efficient Sampling-Based Strategies](https://link.springer.com/article/10.1007/s40747-023-00990-z).
 
