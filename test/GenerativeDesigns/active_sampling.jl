@@ -21,7 +21,7 @@ dummy_uncertainty(data; prior) = weights -> sum(weights)
 dummy_similarity = x -> exp(-sum(x))
 
 # Define target constraints for importance sampling with numerical conditions
-target_constraints =
+importance_weights =
     Dict("Target1" => x -> x .== 1 ? 2.0 : 1.0, "Target2" => x -> x .> 5 ? 1.5 : 1.0)
 
 # Define desirable ranges for each dimension
@@ -34,9 +34,8 @@ distance_based_result = DistanceBased(
     dummy_similarity,
     Dict();
     prior = ones(nrow(data)),
-    desirable_range = desirable_range,
-    importance_sampling = true,
-    target_constraints = target_constraints,
+    desirable_range,
+    importance_weights,
 )
 
 # Test the weights computation considering the desirable range and importance sampling

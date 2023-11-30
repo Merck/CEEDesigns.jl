@@ -3,7 +3,7 @@
 ##
 using Plots
 using CSV, DataFrames
-cd(@__DIR__)
+
 data = CSV.File("data/heart_disease.csv") |> DataFrame
 data[1:10, :]
 
@@ -46,24 +46,23 @@ function compare_efficient_designs(
     experiments,
     evidence;
     desirable_range = Dict(),
-    target_constraints = Dict(),
+    importance_weights = Dict(),
     solver_options = Dict(),
 )
     (; sampler, uncertainty, weights) =
         DistanceBased(data, "HeartDisease", Entropy, Exponential(; λ = 5))
-    # Without desirable_range and target_constraints
+    # Without desirable_range and importance_weights
     designs_without_constraints =
         efficient_designs(experiments, sampler, uncertainty, 6, evidence; solver_options...)
 
-    # With desirable_range and target_constraints
+    # With desirable_range and importance_weights
     (; sampler, uncertainty, weights) = DistanceBased(
         data,
         "HeartDisease",
         Entropy,
         Exponential(; λ = 5);
         desirable_range = desirable_range,
-        importance_sampling = true,
-        target_constraints = target_constraints,
+        importance_weights,
     )
     designs_with_constraints =
         efficient_designs(experiments, sampler, uncertainty, 6, evidence; solver_options...)
@@ -111,7 +110,7 @@ solver_options = Dict(
 mean_age = 53.5
 std_age = 9
 desirable_range = Dict("Age" => (mean_age - std_age, mean_age + std_age))
-target_constraints = Dict("HeartDisease" => x -> any(x .== 1) ? 1.5 : 1.0)
+importance_weights = Dict("HeartDisease" => x -> any(x .== 1) ? 1.5 : 1.0)
 
 # Call the function to compare and plot the results
 active_passive_plt = compare_efficient_designs(
@@ -119,7 +118,7 @@ active_passive_plt = compare_efficient_designs(
     experiments,
     evidence;
     desirable_range = desirable_range,
-    target_constraints = target_constraints,
+    importance_weights = importance_weights,
     solver_options = solver_options,
 )
 savefig(active_passive_plt, "active_passive_plt.png")

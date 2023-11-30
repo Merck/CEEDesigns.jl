@@ -26,7 +26,7 @@ DiscreteDistance(; λ = 1) = function (x, col; _...)
     return map(y -> y == x ? λ : 0.0, col)
 end
 
-# default similarity functional
+# Default similarity functional
 """
     Exponential(; λ=1)
 
@@ -238,11 +238,11 @@ function DistanceBased(
         error("distance $distance does not accept `(data, targets, prior)`")
     end
 
-    # if an "importance weight" is a function, apply it to the column to get a numeric vector
+    # If "importance weight" is a function, apply it to the column to get a numeric vector
     importance_weights =
         Dict(val isa Function ? val(colname) : val for (colname, val) in importance_weights)
 
-    # convert distances into probabilistic weights
+    # Convert distances into probabilistic weights
     compute_weights = function (evidence::Evidence)
         similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
 
