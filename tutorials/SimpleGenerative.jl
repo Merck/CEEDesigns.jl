@@ -1,15 +1,14 @@
 # # Generative Experimental Designs
 
-# This document describes the theoretical background behind tools in CEEDesigns.jl for "generative experimental designs"
+# This document describes the theoretical background behind tools in `CEEDesigns.jl` for generative experimental designs
 # and demonstrates used on synthetic data examples.
 
 # ## Setting
 
-# In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "generative experimental designs".
-# These differ from static designs in that the experimental design is specific for (or "personalized") to an incoming entity.
-# Based on existing information (if any) about the new entity, and from posterior distributions of unobserved features of that
-# entity generated from similaritiy to historical entities, we can generate cost-efficient experimental designs personalized to the
-# new entity. The entities may be patients, molecular compounds, or any other objects where one has a store of historical data
+# Generative experimental designs differ from static designs in that the experimental design is specific for (or "personalized") to an incoming entity.
+# Personalized cost-efficient experimental designs for the new entity are made based on existing information (if any) about the new entity, 
+# and from posterior distributions of unobserved features of that entity conditional on its observed features and historical data.
+# The entities may be patients, molecular compounds, or any other objects where one has a store of historical data
 # and seeks to find efficient experimental designs to learn more about a new arrival.
 # 
 # The personalized experimental designs are motivated by the fact that the value of information collected from an experiment 
@@ -21,29 +20,30 @@
 # homogeneous 'Population', in which case 'Experiment C' would contribute the maximum information value. On the other hand, if we
 # have the ability to discern if the entity belong to subpopulations 'Population 1' or 'Population 2', then we can tailor our
 # design to suggest either 'Experiment A' or `Experiment B`. Clearly, in the limit of a maximally heterogenous population, each
-# entity has its own "row". Our tools are able to handle the entire spectrum of such scenarios though distance based similarity, described below.
+# entity has its own "row". Our tools are able to handle the entire spectrum of such scenarios though distance based similarity, 
+# described below.
 
 # ## Theoretical Framework
 
 # ### Historical Data
 
 # Like static designs, we consider a set $E$ of $n$ experiments, each with an associated tuple $(m_{e},t_{e})$ of monetary and
-# time costs. 
+# time costs (for more details on experiments and arrangements, see the tutorial on [static experimental designs](SimpleStatic.md)).
 # 
 # Additionally, consider a historical dataset giving measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
 # (with entities and features representing rows and columns, respectively). Each experiment $e$ may yield measurements on some
 # subset of features $(X_{e}\subseteq X)$.
 # 
-# Furthermore there is an additional column $y$ which is a target variable we want to predict (CEEDesigns.jl may allow $y$ 
-# to be a vector, but we assume a scalar for ease of presentation).
+# Furthermore there is an additional column $y$ which is a target variable we want to predict (`CEEDesigns.jl` may allow $y$ 
+# to be a vector, but we assume it is scalar here for ease of presentation).
 # 
-# If we assume $m=3$, then the historical dataset may be visualized as the following table:
+# Letting $m=3$, then the historical dataset may be visualized as the following table:
 
 # ![historical data](assets/generative_historical.png)
 
 # ### New Entity
 
-# When a new entity arrives, it will have an unknown outcome $y$ and unknown values on some or all features $x_{i} \in X$.
+# When a new entity arrives, it will have an unknown outcome $y$ and unknown values of some or all features $x_{i} \in X$.
 # We call the _state_ of the new entity the set of experiments conducted upon it so far (if any), along with the 
 # measurements on any features produced by those experiments (if any), called _evidence_.
 # 
@@ -68,11 +68,12 @@
 # 
 # Furthermore, there also exists a posterior distribution over the unobserved target variable $q(y|e_{S})$. The information
 # value of the current state, derived from experimental evidence, can be defined as any statistical or information-theoretic
-# measure applied to $q(y|e_{S})$. This can include variance, uncertainty, or entropy (among others).
+# measure applied to $q(y|e_{S})$. This can include variance, uncertainty, or entropy (among others). The information value
+# of the set of experiments performed in $S$ is analogous to $v_{S}$ defined in [static experimental designs](SimpleStatic.md).
 
 # ### Similarity Weighting
 
-# There may be many ways to define these posterior distributions, but our current approach uses distance-based similarity
+# There may be many ways to define these posterior distributions, but our approach uses distance-based similarity
 # scores to construct weights $w_{j}$ over historical entities which are similar to the new entity. These weights can be used to
 # weight the values of $y$ or features associated with $e_{S^{\prime}}$ to construct approximations of $q(y|e_{S})$ and 
 # $q(e_{S^{\prime}}|e_{S})$.
@@ -85,23 +86,29 @@
 # - Rescaled squared distance $\rho(x, y) = λ  \frac{(x - y)^2}{2\sigma_2}$, where $\sigma_2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
 # - Mahalanobis distance $\rho(x,y) = \sqrt{(x-y)^{⊤}\Sigma^{-1}(x-y)}$, where $\Sigma$ is the empirical covariance matrix of the historical data.
 # 
-# Therefore, given an experimental state with readouts over the feature set $F \subseteq X$, we can calculate the total distance from the entity recorded in the $j$-th row as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout for feature $x$ for the entity being tested and the entity recorded in $j$-th column, respectively. 
+# Therefore, given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}, e \in S$, we can calculate
+# the distance from the $j$-th historical entity as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout 
+# for feature $x$ for the entity being tested and the entity recorded in $j$-th column, for distance metrics assuming independence of features 
+# (Kronecker delta and squared distance). Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j}).
 # 
-# Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
+# Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., 
+# we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. 
+# Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
 # 
-# The proper choice of distance and similarity metrics depends on insight into the dataset at hand.
+# The proper choice of distance and similarity metrics depends on insight into the dataset at hand. Weights can then be used to construct
+# weighted histograms or density estimators for the posterior distributions of interest, or to directly resample historical rows.
 
 # ![weights](assets/generative_weights.png)
 
 # ### Policy Search
 
-# Searching for optimal experimental designs (actions arranged in an efficient way) then depends on what our objective sense is.
+# Given these parts, searching for optimal experimental designs (actions arranged in an efficient way) depends on what our objective sense is.
 # 
-# - The triage may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the triage (considered as a 'negative' reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with a 'minus infinite' reward.
-# - We may aim to minimize the expected uncertainty while being constrained by the costs of the experiment.
+# - The search may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the search (considered as a "negative" reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with an "infinitely negative" reward.
+# - We may aim to minimize the expected uncertainty while being constrained by the combined costs of the experiment.
 # - Alternatively, we could maximize the value of experimental evidence, adjusted for the incurred experimental costs.
 
-# Standard MDP algorithms can be used to solve this problem (offline learning) or construct the policy (online learning) for the sequential decision-making.
+# Standard Markov decision process (MDP) algorithms can be used to solve this problem (offline learning) or construct the policy (online learning) for the sequential decision-making.
 
 # Our MDP's state space is finite-dimensional but generally continuous due to the allowance of continuous features, which complicates the problem and few algorithms specialize in this area.
 
@@ -130,7 +137,7 @@
 
 # ## Synthetic Data Example with Continuous $y$
 
-# We now present an example of finding cost-efficient generative designs using synthetic data using the CEEDesigns.jl package.
+# We now present an example of finding cost-efficient generative designs using synthetic data using the `CEEDesigns.jl` package.
 # 
 # First we load necessary packages.
 
@@ -144,13 +151,13 @@ using Plots, StatsPlots, StatsBase
 
 # ### Synthetic Data
 
-# We use the "Friedman #2" method to make synthetic data for a regression problem from [scikit-learn](https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression).
+# We use the "Friedman #3" method to make synthetic data for a regression problem from [scikit-learn](https://scikit-learn.org/stable/datasets/sample_generators.html#generators-for-regression).
 # It considers $m=4$ features which predict a continuous $y$ via some nonlinear transformations. The marginal
 # distributions of each feature are given by the scikit-learn documentation. We additionally use a Gaussian copula
 # to induce a specified correlation structure on the features to illustrate the difference between Euclidean and Mahalanobis
-# distance metrics.
+# distance metrics. We sample $l=1000$ rows of the historical data.
 
-make_friedman2 = function (U, noise = 0)
+make_friedman3 = function (U, noise = 0, friedman3 = true)
     size(U, 2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
     n = size(U, 1)
     X = DataFrame(zeros(Float64, n, 4), :auto)
@@ -158,19 +165,12 @@ make_friedman2 = function (U, noise = 0)
         X[:, i] .= U[:, i]
     end
     ϵ = noise > 0 ? rand(Distributions.Normal(0, noise), size(X, 1)) : 0
-    X.y = @. (X[:, 1]^2 + (X[:, 2] * X[:, 3] - 1 / (X[:, 2] * X[:, 4]))^2)^0.5 + ϵ
-    return X
-end
-
-make_friedman3 = function (U, noise = 0)
-    size(U, 2) == 4 || error("input U must have 4 columns, has $(size(U,2))")
-    n = size(U, 1)
-    X = DataFrame(zeros(Float64, n, 4), :auto)
-    for i = 1:4
-        X[:, i] .= U[:, i]
+    if friedman3
+        X.y = @. atan((X[:, 2] * X[:, 3] - 1 / (X[:, 2] * X[:, 4])) / X[:, 1]) + ϵ
+    else
+        ## Friedman #2
+        X.y = @. (X[:, 1]^2 + (X[:, 2] * X[:, 3] - 1 / (X[:, 2] * X[:, 4]))^2)^0.5 + ϵ
     end
-    ϵ = noise > 0 ? rand(Distributions.Normal(0, noise), size(X, 1)) : 0
-    X.y = @. atan((X[:, 2] * X[:, 3] - 1 / (X[:, 2] * X[:, 4])) / X[:, 1]) + ϵ
     return X
 end
 
@@ -217,14 +217,19 @@ p3 = scatter(data.x3, data.y; legend = false, xlab = "x3")
 p4 = scatter(data.x4, data.y; legend = false, xlab = "x4")
 plot(p1, p2, p3, p4; layout = (2, 2), legend = false)
 
-# And we may also look at a histogram of $y$.
+# ### Distance-based Similarity
 
-histogram(data.y; legend = false, ylab = "Count", xlab = "y")
-
-# Next we set up the functions for computing distance, similarity, and uncertainty.
-# In both cases we use the variance as our uncertinaty metric. 
+# Given historical data, a target variable $y$, and metric to quantify uncertainty around
+# the posterior distribution on the target $q(y|e_{S})$, the function `DistanceBased`
+# returns three functions needed by `CEEDesigns.jl`:
+# - `sampler`: this is a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator;
+# - `uncertainty`: this is a function of `evidence`,
+# - `weights`: this represents a function of `evidence` that generates probability weights $w_j$ to each row in the historical data.
+# 
 # By default, Euclidean distance is used as the distance metric. In the second
-# call to `DistanceBased`, we use explicitly use the Mahalanobis distance.
+# call to `DistanceBased`, we instead use the Mahalanobis distance.
+# It is possible to specify different distance metrics for each feature, see our
+# [heart disease generative modeling](GenerativeDesigns.md) tutorial for more information.
 # In both cases, the squared exponential function is used to convert distances
 # to weights.
 
@@ -273,7 +278,7 @@ p2 = sticks(
 
 plot(p1, p2; layout = (1, 2), legend = false)
 
-# We can view the posterior distribution over $y$ conditioned on a state (here arbitrarily set to $x_{3}$).
+# We can view the posterior distribution $q(y|e_{S}$$ conditioned on a state (here arbitrarily set to $S = e_{3}$, giving evidence for $x_{3}$).
 
 evidence = Evidence("x3" => mean(data.x3))
 plot_weights = StatsBase.weights(weights(evidence))
@@ -297,7 +302,7 @@ p2 = Plots.histogram(
 plot(p1, p2; layout = (1, 2), legend = false)
 
 # Like static designs, generative designs need to be provided a `DataFrame` assigning to each experiment
-# a cost and time $(m_{e},t_{e})$, and what features each experiment provides observations of.
+# a tuple of monetary and time costs $(m_{e},t_{e})$, and what features each experiment provides observations of.
 # We'll set up the experimental costs such that experiments which have less marginal uncertinaty are more costly
 # We finally add a very expensive "final" experiment which can directly observe the target variable.
 
@@ -324,11 +329,19 @@ push!(
 );
 experiments_costs_df
 
-# We can now find cost-efficient experimental designs for a new entity that has no measurements (`Evidence()`),
-# for 7 different threshold levels of uncertainty, evenly spaced between 0 and 1, inclusive. Our objevtive is to minimize the
-# expected experimental cost for meeting each target threshold.
+# ### Find Cost-efficient Experimental Designs
+
+# We can now find cost-efficient experimental designs for a new entity that has no measurements (`Evidence()`).
+# Our objective sense is to minimize expected experimental combined cost while trying to reduce uncertainty to
+# a threshold value. We examine 7 different threshold levels of uncertainty, evenly spaced between 0 and 1, inclusive.
+# Additionally we set the `costs_tradeoff` such that equal weight is given to time and monetary cost when
+# constructing the combined costs of experiments.
 # 
-# Internally, for each choice of the uncertainty threshold, an instance of a Markov decision problem in [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) is created, and the `POMDPs.solve` is called on the problem. Afterwards, a number of simulations of the decision-making problem is run, all starting with the experimental `state`.
+# Internally, for each choice of the uncertainty threshold, an instance of a Markov decision problem in [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) 
+# is created, and the `POMDPs.solve` is called on the problem. 
+# Afterwards, a number of simulations of the decision-making problem is run, all starting with the experimental `state`.
+# 
+# Note that we use the Euclidean distance, due to somewhat faster runtime.
 
 n_thresholds = 7
 evidence = Evidence()
@@ -355,37 +368,27 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-
-
-
-
-
 # ## Synthetic Data Example with Discrete $y$
 
+# ### Synthetic Data
 
-# --------------------------------------------------------------------------------
+# We use n-class classification problem generator from [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html#sklearn.datasets.make_classification)
+# We used parameters given below, for a total of $m=5$ features, with 4 of those informative and 1 redundant (linear combination of the other 4) feature.
+# The $y$ has 2 classes, with some added noise. We again sample $l=1000$ rows of historical entities.
 # 
-# Second example is for the discrete outcome.
-# 
-# --------------------------------------------------------------------------------
+# The dataset can be approximately reproduced as below:
 
-# --------------------------------------------------------------------------------
-# data for classification problem was generated by this function
-# https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html#sklearn.datasets.make_classification
-
-# using PyCall
-# sklearn = PyCall.pyimport_conda("sklearn", "scikit-learn")
-# py"""
-# import sklearn as sk
-# from sklearn.datasets import make_classification
-# """
-
-# X, y = py"make_classification(n_samples=1000,n_features=5,n_informative=4,n_redundant=1,n_repeated=0,n_classes=2,n_clusters_per_class=2,flip_y=0.1)"
-
-# using DataFrames, CSV
-# dat = DataFrame(X, :auto)
-# dat.y = y
-# CSV.write("./class.csv",dat)
+## using PyCall
+## sklearn = PyCall.pyimport_conda("sklearn", "scikit-learn")
+## py"""
+## import sklearn as sk
+## from sklearn.datasets import make_classification
+## """
+## X, y = py"make_classification(n_samples=1000,n_features=5,n_informative=4,n_redundant=1,n_repeated=0,n_classes=2,n_clusters_per_class=2,flip_y=0.1)"
+## using DataFrames, CSV
+## dat = DataFrame(X, :auto)
+## dat.y = y
+## CSV.write("./class.csv",dat)
 
 using CSV
 
@@ -400,8 +403,10 @@ types = Dict(
 )
 data = coerce(data, types);
 
-# --------------------------------------------------------------------------------
-# uncertainty and similarity based sampling
+# ### Distance-based Similarity
+
+# We now set up the distance based similarity functions. We use `Entropy` as our metric of uncertainty this time,
+# which is more suitable for discrete $y$.
 
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
@@ -410,9 +415,10 @@ data = coerce(data, types);
     similarity = GenerativeDesigns.Exponential(; λ = 5),
 );
 
-# we may also look at the uncertainty from each marginal distribution
-# this is a bit nonsensical as the data generating function will create multimodal clusters
+# We may also look at the uncertainty from each marginal distribution of features.
+# This is a bit nonsensical as the data generating function will create multimodal clusters
 # so it will look artifically as if nothing is informative, but that is not the case.
+
 data_uncertainties =
     [i => uncertainty(Evidence(i => mode(data[:, i]))) for i in names(data)[1:end-1]]
 sort!(data_uncertainties; by = x -> x[2], rev = true)
@@ -425,7 +431,9 @@ sticks(
     ylab = "Uncertainty",
 )
 
-# we can view the posterior distribution over the outcome conditioned on the current state
+# We can view the posterior distribution $q(y|e_{S})$ when we consider the state as evidence a single measurement
+# of the first feature, set to the mean of that distribution.
+
 evidence = Evidence("x1" => mean(data.x1))
 plot_weights = StatsBase.weights(weights(evidence))
 
@@ -442,28 +450,15 @@ p = bar(
 xticks!(p, 0:1, ["0", "1"]);
 p
 
-# # experimental costs
-# experiments_costs = Dict(
-#     "e1" => (1,1) => ["x1"],
-#     "e2" => (1,1) => ["x2"],
-#     "e3" => (1,1) => ["x3"],
-#     "e4" => (1,1) => ["x4"]
-# )
+# Like previous examples, we'll set up the experimental costs such that experiments which have less marginal uncertinaty
+# are more costly, add a final very expensive experiment directly on the target variable.
 
-# # make a nice dataframe display of the exp costs and what they measure
-# experiments_costs_df = DataFrame(experiment=String[], time=Int[], cost=Int[], measurement=String[]);
-# push!(experiments_costs_df,[[e, experiments_costs[e][1][1], experiments_costs[e][1][2], only(experiments_costs[e][2])] for e in keys(experiments_costs)]...);
-# experiments_costs_df
-
-# we'll set up the experimental costs such that experiments which have less marginal uncertinaty
-# are more costly
 observables_experiments = Dict(["x$i" => "e$i" for i = 1:5])
 experiments_costs = Dict([
     observables_experiments[e[1]] => (i, i) => [e[1]] for
     (i, e) in enumerate(sort(data_uncertainties; by = x -> x[2], rev = true))
 ])
 
-# add a final very expensive experiment directly on the target variable
 experiments_costs["ey"] = (100, 100) => ["y"]
 
 experiments_costs_df =
@@ -481,8 +476,11 @@ push!(
 );
 experiments_costs_df
 
-# --------------------------------------------------------------------------------
-# find efficient actions
+# ### Find Cost-efficient Experimental Designs
+
+# We can now find sets of cost-efficient experimental designs for a new entity with no measurements (`Evidence()`).
+# We use the same solver parameters as for the exaple with continuous $y$, and plot the resulting
+# Pareto front.
 
 n_thresholds = 7
 evidence = Evidence()
