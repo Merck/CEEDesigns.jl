@@ -139,7 +139,11 @@ perf_eval = evaluate_experiments(
 We plot performance measures evaluated for subsets of experiments, sorted by performance measure.
 
 ````@example StaticDesigns
-plot_evals(perf_eval; f = x->sort(collect(keys(x)), by = k->x[k], rev=true), ylabel = "logloss")
+plot_evals(
+    perf_eval;
+    f = x -> sort(collect(keys(x)); by = k -> x[k], rev = true),
+    ylabel = "logloss",
+)
 ````
 
 ## Cost-Efficient Designs

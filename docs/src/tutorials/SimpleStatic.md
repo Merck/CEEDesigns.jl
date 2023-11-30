@@ -4,8 +4,9 @@ EditURL = "SimpleStatic.jl"
 
 # Static Experimental Designs
 
-In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "static experimental designs",
+In this document we describe the theoretical background behind the tools in `CEEDesigns.jl` for producing optimal "static experimental designs",
 arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
+We also show an example with synthetic data.
 
 ## Setting
 
@@ -16,7 +17,7 @@ a loss function if that subset is used  to train some machine learning model. It
 Finally, each experiment has some monetary cost and execution time to perform the experiment, and
 the user has some known tradeoff between overall execution time and cost.
 
-CEED.jl provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
+`CEEDesigns.jl` provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
 subset of experiments that form a Pareto front along the tradeoff between information gain and total combined cost
 (monetary and time). This allows informed decisions to be made, for example, regarding how to allocate scarce
 resources to a set of experiments that attain some acceptable level of information (or, conversely, reduce
@@ -85,6 +86,8 @@ if the maximum number of parallel experiments does not divide $S$ evenly.
 
 ## Synthetic Data Example
 
+We now present an example of finding cost-efficient designs using synthetic data using the `CEEDesigns.jl` package.
+
 First we load necessary packages.
 
 ````@example SimpleStatic
@@ -94,7 +97,6 @@ using DataFrames
 using POMDPs, POMDPTools, MCTS
 ````
 
-This tutorial presents a synthetic example of using CEED to optimize static experimental design.
 We consider a situation where there are 3 experiments, and we draw a value of their "loss function"
 or "entropy" from the uniform distribution on the unit interval for each.
 
@@ -104,48 +106,56 @@ Therefore, because smaller values are better, any subset containing multiple exp
 more "valuable" than any component experiment.
 
 ````@example SimpleStatic
-experiments = ["e1","e2","e3"];
+experiments = ["e1", "e2", "e3"];
 experiments_val = Dict([e => rand() for e in experiments]);
 
-experiments_evals = Dict(
-    map(Set.(collect(powerset(experiments)))) do s
-        if length(s) > 0
-            s => prod([experiments_val[i] for i in s])
-        else
-            return s => 1.0
-        end
+experiments_evals = Dict(map(Set.(collect(powerset(experiments)))) do s
+    if length(s) > 0
+        s => prod([experiments_val[i] for i in s])
+    else
+        return s => 1.0
     end
-);
+end);
 nothing #hide
 ````
 
+See our other tutorial on [heart disease triage](StaticDesigns.md) for an example of using `CEEDesigns.jl`'s built-in
+compatability with machine learning models from `MLJ.jl` to evalute performance of experiments using
+predictive accuracy as information value.
+
+Next we set up the costs $(m_{e},t_{e})$ for each experiment.
 Better experiments are more costly, both in terms of time and monetary cost. We print
 the data frame showing each experiment and its associated costs.
 
 ````@example SimpleStatic
 experiments_costs = Dict(
-    sort(collect(keys(experiments_val)), by=k->experiments_val[k], rev=true) .=> tuple.(1:3,1:3)
+    sort(collect(keys(experiments_val)); by = k -> experiments_val[k], rev = true) .=>
+        tuple.(1:3, 1:3),
 );
 
-DataFrame(
-    experiment=collect(keys(experiments_costs)),
-    time=getindex.(values(experiments_costs),1),
-    cost=getindex.(values(experiments_costs),2)
+DataFrame(;
+    experiment = collect(keys(experiments_costs)),
+    time = getindex.(values(experiments_costs), 1),
+    cost = getindex.(values(experiments_costs), 2),
 )
 ````
 
-We can plot the experiments ordered by their "loss function".
+We can plot the experiments ordered by their information value.
 
 ````@example SimpleStatic
-plot_evals(experiments_evals; f = x->sort(collect(keys(x)), by = k->x[k], rev=true), ylabel = "loss")
+plot_evals(
+    experiments_evals;
+    f = x -> sort(collect(keys(x)); by = k -> x[k], rev = true),
+    ylabel = "loss",
+)
 ````
 
-We print the data frame showing each subset of experiments and its overall loss value.
+We print the data frame showing each subset of experiments and its overall information value.
 
 ````@example SimpleStatic
-DataFrame(
-    S=collect.(collect(keys(experiments_evals))),
-    value=collect(values(experiments_evals))
+DataFrame(;
+    S = collect.(collect(keys(experiments_evals))),
+    value = collect(values(experiments_evals)),
 )
 ````
 
@@ -154,16 +164,29 @@ value and combined cost (where we use $\lambda=0.5$). CEED exports a function `e
 which formulates the problem of finding optimal arrangements as a Markov Decision Process and solves
 optimal arrangements for each subset on the Pareto frontier.
 
-Note that because we set the maximum number of parallel experiments equal to 2, the complete subset
-of experiments groups the experiments with long execution times together (see plot legend; each group/partition is
-prefixed with a number).
+We set $\lambda=0.5$, the parameter controlling the relative weight given to monetary versus time costs
+with the tuple `tradeoff`.
 
 ````@example SimpleStatic
 max_parallel = 2;
 tradeoff = (0.5, 0.5);
 
-designs = efficient_designs(experiments_costs, experiments_evals, max_parallel=max_parallel, tradeoff=tradeoff);
+designs = efficient_designs(
+    experiments_costs,
+    experiments_evals;
+    max_parallel = max_parallel,
+    tradeoff = tradeoff,
+);
+nothing #hide
+````
 
+Finally we may produce a plot of the set of cost-efficient experimental designs. The set of designs
+is plotted along a Pareto frontier giving tradeoff between informatio value (y-axis) and combined cost (x-axis).
+Note that because we set the maximum number of parallel experiments equal to 2, the efficient design for the complete set
+of experiments groups the experiments with long execution times together (see plot legend; each group/partition is
+prefixed with a number).
+
+````@example SimpleStatic
 plot_front(designs; labels = make_labels(designs), ylabel = "loss")
 ````
 
