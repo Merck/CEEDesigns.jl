@@ -60,6 +60,76 @@
 
 # ![actions](assets/generative_actions.png)
 
+# ### Posterior Distributions
+
+# Let $e_{S}$ be a random variable denoting the outcome of some experiments $S$ on the new entity. Then, there exists a 
+# posterior distribution $q(e_{S^{\prime}}|e_{S})$ over outcomes of unperformed experiments $S^{\prime}$, conditioned on the current
+# state.
+# 
+# Furthermore, there also exists a posterior distribution over the unobserved target variable $q(y|e_{S})$. The information
+# value of the current state, derived from experimental evidence, can be defined as any statistical or information-theoretic
+# measure applied to $q(y|e_{S})$. This can include variance, uncertainty, or entropy (among others).
+
+# ### Similarity Weighting
+
+# There may be many ways to define these posterior distributions, but our current approach uses distance-based similarity
+# scores to construct weights $w_{j}$ over historical entities which are similar to the new entity. These weights can be used to
+# weight the values of $y$ or features associated with $e_{S^{\prime}}$ to construct approximations of $q(y|e_{S})$ and 
+# $q(e_{S^{\prime}}|e_{S})$.
+# 
+# If there is no evidence associated with a new entity, we assign $w_{j}$ according to some prior distribution (uniform by default).
+# Otherwise we use some particular distance and similarity metrics.
+# 
+# For each feature $x\in X$, we consider a function $\rho_x$, which measures the distance between two outputs. By default, we consider:
+# - Rescaled Kronecker delta (i.e., $\rho(x, y)=0$ only when $x=y$, and $\rho(x, y)= \lambda$ under any other circumstances, with $\lambda > 0$) for discrete features (i.e., features whose types are modeled as `MultiClass` type in [ScientificTypes.jl](https://github.com/JuliaAI/ScientificTypes.jl));
+# - Rescaled squared distance $\rho(x, y) = λ  \frac{(x - y)^2}{2\sigma_2}$, where $\sigma_2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
+# - Mahalanobis distance $\rho(x,y) = \sqrt{(x-y)^{⊤}\Sigma^{-1}(x-y)}$, where $\Sigma$ is the empirical covariance matrix of the historical data.
+# 
+# Therefore, given an experimental state with readouts over the feature set $F \subseteq X$, we can calculate the total distance from the entity recorded in the $j$-th row as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout for feature $x$ for the entity being tested and the entity recorded in $j$-th column, respectively. 
+# 
+# Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
+# 
+# The proper choice of distance and similarity metrics depends on insight into the dataset at hand.
+
+# ![weights](assets/generative_weights.png)
+
+# ### Policy Search
+
+# Searching for optimal experimental designs (actions arranged in an efficient way) then depends on what our objective sense is.
+# 
+# - The triage may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the triage (considered as a 'negative' reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with a 'minus infinite' reward.
+# - We may aim to minimize the expected uncertainty while being constrained by the costs of the experiment.
+# - Alternatively, we could maximize the value of experimental evidence, adjusted for the incurred experimental costs.
+
+# Standard MDP algorithms can be used to solve this problem (offline learning) or construct the policy (online learning) for the sequential decision-making.
+
+# Our MDP's state space is finite-dimensional but generally continuous due to the allowance of continuous features, which complicates the problem and few algorithms specialize in this area.
+
+# We used the Double Progressive Widening Algorithm for this task as detailed in [A Comparison of Monte Carlo Tree Search and Mathematical Optimization for Large Scale Dynamic Resource Allocation](https://arxiv.org/abs/1405.5498).
+
+# In a nutshell, the Double Progressive Widening (DPW) algorithm is designed for online learning in complex environments, particularly those known as Continuous Finite-dimensional Markov Decision Processes where the state space is continuous. The key idea behind DPW is to progressively expand the search tree during the Monte Carlo Tree Search (MCTS) process. The algorithm does so by dynamically and selectively adding states and actions to the tree based on defined heuristics.
+
+# In the context of online learning, this algorithm addresses the complexity and challenges of real-time decision-making in domains with a large or infinite number of potential actions. As information is gathered in actual runtime, the algorithm explores and exploits this information to make optimal or near-optimal decisions. In other words, DPW permits the learning process to adapt on-the-fly as more data is made available, making it an effective tool for the dynamic and uncertain nature of online environments.
+
+# In particular, at the core of the Double Progressive Widening (DPW) algorithm are several key components, including expansion, search, and rollout. 
+
+# The search component is where the algorithm sifts through the search tree to determine the most promising actions or states to explore next. By using exploration-exploitation strategies, it can effectively balance its efforts between investigating previously successful actions and venturing into unexplored territories.
+
+# The expansion phase is where the algorithm grows the search tree by adding new nodes, representing new state-action pairs, to the tree. This is done based on a predefined rule that dictates when and how much the tree should be expanded. This allows the algorithm to methodically discover and consider new potential actions without becoming overwhelmed with choices.
+
+# Lastly, the rollout stage, also known as a simulation stage, is where the algorithm plays out a series of actions to the end of a game or scenario using a specific policy (like a random policy). The results of these rollouts are then used to update the estimates of the values of state-action pairs, increasing the accuracy of future decisions.
+
+# ![One iteration of the MCTS algorithm, taken from https://ieeexplore.ieee.org/document/6145622](assets/mcts.png)
+
+# In the above figure, nodes represent states of the decision process, while edges correspond to actions connecting these states.
+
+# A summary a step of the overall search process to find the next best action, using our running example where a new entity
+# has had $e_{1}$ performed out of 3 possible experiments can be depicated as below:
+
+# ![search](assets/generative_search.png)
+
+# ## Synthetic Data Example with Continuous $y$
+
 using CEEDesigns, CEEDesigns.GenerativeDesigns
 using DataFrames
 using ScientificTypes
@@ -327,6 +397,14 @@ designs = efficient_designs(
 );
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
+
+
+
+
+
+
+# ## Synthetic Data Example with Discrete $y$
+
 
 # --------------------------------------------------------------------------------
 # 
