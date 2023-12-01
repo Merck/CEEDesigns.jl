@@ -194,6 +194,8 @@ X = rand(D, 1000)
 
 data = make_friedman3(transpose(X), 0.01)
 
+data[1:10, :]
+
 # We can check that the empirical correlation is roughly the same as the specified theoretical values: 
 
 cor(Matrix(data[:, Not(:y)]))
