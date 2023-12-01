@@ -130,8 +130,8 @@
 
 # In the above figure, nodes represent states of the decision process, while edges correspond to actions connecting these states.
 
-# A summary a step of the overall search process to find the next best action, using our running example where a new entity
-# has had $e_{1}$ performed out of 3 possible experiments can be depicated as below:
+# A graphical summary of a single step of the overall search process to find the next best action, using our running example where a new entity
+# has had $e_{1}$ performed out of 3 possible experiments is below:
 
 # ![search](assets/generative_search.png)
 
@@ -193,6 +193,8 @@ D = SklarDist(C, (X1, X2, X3, X4))
 X = rand(D, 1000)
 
 data = make_friedman3(transpose(X), 0.01)
+
+data[1:10, :]
 
 # We can check that the empirical correlation is roughly the same as the specified theoretical values: 
 

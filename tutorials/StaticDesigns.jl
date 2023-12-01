@@ -1,36 +1,20 @@
 # # Heart Disease Triage
 
-# Consider a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
-
-# ## Theoretical Framework
-
-# Let us consider a set of $n$ experiments $E = \{ e_1, \ldots, e_n\}$. For each subset $S \subseteq E$ of experiments, we denote by $v_S$ the value of information acquired from conducting experiments in $S$.
-
-# In the cost-sensitive setting of CEEDesigns, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
-
-# To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is a partition of $S$. In other words, $o = (o_1, \ldots, o_l)$ for $l \leq |S|$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
-
-# Given a subset $S$ of experiments and their arrangement $o$, the total monetary cost and total execution time of the experimental design is given as $m_o = \sum_{e\in S} m_e$ and $t_o = \sum_{i=1}^l \max \{ t_e : e\in o_i\}$, respectively.
-
-# For instance, consider the experiments $e_1,\, e_2,\, e_3$, and $e_4$ with associated costs $(1, 1)$, $(1, 3)$, $(1, 2)$, and $(1, 4)$. If we conduct experiments $e_1$ through $e_4$ in sequence, this would correspond to an arrangement $o = (\{ e_1 \}, \{ e_2 \}, \{ e_3 \}, \{ e_4 \})$ with a total cost of $m_o = 4$ and $t_o = 10$.
-
-# However, if we decide to conduct $e_1$ in parallel with $e_3$, and $e_2$ with $e_4$, we would obtain an arrangement $o = (\{ e_1, e_3 \}, \{ e_2, e_4 \})$ with a total cost of $m_o = 4$, and $t_o = 3 + 4 = 7$.
-
-# Given the constraint on the maximum number of parallel experiments, we devise an arrangement $o$ of experiments $S$ such that, for a fixed tradeoff between monetary cost and execution time, the expected combined cost $c_{s} = \lambda m_o + (1-\lambda) t_o$ is minimized (i.e., the execution time is minimized).
-
-# Because $t_{o}$ is the sum of the maximum times of each partition of $S$, to minimize $t_{o}$, experiments with long execution times should be grouped together. Therefore, the optimal arrangement is one such that each partition's size equals the maximum number of parallel experiments, except possibly for the final partition, and that assignment into partitions is done in order of execution time.
-
-# Continuing our example and assuming a maximum of two parallel experiments, the optimal arrangement is to conduct $e_1$ in parallel with $e_2$, and $e_3$ with $e_4$. This results in an arrangement $o = (\{ e_1, e_2 \}, \{ e_3, e_4 \})$ with a total cost of $m_o = 4$ and $t_o = 2 + 4 = 6$.
-
-# Assuming the information values $v_S$ and optimized experimental costs $c_S$ for each subset $S \subseteq E$ of experiments, we then generate a set of cost-efficient experimental designs.
+# Consider a situation where a homogeneous group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
+# For details on the theoretical background and notation, please see our tutorial on [static experimental designs](SimpleStatic.md), this tutorial
+# is a concrete application of the tools described in that document.
 
 # ### Application to Predictive Modeling 
 
+# Let's generalize the example from [static experimental designs](SimpleStatic.md) to the case where we want to compute $v_{S}$ as the predictive
+# ability of a machine learning model which uses the measurements gained from experiments in $S$ to predict some $y$ of interest.
+# 
+# Let's introduce some formal notation.
 # Consider a dataset of historical readouts over $m$ features $X = \{x_1, \ldots, x_m\}$, and let $y$ denote the target variable that we want to predict.
-
-# We assume that each experiment $e \in E$ yields readouts over a subset $X_e \subseteq X$ of features.
+# Assume that each experiment $e \in E$ yields readouts over a subset $X_e \subseteq X$ of features.
 
 # Then, for each subset $S \subseteq E$ of experiments, we may model the value of information acquired by conducting the experiments in $S$ as the accuracy of a predictive model that predicts the value of $y$ based on readouts over features in $X_S = \bigcup_{e\in S} X_e$.
+# Then this accuracy is our information value $v_{S}$ of $S$.
 
 # ## Heart Disease Dataset
 

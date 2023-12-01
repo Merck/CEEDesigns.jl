@@ -1,24 +1,25 @@
 # # Heart Disease Triage With Early Droupout
 
-# Consider again a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
+# Consider again a situation where a group of patients is tested for a specific disease. 
+# It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
 
 # Moreover, we may assume that for some patients, the evidence gathered from proxy experiments can be considered 'conclusive'. Effectively, some patients may not need any additional triage; they might be deemed healthy or require immediate commencement of treatment. By doing so, we could save significant resources.
 
 # ## Theoretical Framework
 
-# Let us consider a set of $n$ experiments $E = \{ e_1, \ldots, e_n\}$.
+# We take as a basis the setup and notation from the basic framework presented in the [static experimental designs tutorial](SimpleStatic.md).
 
-# For each subset $S \subseteq E$ of experiments, we denote by $v_S$ the value of information acquired from conducting experiments in $S$.
-
-# Moreover, it can be assumed that a set of extrinsic decision-making rules is imposed on the experimental readouts. If the experimental evidence acquired for a given entity satisfies a specific criterion, that entity is then removed from the triage. However, other entities within the batch will generally continue in the experimental process. In general, the process of establishing such rules is largely dependent on the specific problem and requires comprehensive understanding of the subject area.
+# We again have a set of experiments $E$, but now assume that a set of extrinsic decision-making rules is imposed on the experimental readouts. 
+# If the experimental evidence acquired for a given entity satisfies a specific criterion, that entity is then removed from the triage. 
+# However, other entities within the batch will generally continue in the experimental process. 
+# In general, the process of establishing such rules is largely dependent on the specific problem and requires comprehensive understanding of the subject area.
 
 # We denote the expected fraction of entities that remain in the triage after conducting a set $S$ of experiments as the filtration rate, $f_S$. In the context of disease triage, this can be interpreted as the fraction of patients for whom the experimental evidence does not provide a 'conclusive' result.
 
-# In the cost-sensitive setting of CEEDesigns, conducting an experiment $e$ incurs a cost $(m_e, t_e)$. Generally, this cost is specified in terms of monetary cost and execution time of the experiment.
+# As previously, each experiment $e$ incurs a cost $(m_e, t_e)$. Again, we let $O_{S}$ denote an arrangement of experiments in $S$.
 
-# To compute the cost associated with carrying out a set of experiments $S$, we first need to introduce the notion of an arrangement $o$ of the experiments $S$. An arrangement is modeled as a sequence of mutually disjoint subsets of $S$. In other words, $o = (o_1, \ldots, o_l)$ for a given $l\in\mathbb N$, where $\bigcup_{i=1}^l o_i = S$ and $o_i \cap o_j = \emptyset$ for each $1\leq i < j \leq l$.
-
-# Given a subset $S$ of experiments and their arrangement $o$, the total (discounted) monetary cost and execution time of the experimental design is given as $m_o = \sum_{i=1}^{l} r_{S_{i-1}}\sum_{e\in o_i} m_e$ and $t_o = \sum_{i=1}^{l} \max \{ t_e : e\in o_i\}$, respectively. Importantly, the factor $r_{S_{i-1}}$ models the fact that a set of entities may have dropped out in the previous experiments, hence saving the resources on running the subsequent experiments.
+# Given a subset $S$ of experiments and their arrangement $O_{S}$, the total (discounted) monetary cost and execution time of the experimental design is given as $m_o = \sum_{i=1}^{l} r_{S_{i-1}}\sum_{e\in o_i} m_e$ and $t_o = \sum_{i=1}^{l} \max \{ t_e : e\in o_i\}$, respectively. 
+# Importantly, the new factor $r_{S_{i-1}}$ models the fact that a set of entities may have dropped out in the previous experiments, hence saving the resources on running the subsequent experiments.
 
 # We note that these computations are based on the assumption that monetary cost is associated with the analysis of a single experimental entity, such as a patient. Therefore, the total monetary cost obtained for a specific arrangement is effectively the ['expected'](https://en.wikipedia.org/wiki/Expected_value) monetary cost, adjusted for a single entity. Conversely, we suppose that all entities can be concurrently examined in a specific experiment. As such, the total execution time is equivalent to the longest time until all experiments within an arrangement are finished or all entities have been eliminated (which ocurrs when the filtration rate the experiments conducted so far is zero). Importantly, this distinctly differs from calculating the 'expected lifespan' of an entity in the triage.
 
@@ -42,7 +43,7 @@
 # - _actions_ are subsets of experiments which have not been conducted yet; the size of these subsets is restricted by the maximum number of parallel experiments;
 # - _reward_ is a combined monetary cost and execution time, discounted by the filtration rate of previously conducted experiments.
 
-# Provided we know the information values $v_S$, filtration rates $r_S$, and experimental costs $c_S$ for each subset $S \subseteq E$, we find a collection of Pareto-efficient experimental designs that balance both the implied value of information and the experimental cost.
+# Provided we know the information values $v_S$, filtration rates $r_S$, and experimental costs $c_S$ for each set of experiments $S$, we find a collection of Pareto-efficient experimental designs that balance both the implied value of information and the experimental cost.
 
 # ## Heart Disease Dataset
 
