@@ -48,20 +48,6 @@
 # ## Comparison and Necessity
 
 # The key difference is that `desirable_range` acts as a binary filter (include or exclude), while `importance_weights` adjusts the probability of inclusion without necessarily excluding any data points.
-# # Remarks for active sampling:
-# The `desirable_range`` and `importance_weights`` in the DistanceBased.jl code serve different purposes, although they both influence the sampling process.
-
-# ## Desirable Range Constraints
-
-# The `desirable_range` is used to apply a filter to the data based on specified ranges for certain columns. The code snippet you provided checks if the values in a column fall within a specified range and creates a boolean array (`within_range`) that is true for rows that meet the criteria and false for those that don't. This boolean array is then used to element-wise multiply the similarities array, effectively setting the similarity to zero for rows that don't fall within the range. This is a form of hard constraint that excludes certain data points from being sampled.
-
-# ## Target Constraints
-
-# The `importance_weights`, on the other hand, apply a softer form of constraint by adjusting the weights of the data points based on certain conditions. Instead of excluding data points that don't meet the criteria, `importance_weights` increase the weight of those that do, making them more likely to be sampled, but still allowing for the possibility of sampling those that don't meet the criteria.
-
-# ## Comparison and Necessity
-
-# The key difference is that `desirable_range` acts as a binary filter (include or exclude), while `importance_weights` adjusts the probability of inclusion without necessarily excluding any data points.
 
 # Whether to increase the weight for elements within the range or simply filter them out depends on the specific requirements of the problem you're trying to solve:
 
