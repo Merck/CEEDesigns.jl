@@ -12,7 +12,7 @@ A decision-making framework for the cost-efficient design of experiments, balanc
 <a><img src="docs/src/assets/front_static.png" align="right" alt="code" width="400"></a>
 
 ### Static experimental designs
-Here we assume that the same experimental design will be used for a population of examined entities, hence the word 'static'.
+Here we assume that the same experimental design will be used for a population of examined entities, hence the word "static".
 
 For each subset of experiments, we consider an estimate of the value of acquired information. To give an example, if a set of experiments is used to predict the value of a specific target variable, our framework can leverage a built-in integration with [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) to estimate predictive accuracies of machine learning models fitted over subset of experimental features.
 
@@ -26,7 +26,7 @@ Assuming the information values and optimized experimental costs for each subset
 
 We consider 'personalized' experimental designs that dynamically adjust based on the evidence gathered from the experiments. This approach is motivated by the fact that the value of information collected from an experiment generally differs across subpopulations of the entities involved in the triage process.
 
-At the beginning of the triage process, an entity's prior data is used to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model likely experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific decision policy from this set and acquiring additional experimental readouts (sampled from a generative model, hence the word 'generative'), we adjust the continuation based on this evidence.
+At the beginning of the triage process, an entity's prior data is used to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model likely experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific decision policy from this set and acquiring additional experimental readouts (sampled from a generative model, hence the word "generative"), we adjust the continuation based on this evidence.
 
 <a><img src="docs/src/assets/search_tree.png" align="left" alt="code" width="400"></a>
 

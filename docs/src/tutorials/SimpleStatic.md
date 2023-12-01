@@ -4,7 +4,7 @@ EditURL = "SimpleStatic.jl"
 
 # Static Experimental Designs
 
-In this document we describe the theoretical background behind the tools in `CEEDesigns.jl` for producing optimal "static experimental designs",
+In this document we describe the theoretical background behind the tools in `CEEDesigns.jl` for producing optimal "static experimental designs," i.e.,
 arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
 We also show an example with synthetic data.
 
@@ -12,7 +12,7 @@ We also show an example with synthetic data.
 
 Consider the following scenario. There exists a set of experiments, each of which, when performed, yields
 measurements on one or more observables (features). Each subset of observables (and therefore each subset of experiments)
-has some "information value", which is intentionally vaguely defined for generality, but for example, may be
+has some "information value," which is intentionally vaguely defined for generality, but for example, may be
 a loss function if that subset is used  to train some machine learning model. It is generally the value of acquiring that information.
 Finally, each experiment has some monetary cost and execution time to perform the experiment, and
 the user has some known tradeoff between overall execution time and cost.
@@ -64,7 +64,7 @@ the sum of the costs of each experiment:
 $$m_{O_{S}}=\sum_{e\in S} m_{e}$$
 The total time required is the sum of the maximum time *of each partition*. This is because while each partition in the
 arrangement is done in serial, experiments within partitions are done in parallel.
-$$t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e} e \in o_{i}\}$$
+$$t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e}: e \in o_{i}\}$$
 Given these costs and a parameter $\lambda$ which controls the tradeoff between monetary cost and time, the combined
 cost of an arrangement is:
 $$\lambda m_{O_{S}} + (1-\lambda) t_{O_{S}}$$
@@ -86,7 +86,7 @@ if the maximum number of parallel experiments does not divide $S$ evenly.
 
 ## Synthetic Data Example
 
-We now present an example of finding cost-efficient designs using synthetic data using the `CEEDesigns.jl` package.
+We now present an example of finding cost-efficient designs for synthetic data using the `CEEDesigns.jl` package.
 
 First we load necessary packages.
 
@@ -153,14 +153,16 @@ plot_evals(
 We print the data frame showing each subset of experiments and its overall information value.
 
 ````@example SimpleStatic
-DataFrame(;
+df_values = DataFrame(;
     S = collect.(collect(keys(experiments_evals))),
     value = collect(values(experiments_evals)),
 )
+
+sort(df_values, :value)
 ````
 
 Now we are ready to find the subsets of experiments giving an optimal tradeoff between information
-value and combined cost (where we use $\lambda=0.5$). CEED exports a function `efficient_designs`
+value and combined cost. CEED exports a function `efficient_designs`
 which formulates the problem of finding optimal arrangements as a Markov Decision Process and solves
 optimal arrangements for each subset on the Pareto frontier.
 
@@ -183,7 +185,7 @@ nothing #hide
 Finally we may produce a plot of the set of cost-efficient experimental designs. The set of designs
 is plotted along a Pareto frontier giving tradeoff between informatio value (y-axis) and combined cost (x-axis).
 Note that because we set the maximum number of parallel experiments equal to 2, the efficient design for the complete set
-of experiments groups the experiments with long execution times together (see plot legend; each group/partition is
+of experiments groups the experiments with long execution times together (see plot legend; each group within a partition is
 prefixed with a number).
 
 ````@example SimpleStatic
