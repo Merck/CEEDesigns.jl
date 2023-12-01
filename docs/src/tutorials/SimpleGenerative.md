@@ -370,7 +370,7 @@ Note that we use the Euclidean distance, due to somewhat faster runtime.
 ````@example SimpleGenerative
 n_thresholds = 7
 evidence = Evidence()
-solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
 mdp_options = (;
     max_parallel = length(experiments_costs),
@@ -526,7 +526,7 @@ Pareto front.
 ````@example SimpleGenerative
 n_thresholds = 7
 evidence = Evidence()
-solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
 mdp_options = (;
     max_parallel = length(experiments_costs),

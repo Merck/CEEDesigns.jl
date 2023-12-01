@@ -345,7 +345,7 @@ experiments_costs_df
 
 n_thresholds = 7
 evidence = Evidence()
-solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
 mdp_options = (;
     max_parallel = length(experiments_costs),
@@ -484,7 +484,7 @@ experiments_costs_df
 
 n_thresholds = 7
 evidence = Evidence()
-solver = DPWSolver(; n_iterations = 500, tree_in_info = true)
+solver = GenerativeDesigns.DPWSolver(; n_iterations = 500, tree_in_info = true)
 repetitions = 5
 mdp_options = (;
     max_parallel = length(experiments_costs),
