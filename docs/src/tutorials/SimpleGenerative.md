@@ -4,7 +4,7 @@ EditURL = "SimpleGenerative.jl"
 
 # Generative Experimental Designs
 
-This document describes the theoretical background behind tools in `CEEDesigns.jl` for generative experimental designs
+This document describes the theoretical background behind tools in CEEDesigns.jl for generative experimental designs
 and demonstrates used on synthetic data examples.
 
 ## Setting
@@ -38,7 +38,7 @@ Additionally, consider a historical dataset giving measurements on $m$ features 
 (with entities and features representing rows and columns, respectively). Each experiment $e$ may yield measurements on some
 subset of features $(X_{e}\subseteq X)$.
 
-Furthermore there is an additional column $y$ which is a target variable we want to predict (`CEEDesigns.jl` may allow $y$
+Furthermore there is an additional column $y$ which is a target variable we want to predict (CEEDesigns.jl may allow $y$
 to be a vector, but we assume it is scalar here for ease of presentation).
 
 Letting $m=3$, then the historical dataset may be visualized as the following table:
@@ -141,7 +141,7 @@ has had $e_{1}$ performed out of 3 possible experiments is below:
 
 ## Synthetic Data Example with Continuous $y$
 
-We now present an example of finding cost-efficient generative designs using synthetic data using the `CEEDesigns.jl` package.
+We now present an example of finding cost-efficient generative designs using synthetic data using the CEEDesigns.jl package.
 
 First we load necessary packages.
 
@@ -238,7 +238,7 @@ plot(p1, p2, p3, p4; layout = (2, 2), legend = false)
 
 Given historical data, a target variable $y$, and metric to quantify uncertainty around
 the posterior distribution on the target $q(y|e_{S})$, the function `DistanceBased`
-returns three functions needed by `CEEDesigns.jl`:
+returns three functions needed by CEEDesigns.jl:
 - `sampler`: this is a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator;
 - `uncertainty`: this is a function of `evidence`,
 - `weights`: this represents a function of `evidence` that generates probability weights $w_j$ to each row in the historical data.

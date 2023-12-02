@@ -1,7 +1,7 @@
 # # Heart Disease Triage Meets Generative Modeling
 
 # Consider again a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer; instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
-# For details on the theoretical background and notation, please see our tutorial on [generative experimental designs](SimpleGenerative.md), this tutorial
+# For details on the theoretical background and notation, please see our tutorial on [generative experimental designs](SimpleGenerative.md). This tutorial
 # is a concrete application of the tools described in that document.
 
 # Importantly, we aim to design personalized adaptive policies for each patient. At the beginning of the triage process, we use a patient's prior data, such as sex, age, or type of chest pain, to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model probable experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific decision policy from this set and acquiring additional experimental readouts, we adjust the continuation based on this evidence.
@@ -41,7 +41,7 @@ using CEEDesigns, CEEDesigns.GenerativeDesigns
 # As previously discussed, we provide a dataset of historical records, the target variable, along with an information-theoretic measure to quantify the uncertainty about the target variable.
 
 # In what follows, we obtain three functions:
-# - `sampler`: this is a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator;
+# - `sampler`: this is a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator,
 # - `uncertainty`: this is a function of `evidence`,
 # - `weights`: this represents a function of `evidence` that distributes probabilistic weights across the rows in the dataset.
 
@@ -77,7 +77,8 @@ DistanceBased(
 # You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). For example, we could write:
 
 DistanceBased(
-    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]]; # the Mahalanobis distance only works with numeric features, so we selected a few, along with the target variable
+     # The Mahalanobis distance only works with numeric features, so we selected a few, along with the target variable.
+    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]];
     target = "HeartDisease",
     uncertainty = Entropy,
     similarity = Exponential(; λ = 5),
@@ -189,7 +190,7 @@ experiments = Dict(
     "HeartDisease" => (100.0, 100.0),
 )
 
-# We have to provide the maximum number of concurrent experiments. Additionally, we can specify the tradeoff between monetary cost and execution time - in our case, we aim to minimize the execution time.
+# We have to provide the maximum number of concurrent experiments. Additionally, we can specify the tradeoff between monetary cost and execution time. In our case, we aim to minimize the execution time.
 
 ## minimize time, two concurrent experiments at maximum
 seed!(1)
@@ -218,7 +219,7 @@ plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
 # In this experimental setup, we aim to maximize the value of experimental evidence, adjusted for the incurred experimental costs.
 
-# For this purpose, we need to specify a function that quantifies the 'value' of decision-process making state, modeled as a tuple of experimental evidence and costs.
+# For this purpose, we need to specify a function that quantifies the "value" of decision-process making state, modeled as a tuple of experimental evidence and costs.
 
 value = function (evidence, (monetary_cost, execution_time))
     return (1 - uncertainty(evidence)) - (0.005 * sum(monetary_cost))

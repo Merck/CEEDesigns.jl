@@ -21,7 +21,7 @@ data = CSV.File("data/heart_disease.csv") |> DataFrame
 
 # ## Predictive Accuracy
 
-# The CEEDesigns package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+# The CEEDesigns.jl package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 # We specify the experiments along with the associated features:
 

@@ -1,6 +1,6 @@
 # # Static Experimental Designs
 
-# In this document we describe the theoretical background behind the tools in `CEEDesigns.jl` for producing optimal "static experimental designs," i.e.,
+# In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "static experimental designs," i.e.,
 # arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
 # We also show an example with synthetic data.
 
@@ -13,7 +13,7 @@
 # Finally, each experiment has some monetary cost and execution time to perform the experiment, and
 # the user has some known tradeoff between overall execution time and cost.
 # 
-# `CEEDesigns.jl` provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
+# CEEDesigns.jl provides tools to take these inputs and produce a set of optimal "arrangements" of experiments for each
 # subset of experiments that form a Pareto front along the tradeoff between information gain and total combined cost
 # (monetary and time). This allows informed decisions to be made, for example, regarding how to allocate scarce
 # resources to a set of experiments that attain some acceptable level of information (or, conversely, reduce
@@ -82,7 +82,7 @@
 
 # ## Synthetic Data Example
 
-# We now present an example of finding cost-efficient designs for synthetic data using the `CEEDesigns.jl` package.
+# We now present an example of finding cost-efficient designs for synthetic data using the CEEDesigns.jl package.
 # 
 # First we load necessary packages.
 
@@ -110,7 +110,7 @@ experiments_evals = Dict(map(Set.(collect(powerset(experiments)))) do s
     end
 end);
 
-# See our other tutorial on [heart disease triage](StaticDesigns.md) for an example of using `CEEDesigns.jl`'s built-in
+# See our other tutorial on [heart disease triage](StaticDesigns.md) for an example of using CEEDesigns.jl's built-in
 # compatability with machine learning models from `MLJ.jl` to evalute performance of experiments using
 # predictive accuracy as information value.
 # 
