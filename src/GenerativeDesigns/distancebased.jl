@@ -5,12 +5,17 @@
 This returns an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / σ`.
 If `standardize` is set to `true`, `σ` represents `col`'s variance calculated in relation to `prior`, otherwise `σ` equals one.
 """
-QuadraticDistance(; λ = 1, standardize = true) =
+function QuadraticDistance(; λ = 1, standardize = true)
+    σ = nothing
+
     function (x, col; prior = ones(length(col)))
-        σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        if isnothing(σ)
+            σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        end
 
         return λ * (x .- col) .^ 2 / σ
     end
+end
 
 """
     DiscreteDistance(; λ=1)
@@ -30,16 +35,21 @@ Return an anonymous function `x -> exp(-λ * sum(x; init=0))`.
 Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
 # default uncertainty functionals
-compute_variance(data::AbstractVector; weights) = var(data, Weights(weights); corrected=false)
+function compute_variance(data::AbstractVector; weights)
+    var(data, Weights(weights); corrected = false)
+end
 
-compute_variance(data; weights) = sum(var(Matrix(data), Weights(weights), 1; corrected=false))
+function compute_variance(data; weights)
+    sum(var(Matrix(data), Weights(weights), 1; corrected = false))
+end
 
 """
-    Variance(data; prior)
+    Variance()
 
-Return a function of `weights` that computes the fraction of variance in the data, relative to the variance calculated with respect to a specified `prior`.
+Return a function of `(data; prior)`. When this function is called as part of an instantiation procedure in [`DistanceBased`](@ref),
+it returns an internal function of `weights` that computes the fraction of variance in the data, relative to the variance calculated with respect to a specified `prior`.
 """
-function Variance(data; prior)
+Variance() = function (data; prior)
     initial = compute_variance(data; weights = prior)
     return weights -> (compute_variance(data; weights) / initial)
 end
@@ -50,14 +60,17 @@ function compute_entropy(labels; weights)
 end
 
 """
-    Entropy(labels; prior)
+    Entropy()
 
-Return a function of `weights` that computes the fraction of information entropy, relative to the entropy calculated with respect to a specified `prior`.
+Return a function of `(labels; prior)`.  When this function is called as part of an instantiation procedure in [`DistanceBased`](@ref),
+it returns an internal function of `weights` that computes the fraction of information entropy, relative to the entropy calculated with respect to a specified `prior`.
 """
-function Entropy(labels; prior)
-    @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
-    initial = compute_entropy(labels; weights = prior)
-    return (weights -> compute_entropy(labels; weights) / initial)
+function Entropy()
+    function (labels; prior)
+        @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
+        initial = compute_entropy(labels; weights = prior)
+        return weights -> (compute_entropy(labels; weights) / initial)
+    end
 end
 
 # Return a function that calculates the sum of distances in each row, column-wise, and applies weights based on the prior.
@@ -136,7 +149,7 @@ function MahalanobisDistance(; diagonal = 0)
 end
 
 """
-    DistanceBased(data; target, uncertainty=Entropy, similarity=Exponential(), distance=Dict(); prior=ones(nrow(data)))
+    DistanceBased(data; target, uncertainty=Entropy(), similarity=Exponential(), distance=Dict(); prior=ones(nrow(data)))
 
 Compute distances between experimental evidence and historical readouts, and apply a 'similarity' functional to obtain probability mass for each row.
 
@@ -168,7 +181,7 @@ A named tuple with the following fields:
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 ```
@@ -176,7 +189,7 @@ A named tuple with the following fields:
 function DistanceBased(
     data::DataFrame;
     target,
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = Exponential(),
     distance = Dict(),
     prior = ones(nrow(data)),

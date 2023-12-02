@@ -27,7 +27,7 @@ evidence = Evidence("Age" => 35, "Sex" => "M")
 r = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 @test all(x -> hasproperty(r, x), [:sampler, :uncertainty, :weights])

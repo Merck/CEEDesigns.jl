@@ -253,14 +253,14 @@ to weights.
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
 );
 
 (sampler_mh, uncertainty_mh, weights_mh) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
     distance = MahalanobisDistance(; diagonal = 0),
 );
@@ -445,7 +445,7 @@ which is more suitable for discrete $y$.
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
 );
 nothing #hide

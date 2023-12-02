@@ -237,14 +237,14 @@ plot(p1, p2, p3, p4; layout = (2, 2), legend = false)
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
 );
 
 (sampler_mh, uncertainty_mh, weights_mh) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
     distance = MahalanobisDistance(; diagonal = 0),
 );
@@ -412,7 +412,7 @@ data = coerce(data, types);
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "y",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
 );
 

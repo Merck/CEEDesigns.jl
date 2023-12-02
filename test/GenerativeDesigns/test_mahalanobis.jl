@@ -25,7 +25,7 @@ evidence = Evidence()
 r = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = Exponential(; λ = 5),
     distance = MahalanobisDistance(; diagonal = 1),
 );

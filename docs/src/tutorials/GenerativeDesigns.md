@@ -64,7 +64,7 @@ You can specify the method for computing the distance using the `distance` keywo
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 nothing #hide
@@ -81,7 +81,7 @@ categorical_feats = setdiff(names(data), numeric_feats)
 DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
     distance = merge(
         Dict(c => DiscreteDistance() for c in categorical_feats),
@@ -97,7 +97,7 @@ You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). A
 DistanceBased(
     data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]];
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
     distance = MahalanobisDistance(; diagonal = 1),
 );

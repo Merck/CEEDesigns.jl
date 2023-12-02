@@ -139,7 +139,7 @@ Internally, an instance of the `EfficientValueMDP` structure is created and a su
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 value = (evidence, costs) -> (1 - uncertainty(evidence) + 0.005 * sum(costs));

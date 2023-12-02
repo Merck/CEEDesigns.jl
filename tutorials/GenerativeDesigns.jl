@@ -52,7 +52,7 @@ using CEEDesigns, CEEDesigns.GenerativeDesigns
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 
@@ -66,7 +66,7 @@ categorical_feats = setdiff(names(data), numeric_feats)
 DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
     distance = merge(
         Dict(c => DiscreteDistance() for c in categorical_feats),
@@ -77,9 +77,9 @@ DistanceBased(
 # You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). As the Mahalanobis distance only works with numeric features, we have to select a few, along with the target variable. For example, we could write:
 
 DistanceBased(
-    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]]; 
+    data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]];
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
     distance = MahalanobisDistance(; diagonal = 1),
 );
