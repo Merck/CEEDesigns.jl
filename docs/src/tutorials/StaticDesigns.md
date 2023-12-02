@@ -4,13 +4,13 @@ EditURL = "StaticDesigns.jl"
 
 # Heart Disease Triage
 
-Consider a situation where a homogeneous group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
+Consider a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
 For details on the theoretical background and notation, please see our tutorial on [static experimental designs](SimpleStatic.md), this tutorial
 is a concrete application of the tools described in that document.
 
 ### Application to Predictive Modeling
 
-Let's generalize the example from [static experimental designs](SimpleStatic.md) to the case where we want to compute $v_{S}$ as the predictive
+Let's generalize the example from [static experimental designs](SimpleStatic.md) to the case where we want to compute the information value $v_{S}$ as the predictive
 ability of a machine learning model which uses the measurements gained from experiments in $S$ to predict some $y$ of interest.
 
 Let's introduce some formal notation.
@@ -32,7 +32,7 @@ data[1:10, :]
 
 ## Predictive Accuracy
 
-The CEEDesigns package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+The CEEDesigns.jl package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 We specify the experiments along with the associated features:
 
@@ -102,7 +102,7 @@ model = classifier(; n_trees = 20, max_depth = 10)
 
 ### Performance Evaluation
 
-We use `evaluate_experiments` from `CEEDesigns.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as a measure of accuracy. It is possible to pass additional keyword arguments, which will be passed to `MLJ.evaluate` (such as `measure`, shown below).
+We use `evaluate_experiments` from `CEEDesigns.StaticDesigns` to evaluate the predictive accuracy over subsets of experiments. We use `LogLoss` as a measure of accuracy. It is possible to provide additional keyword arguments, which will be passed to `MLJ.evaluate` (such as `measure`, shown below).
 
 ````@example StaticDesigns
 using CEEDesigns, CEEDesigns.StaticDesigns
@@ -168,7 +168,7 @@ experiments_costs = Dict(
 )
 ````
 
-We set the maximum number of concurrent experiments. Additionally, we can specify the tradeoff between monetary cost and execution time - in our case, we aim to minimize the execution time.
+We set the maximum number of concurrent experiments. Additionally, we can specify the tradeoff between monetary cost and execution time. In our case, we aim to minimize the execution time.
 
 Below, we demonstrate the flexibility of `efficient_designs` as it can both evaluate the performance of experiments and generate efficient designs. Internally, `evaluate_experiments` is called first, followed by `efficient_designs`. Keyword arguments to the respective functions has to wrapped in `eval_options` and `arrangement_options` named tuples, respectively.
 

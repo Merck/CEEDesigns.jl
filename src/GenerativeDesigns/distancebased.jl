@@ -30,9 +30,9 @@ Return an anonymous function `x -> exp(-λ * sum(x; init=0))`.
 Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
 # default uncertainty functionals
-compute_variance(data::AbstractVector; weights) = var(data, Weights(weights))
+compute_variance(data::AbstractVector; weights) = var(data, Weights(weights); corrected=false)
 
-compute_variance(data; weights) = sum(var(Matrix(data), Weights(weights), 1))
+compute_variance(data; weights) = sum(var(Matrix(data), Weights(weights), 1; corrected=false))
 
 """
     Variance(data; prior)
@@ -104,14 +104,14 @@ function MahalanobisDistance(; diagonal = 0)
         if !all(t -> t <: Real, eltype.(eachcol(data[!, non_targets])))
             @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
         end
-        Σ = cov(Matrix(data[!, non_targets]), Weights(prior))
+        Σ = cov(Matrix(data[!, non_targets]), Weights(prior); corrected = false)
         # add diagonal entries
         diagonal = diagonal isa Number ? fill(diagonal, size(Σ, 1)) : diagonal
         foreach(i -> Σ[i, i] += diagonal[i], axes(Σ, 1))
 
         # get the inverse of Σ
         Λ = inv(Σ)
-        
+
         compute_distances = function (evidence::Evidence)
             if isempty(evidence)
                 return zeros(nrow(data))

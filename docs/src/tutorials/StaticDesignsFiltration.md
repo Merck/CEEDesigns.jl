@@ -101,7 +101,7 @@ data_binary[1:10, :]
 
 In this scenario, we model the value of information $v_S$ acquired by conducting a set of experiments as the ratio of patients for whom the results across the experiments in $S$ were 'inconclusive', i.e., $|\cap_{e\in S}\{ \text{patient} : \text{inconclusive in } e \}| / |\text{patients}|$. Essentially, the very same measure is used here to estimate the filtration rate.
 
-The CEEDesigns package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
+The CEEDesigns.jl package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.
 
 We specify the experiments along with the associated features:
 

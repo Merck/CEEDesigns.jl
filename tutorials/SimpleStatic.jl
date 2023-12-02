@@ -144,7 +144,7 @@ df_values = DataFrame(;
     value = collect(values(experiments_evals)),
 )
 
-sort(df_values, order(:value, rev=true))
+sort(df_values, order(:value; rev = true))
 
 # Now we are ready to find the subsets of experiments giving an optimal tradeoff between information
 # value and combined cost. CEED exports a function `efficient_designs`

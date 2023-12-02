@@ -9,7 +9,7 @@
 # Consider the following scenario. There exists a set of experiments, each of which, when performed, yields
 # measurements on one or more observables (features). Each subset of observables (and therefore each subset of experiments)
 # has some "information value," which is intentionally vaguely defined for generality, but for example, may be 
-# a loss function if that subset is used  to train some machine learning model. It is generally the value of acquiring that information. 
+# a loss function if that subset is used to train some machine learning model. It is generally the value of acquiring that information. 
 # Finally, each experiment has some monetary cost and execution time to perform the experiment, and
 # the user has some known tradeoff between overall execution time and cost.
 # 
@@ -19,8 +19,11 @@
 # resources to a set of experiments that attain some acceptable level of information (or, conversely, reduce
 # uncertainty below some level).
 # 
-# The arrangements produced by the tools introduced in this tutorial are called "static" because they implicitly
-# assume that future data will have exactly the information gain of each experiment as the "historical" input.
+# The arrangements produced by the tools introduced in this tutorial are called "static" because they inherently
+# assume that for each experiment, future data will deterministically yield the same information gain as the "historical" data did.
+# This information gain from the "historical" data is quantified based on certain aggregate statistics.
+#
+# We can also consider "generative experimental designs," where the information gain is modeled as a random variable. This concept is detailed in another [tutorial](./SimpleGenerative.jl).
 # 
 # This tutorial introduces the theoretical framework behind static experimental designs with synthetic data.
 # For examples using real data, please see our other tutorials.
@@ -56,14 +59,11 @@
 # ### Optimal Arrangements
 
 # To find the optimal arrangement for each $S$ we need to know the cost of $O_{S}$. The monetary cost of $O_{S}$ is simply
-# the sum of the costs of each experiment:
-# $$m_{O_{S}}=\sum_{e\in S} m_{e}$$
+# the sum of the costs of each experiment:$m_{O_{S}}=\sum_{e\in S} m_{e}$.
 # The total time required is the sum of the maximum time *of each partition*. This is because while each partition in the 
-# arrangement is done in serial, experiments within partitions are done in parallel.
-# $$t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e}: e \in o_{i}\}$$
+# arrangement is done in serial, experiments within partitions are done in parallel. That is, $t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e}: e \in o_{i}\}$
 # Given these costs and a parameter $\lambda$ which controls the tradeoff between monetary cost and time, the combined
-# cost of an arrangement is:
-# $$\lambda m_{O_{S}} + (1-\lambda) t_{O_{S}}$$
+# cost of an arrangement is: $\lambda m_{O_{S}} + (1-\lambda) t_{O_{S}}$.
 # 
 # For instance, consider the experiments $S = \{e_{1},e_{2},e_{3},e_{4}\}$, with associated costs $(1, 1)$, $(1, 3)$, $(1, 2)$, and $(1, 4)$.
 # If we conduct experiments $e_1$ through $e_4$ in sequence, this would correspond to an arrangement 
@@ -144,7 +144,7 @@ df_values = DataFrame(;
     value = collect(values(experiments_evals)),
 )
 
-sort(df_values, :value)
+sort(df_values, order(:value; rev = true))
 
 # Now we are ready to find the subsets of experiments giving an optimal tradeoff between information
 # value and combined cost. CEED exports a function `efficient_designs`
