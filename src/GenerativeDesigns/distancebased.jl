@@ -111,7 +111,7 @@ function MahalanobisDistance(; diagonal = 0)
 
         # get the inverse of Σ
         Λ = inv(Σ)
-
+        
         compute_distances = function (evidence::Evidence)
             if isempty(evidence)
                 return zeros(nrow(data))

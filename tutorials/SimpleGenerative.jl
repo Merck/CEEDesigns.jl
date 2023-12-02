@@ -1,7 +1,7 @@
 # # Generative Experimental Designs
 
 # This document describes the theoretical background behind tools in `CEEDesigns.jl` for generative experimental designs
-# and demonstrates used on synthetic data examples.
+# and demonstrates uses on synthetic data examples.
 
 # ## Setting
 
@@ -16,11 +16,10 @@
 
 # ![information value matrix](assets/information_value_matrix.png)
 
-# In the context of static designs, we do not assume heterogeneity in the population, so all entities are assumed to come from a 
-# homogeneous 'Population', in which case 'Experiment C' would contribute the maximum information value. On the other hand, if we
-# have the ability to discern if the entity belong to subpopulations 'Population 1' or 'Population 2', then we can tailor our
-# design to suggest either 'Experiment A' or `Experiment B`. Clearly, in the limit of a maximally heterogenous population, each
-# entity has its own "row". Our tools are able to handle the entire spectrum of such scenarios though distance based similarity, 
+# In the context of static designs, we do not aspire to capture variation in information gain across different entities. Instead, we assume all entities come from a "Population" with a uniform information gain, in which case "Experiment C" would provide the maximum information value.
+# On the other hand, if we have the ability to discern if the entity belong to subpopulations "Population 1" or "Population 2," then we can tailor our
+# design to suggest either "Experiment A" or "Experiment B." Clearly, in the limit of a maximally heterogenous population, each
+# entity has its own "row." Our tools are able to handle the entire spectrum of such scenarios though distance based similarity, 
 # described below.
 
 # ## Theoretical Framework
@@ -68,7 +67,7 @@
 # 
 # Furthermore, there also exists a posterior distribution over the unobserved target variable $q(y|e_{S})$. The information
 # value of the current state, derived from experimental evidence, can be defined as any statistical or information-theoretic
-# measure applied to $q(y|e_{S})$. This can include variance, uncertainty, or entropy (among others). The information value
+# measure applied to $q(y|e_{S})$. This can include variance or entropy (among others). The information value
 # of the set of experiments performed in $S$ is analogous to $v_{S}$ defined in [static experimental designs](SimpleStatic.md).
 
 # ### Similarity Weighting
@@ -83,17 +82,17 @@
 # 
 # For each feature $x\in X$, we consider a function $\rho_x$, which measures the distance between two outputs. By default, we consider:
 # - Rescaled Kronecker delta (i.e., $\rho(x, y)=0$ only when $x=y$, and $\rho(x, y)= \lambda$ under any other circumstances, with $\lambda > 0$) for discrete features (i.e., features whose types are modeled as `MultiClass` type in [ScientificTypes.jl](https://github.com/JuliaAI/ScientificTypes.jl));
-# - Rescaled squared distance $\rho(x, y) = λ  \frac{(x - y)^2}{2\sigma_2}$, where $\sigma_2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
+# - Rescaled squared distance $\rho(x, y) = λ  \frac{(x - y)^2}{2\sigma^2}$, where $\sigma^2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
 # - Mahalanobis distance $\rho(x,y) = \sqrt{(x-y)^{⊤}\Sigma^{-1}(x-y)}$, where $\Sigma$ is the empirical covariance matrix of the historical data.
 # 
-# Therefore, given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}, e \in S$, we can calculate
+# Therefore, for distance metrics assuming independence of features (Kronecker delta and squared distance), given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}$, where $e \in S$, we can calculate
 # the distance from the $j$-th historical entity as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout 
-# for feature $x$ for the entity being tested and the entity recorded in $j$-th column, for distance metrics assuming independence of features 
-# (Kronecker delta and squared distance). Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j}).
+# for feature $x$ for the entity being tested and the entity recorded in $j$-th column.
+# Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j})$.
 # 
 # Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e., 
 # we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities. 
-# Larger values of $\lambda$ concentrate the belief tightly around the 'closest' historical entities, while smaller values distribute more belief to more distant entities.
+# Larger values of $\lambda$ concentrate the belief tightly around the "closest" historical entities, while smaller values distribute more belief to more distant entities.
 # 
 # The proper choice of distance and similarity metrics depends on insight into the dataset at hand. Weights can then be used to construct
 # weighted histograms or density estimators for the posterior distributions of interest, or to directly resample historical rows.
@@ -137,7 +136,7 @@
 
 # ## Synthetic Data Example with Continuous $y$
 
-# We now present an example of finding cost-efficient generative designs using synthetic data using the `CEEDesigns.jl` package.
+# We now present an example of finding cost-efficient generative designs on synthetic data using the `CEEDesigns.jl` package.
 # 
 # First we load necessary packages.
 
@@ -247,7 +246,7 @@ plot(p1, p2, p3, p4; layout = (2, 2), legend = false)
     target = "y",
     uncertainty = Variance,
     similarity = GenerativeDesigns.Exponential(; λ = 5),
-    distance = MahalanobisDistance(; diagonal = 1),
+    distance = MahalanobisDistance(; diagonal = 0),
 );
 
 # We can look at the uncertainty in $y$ for a state where a single
@@ -280,7 +279,7 @@ p2 = sticks(
 
 plot(p1, p2; layout = (1, 2), legend = false)
 
-# We can view the posterior distribution $q(y|e_{S}$$ conditioned on a state (here arbitrarily set to $S = e_{3}$, giving evidence for $x_{3}$).
+# We can view the posterior distribution $q(y|e_{S}$ conditioned on a state (here arbitrarily set to $S = e_{3}$, giving evidence for $x_{3}$).
 
 evidence = Evidence("x3" => mean(data.x3))
 plot_weights = StatsBase.weights(weights(evidence))
@@ -305,7 +304,7 @@ plot(p1, p2; layout = (1, 2), legend = false)
 
 # Like static designs, generative designs need to be provided a `DataFrame` assigning to each experiment
 # a tuple of monetary and time costs $(m_{e},t_{e})$, and what features each experiment provides observations of.
-# We'll set up the experimental costs such that experiments which have less marginal uncertinaty are more costly
+# We'll set up the experimental costs such that experiments which have less marginal uncertainty are more costly
 # We finally add a very expensive "final" experiment which can directly observe the target variable.
 
 observables_experiments = Dict(["x$i" => "e$i" for i = 1:4])
@@ -452,7 +451,7 @@ p = bar(
 xticks!(p, 0:1, ["0", "1"]);
 p
 
-# Like previous examples, we'll set up the experimental costs such that experiments which have less marginal uncertinaty
+# Like previous examples, we'll set up the experimental costs such that experiments which have less marginal uncertainty
 # are more costly, add a final very expensive experiment directly on the target variable.
 
 observables_experiments = Dict(["x$i" => "e$i" for i = 1:5])
