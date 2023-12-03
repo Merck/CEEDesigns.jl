@@ -97,51 +97,61 @@ function sum_of_distances(data::DataFrame, targets::Vector, distances; prior::We
 end
 
 """
-    MahalanobisDistance(; diagonal=0)
+    SquaredMahalanobisDistance(; diagonal=0)
 
-Returns a function that computes [Mahalanobis distance](https://en.wikipedia.org/wiki/Mahalanobis_distance) between each row of `data` and the evidence.
+Returns a function that computes [squared Mahalanobis distance](https://en.wikipedia.org/wiki/Mahalanobis_distance) between each row of `data` and the evidence.
 For a singular covariance matrix, consider adding entries to the matrix's diagonal via the `diagonal` keyword.
+
+To accommodate missing values, we have implemented an approach described in https://www.jstor.org/stable/3559861, on page 285.
 
 # Arguments
 
-  - `diagonal`: A scalar or vector to be added to the diagonal entries of the covariance matrix.
+  - `diagonal`: A scalar to be added to the diagonal entries of the covariance matrix.
 
 # Returns
 
 It returns a high-level function of `(data, targets, prior)`.
-When called, that function will return an internal function `compute_distances` that takes an `Evidence` and computes the Mahalanobis distance based on the input data and the evidence.
+When called, that function will return an internal function `compute_distances` that takes an `Evidence` and computes the squared Mahalanobis distance based on the input data and the evidence.
 """
-function MahalanobisDistance(; diagonal = 0)
+function SquaredMahalanobisDistance(; diagonal = 0)
     function (data, targets, prior)
         non_targets = setdiff(names(data), targets)
         if !all(t -> t <: Real, eltype.(eachcol(data[!, non_targets])))
             @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
         end
-        Σ = cov(Matrix(data[!, non_targets]), Weights(prior); corrected = false)
-        # add diagonal entries
-        diagonal = diagonal isa Number ? fill(diagonal, size(Σ, 1)) : diagonal
-        foreach(i -> Σ[i, i] += diagonal[i], axes(Σ, 1))
 
-        # get the inverse of Σ
-        Λ = inv(Σ)
+        Λ = Dict(
+            Set(features) => begin
+                Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
+                # Add diagonal entries.
+                foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+
+                inv(Σ)
+            end for features in powerset(non_targets, 1, length(non_targets))
+        )
 
         compute_distances = function (evidence::Evidence)
-            if isempty(evidence)
+            evidence_keys = collect(keys(evidence) ∩ non_targets)
+
+            if length(evidence_keys) == 0
                 return zeros(nrow(data))
-            else
-                vec_evidence = map(colname -> get(evidence, colname, 0), non_targets)
-                distances = map(eachrow(data)) do row
-                    vec_row = map(
-                        colname -> haskey(evidence, colname) ? row[colname] : 0,
-                        non_targets,
-                    )
-
-                    z = vec_evidence - vec_row
-                    dot(z, Λ * z)
-                end
-
-                return distances
             end
+
+            vec_evidence = map(k -> evidence[k], evidence_keys)
+
+            factor_p_q = length(non_targets) / length(evidence_keys)
+            distances = map(eachrow(data)) do row
+                # We retrieve the precomputed inverse of the covariance matrix coresponding to the "observed part"
+                # See #12 and, in particular, https://www.jstor.org/stable/3559861
+                Λ_marginal = Λ[Set(evidence_keys)]
+
+                factor_p_q * dot(
+                    (vec_evidence - Vector(row[evidence_keys])),
+                    Λ_marginal * (vec_evidence - Vector(row[evidence_keys])),
+                )
+            end
+
+            return distances
         end
 
         return compute_distances
@@ -153,7 +163,7 @@ end
 
 Compute distances between experimental evidence and historical readouts, and apply a 'similarity' functional to obtain probability mass for each row.
 
-Consider using [`QuadraticDistance`](@ref), [`DiscreteDistance`](@ref), and [`MahalanobisDistance`](@ref).
+Consider using [`QuadraticDistance`](@ref), [`DiscreteDistance`](@ref), and [`SquaredMahalanobisDistance`](@ref).
 
 # Return value
 
@@ -228,9 +238,17 @@ function DistanceBased(
     compute_weights = function (evidence::Evidence)
         similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
 
-        # hard match on target columns
+        # Perform hard match on target columns.
         for colname in collect(keys(evidence)) ∩ targets
             similarities .*= data[!, colname] .== evidence[colname]
+        end
+
+        # If all similarities were zero, the `Weights` constructor would error.
+        if sum(similarities) ≈ 0
+            similarities .= 1
+            for colname in collect(keys(evidence)) ∩ targets
+                similarities .*= data[!, colname] .== evidence[colname]
+            end
         end
 
         return Weights(similarities ./ sum(similarities))

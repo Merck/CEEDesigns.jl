@@ -91,7 +91,7 @@ DistanceBased(
 nothing #hide
 ````
 
-You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). As the Mahalanobis distance only works with numeric features, we have to select a few, along with the target variable. For example, we could write:
+You can also use the squared Mahalanobis distance (`SquaredMahalanobisDistance(; diagonal)`). As the squared Mahalanobis distance only works with numeric features, we have to select a few, along with the target variable. For example, we could write:
 
 ````@example GenerativeDesigns
 DistanceBased(
@@ -99,7 +99,7 @@ DistanceBased(
     target = "HeartDisease",
     uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
-    distance = MahalanobisDistance(; diagonal = 1),
+    distance = SquaredMahalanobisDistance(; diagonal = 1),
 );
 nothing #hide
 ````

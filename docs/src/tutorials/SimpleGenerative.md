@@ -84,19 +84,23 @@ $q(e_{S^{\prime}}|e_{S})$.
 If there is no evidence associated with a new entity, we assign $w_{j}$ according to some prior distribution (uniform by default).
 Otherwise we use some particular distance and similarity metrics.
 
-For each feature $x\in X$, we consider a function $\rho_x$, which measures the distance between two outputs. By default, we consider:
-- Rescaled Kronecker delta (i.e., $\rho(x, y)=0$ only when $x=y$, and $\rho(x, y)= \lambda$ under any other circumstances, with $\lambda > 0$) for discrete features (i.e., features whose types are modeled as `MultiClass` type in [ScientificTypes.jl](https://github.com/JuliaAI/ScientificTypes.jl));
-- Rescaled squared distance $\rho(x, y) = λ  \frac{(x - y)^2}{2\sigma^2}$, where $\sigma^2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
-- Mahalanobis distance $\rho(x,y) = \sqrt{(x-y)^{⊤}\Sigma^{-1}(x-y)}$, where $\Sigma$ is the empirical covariance matrix of the historical data.
+For each feature $x\in X$, we consider a function $\rho_x$, which measures the distance between two outputs. Please be aware that the "distances" discussed here do not conform to the mathematical definition of "metrics", even though they are functions derived from underlying metrics (i.e., a square of a metric). This is justified when considering how these "distances" are subsequently converted into probabilistic weights.
 
-Therefore, for distance metrics assuming independence of features (Kronecker delta and squared distance), given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}$, where $e \in S$, we can calculate
+By default, we consider the following distances:
+- Rescaled Kronecker delta (i.e., $\rho(x, y)=0$ only when $x=y$, and $\rho(x, y)= \lambda$ under any other circumstances, with $\lambda > 0$) for discrete features (i.e., features whose types are modeled as `MultiClass` type in [ScientificTypes.jl](https://github.com/JuliaAI/ScientificTypes.jl));
+- Rescaled ("standardized", by default) squared distance $\rho(x, y) = λ \frac{(x - y)^2}{\sigma^2}$, where $\sigma^2$ is the variance of the feature column, estimated with respect to the prior for continuous features.
+- Squared Mahalanobis distance $\rho(x,y) = (x-y)^{⊤}\Sigma^{-1}(x-y)$, where $\Sigma$ is the empirical covariance matrix of the historical data.
+
+For distance metrics assuming independence of features (Kronecker delta and squared distance), given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}$, where $e \in S$, we can calculate
 the distance from the $j$-th historical entity as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout
 for feature $x$ for the entity being tested and the entity recorded in $j$-th column.
-Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j})$.
+The squared Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j})$.
 
 Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e.,
-we put $w_j = \exp(-\lambda d_j)$ for some $\lambda>0$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities.
+we put $w_j = \exp(-\lambda d_j)$ with $\lambda=0.5$. Notably, $\lambda$'s value determines how belief is distributed across the historical entities.
 Larger values of $\lambda$ concentrate the belief tightly around the "closest" historical entities, while smaller values distribute more belief to more distant entities.
+
+Note that by choosing the squared Mahalanobis distance and the exponential function with a factor of $\lambda=0.5$, the resulting weight effectively equals the density of a [multivariate normal distribution](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Density_function) fitted to the historical data. A similar assertion applies when we use the sum of "standardized" squared distances instead. However, in this latter case, we "enforce" the independence of the features.
 
 The proper choice of distance and similarity metrics depends on insight into the dataset at hand. Weights can then be used to construct
 weighted histograms or density estimators for the posterior distributions of interest, or to directly resample historical rows.
@@ -243,7 +247,7 @@ returns three functions needed by CEEDesigns.jl:
 - `weights`: this represents a function of `evidence` that generates probability weights $w_j$ to each row in the historical data.
 
 By default, Euclidean distance is used as the distance metric. In the second
-call to `DistanceBased`, we instead use the Mahalanobis distance.
+call to `DistanceBased`, we instead use the squared Mahalanobis distance.
 It is possible to specify different distance metrics for each feature, see our
 [heart disease generative modeling](GenerativeDesigns.md) tutorial for more information.
 In both cases, the squared exponential function is used to convert distances
@@ -262,15 +266,16 @@ to weights.
     target = "y",
     uncertainty = Variance(),
     similarity = GenerativeDesigns.Exponential(; λ = 5),
-    distance = MahalanobisDistance(; diagonal = 0),
+    distance = SquaredMahalanobisDistance(; diagonal = 0),
 );
 nothing #hide
 ````
 
 We can look at the uncertainty in $y$ for a state where a single
-feature is "observed" at its mean value. Note that uncertainty is generally higher
-for the Mahalanobis distance, which makes sense as it takes into account the
-non-independence of the features.
+feature is "observed" at its mean value. Note that uncertainty is generally lower for the squared Mahalanobis distance.
+As we consider only a single non-missing entry, this makes sense as the implemented variant of the squared Mahalanobis distance for missing values effectively multiplies
+the other, quadratic distance, by a factor greater than one. For more details, refer to page 285 of
+[Multivariate outlier detection in incomplete survey data: The epidemic algorithm and transformed rank correlations](https://www.jstor.org/stable/3559861).
 
 ````@example SimpleGenerative
 data_uncertainties =
@@ -299,7 +304,7 @@ p2 = sticks(
 plot(p1, p2; layout = (1, 2), legend = false)
 ````
 
-We can view the posterior distribution $q(y|e_{S}$ conditioned on a state (here arbitrarily set to $S = e_{3}$, giving evidence for $x_{3}$).
+We can view the posterior distribution $q(y|e_{S})$ conditioned on a state (here arbitrarily set to $S = e_{3}$, giving evidence for $x_{3}$).
 
 ````@example SimpleGenerative
 evidence = Evidence("x3" => mean(data.x3))

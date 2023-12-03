@@ -74,14 +74,14 @@ DistanceBased(
     ),
 );
 
-# You can also use the Mahalanobis distance (`MahalanobisDistance(; diagonal)`). As the Mahalanobis distance only works with numeric features, we have to select a few, along with the target variable. For example, we could write:
+# You can also use the squared Mahalanobis distance (`SquaredMahalanobisDistance(; diagonal)`). As the squared Mahalanobis distance only works with numeric features, we have to select a few, along with the target variable. For example, we could write:
 
 DistanceBased(
     data[!, ["RestingBP", "MaxHR", "Cholesterol", "FastingBS", "HeartDisease"]];
     target = "HeartDisease",
     uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
-    distance = MahalanobisDistance(; diagonal = 1),
+    distance = SquaredMahalanobisDistance(; diagonal = 1),
 );
 
 # The package offers an additional flexibility by allowing an experiment to yield readouts over multiple features at the same time. In our scenario, we can consider the features `RestingECG`, `Oldpeak`, `ST_Slope`, and `MaxHR` to be obtained from a single experiment `ECG`.

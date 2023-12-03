@@ -59,9 +59,9 @@
 # ### Optimal Arrangements
 
 # To find the optimal arrangement for each $S$ we need to know the cost of $O_{S}$. The monetary cost of $O_{S}$ is simply
-# the sum of the costs of each experiment:$m_{O_{S}}=\sum_{e\in S} m_{e}$.
+# the sum of the costs of each experiment: $m_{O_{S}}=\sum_{e\in S} m_{e}$.
 # The total time required is the sum of the maximum time *of each partition*. This is because while each partition in the 
-# arrangement is done in serial, experiments within partitions are done in parallel. That is, $t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e}: e \in o_{i}\}$
+# arrangement is done in serial, experiments within partitions are done in parallel. That is, $t_{O_{S}}=\sum_{i=1}^{l} \text{max} \{ t_{e}: e \in o_{i}\}$.
 # Given these costs and a parameter $\lambda$ which controls the tradeoff between monetary cost and time, the combined
 # cost of an arrangement is: $\lambda m_{O_{S}} + (1-\lambda) t_{O_{S}}$.
 # 

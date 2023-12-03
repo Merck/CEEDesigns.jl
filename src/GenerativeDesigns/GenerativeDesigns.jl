@@ -14,7 +14,7 @@ using MCTS
 using ..CEEDesigns: front
 
 export UncertaintyReductionMDP, DistanceBased
-export QuadraticDistance, DiscreteDistance, MahalanobisDistance
+export QuadraticDistance, DiscreteDistance, SquaredMahalanobisDistance
 export Exponential
 export Variance, Entropy
 export Evidence, State
