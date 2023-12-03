@@ -33,7 +33,7 @@ CEEDesigns.GenerativeDesigns.efficient_value
 CEEDesigns.GenerativeDesigns.DistanceBased
 CEEDesigns.GenerativeDesigns.QuadraticDistance
 CEEDesigns.GenerativeDesigns.DiscreteDistance
-CEEDesigns.GenerativeDesigns.MahalanobisDistance
+CEEDesigns.GenerativeDesigns.SquaredMahalanobisDistance
 CEEDesigns.GenerativeDesigns.Exponential
 ```
 

@@ -25,9 +25,9 @@ evidence = Evidence()
 r = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Variance,
+    uncertainty = Variance(),
     similarity = Exponential(; λ = 5),
-    distance = MahalanobisDistance(; diagonal = 1),
+    distance = SquaredMahalanobisDistance(; diagonal = 1),
 );
 @test all(x -> hasproperty(r, x), [:sampler, :uncertainty, :weights])
 (; sampler, uncertainty, weights) = r

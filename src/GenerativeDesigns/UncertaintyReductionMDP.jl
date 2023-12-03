@@ -184,7 +184,7 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 # initialize evidence
@@ -315,7 +315,7 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
     target = "HeartDisease",
-    uncertainty = Entropy,
+    uncertainty = Entropy(),
     similarity = Exponential(; λ = 5),
 );
 # initialize evidence
