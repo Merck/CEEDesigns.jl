@@ -241,6 +241,12 @@ function DistanceBased(
     # If "importance weight" is a function, apply it to the column to get a numeric vector
     importance_weights =
         Dict(val isa Function ? val(colname) : val for (colname, val) in importance_weights)
+    # Convert "desirable ranges" into importance weights
+    for (colname, range) in desirable_range
+        within_range = (data[!, colname] .>= range[1]) .&& (data[!, colname] .<= range[2])
+        
+        importance_weights[colname] = within_range .* get(importance_weights, colname, ones(nrow(data)))
+    end
 
     # Convert distances into probabilistic weights
     compute_weights = function (evidence::Evidence)
@@ -249,6 +255,13 @@ function DistanceBased(
         # Perform hard match on target columns.
         for colname in collect(keys(evidence)) ∩ targets
             similarities .*= data[!, colname] .== evidence[colname]
+        end
+
+        # Compute importance weights based on target constraints.
+        for colname in keys(evidence)
+            if haskey(desirable_range, colname)
+                similarities .*= importance_weights[colname]
+            end
         end
 
         # If all similarities were zero, the `Weights` constructor would error.
