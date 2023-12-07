@@ -272,10 +272,13 @@ nothing #hide
 ````
 
 We can look at the uncertainty in $y$ for a state where a single
-feature is "observed" at its mean value. Note that uncertainty is generally lower for the squared Mahalanobis distance.
-As we consider only a single non-missing entry, this makes sense as the implemented variant of the squared Mahalanobis distance for missing values effectively multiplies
-the other, quadratic distance, by a factor greater than one. For more details, refer to page 285 of
+feature is "observed" at its mean value.
+As we considering only a single non-missing entry, note that the probabilistic weights assigned by the squared Mahalanobis distance
+are generally less "spread out." This is because the variant of the squared Mahalanobis distance, which we implemented for handling missing values,
+effectively multiplies the other quadratic distance by a factor greater than one.
+For more details, refer to page 285 of
 [Multivariate outlier detection in incomplete survey data: The epidemic algorithm and transformed rank correlations](https://www.jstor.org/stable/3559861).
+The interaction with uncertainties is more complex as the uncertainty depends on the values of the target variable that correspond to the rows in the historical data.
 
 ````@example SimpleGenerative
 data_uncertainties =

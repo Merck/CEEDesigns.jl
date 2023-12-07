@@ -28,7 +28,7 @@
 # (with entities and features representing rows and columns, respectively). 
 # Each experiment $e$ may yield measurements on some
 # subset of features $(X_{e}\subseteq X)$.
- 
+
 # Given the current state, i.e., experimental evidence acquired thus far for the new entity, we assign probabilistic weights $w_{j}$ over historical entities which are similar to the new entity. These weights can be used to
 # weight the values of $y$ or features associated with $e_{S^{\prime}}$ to construct approximations of $q(y|e_{S})$ and 
 # $q(e_{S^{\prime}}|e_{S})$.
@@ -76,7 +76,7 @@ x2 = randn(n)
 y = x1 .+ 0.2 * x2 .+ 0.1 * randn(n)
 #
 ## Create a data frame.
-data = DataFrame(x1 = x1, x2 = x2, y = y)
+data = DataFrame(; x1 = x1, x2 = x2, y = y)
 
 # ### Active Sampling
 
@@ -103,46 +103,70 @@ filter_range = Dict("x1" => (-1, 1), "x2" => (-1, 1))
 );
 
 # To compare behavior with and without active sampling, we call `DistanceBased` again:
-(; sampler, uncertainty, weights) = DistanceBased(
-    data;
-    target = "y",
-    similarity = Exponential(; λ = 1)
-);
+(; sampler, uncertainty, weights) =
+    DistanceBased(data; target = "y", similarity = Exponential(; λ = 1));
 
 # We plot the weights $w_j$ assigned to historical observations for both cases - with active sampling and without. The actual observation is shown in orange.
-evidence = Evidence("x1" => 5., "x2" => 0.5)
+evidence = Evidence("x1" => 5.0, "x2" => 0.5)
 #
-using Plots; plotly()
+using Plots;
+plotly();
 colors_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
-p1 = scatter(data[!, "x1"], data[!, "x2"], color = RGBA.(colorant"rgb(0,128,128)", colors_active), title="weights\n(active sampling)", mscolor=nothing, colorbar=false, label=false)
-scatter!(p1, [evidence["x1"]], [evidence["x2"]], color=:orange, mscolor=nothing, label=nothing)
+p1 = scatter(
+    data[!, "x1"],
+    data[!, "x2"];
+    color = RGBA.(colorant"rgb(0,128,128)", colors_active),
+    title = "weights\n(active sampling)",
+    mscolor = nothing,
+    colorbar = false,
+    label = false,
+)
+scatter!(
+    p1,
+    [evidence["x1"]],
+    [evidence["x2"]];
+    color = :orange,
+    mscolor = nothing,
+    label = nothing,
+)
 #
 colors = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
-p2 = scatter(data[!, "x1"], data[!, "x2"], color = RGBA.(colorant"rgb(0,128,128)", colors), title="weights\n(no active sampling)", mscolor=nothing, colorbar=false, label=false)
-scatter!(p2, [evidence["x1"]], [evidence["x2"]], color=:orange, mscolor=nothing, label=nothing)
+p2 = scatter(
+    data[!, "x1"],
+    data[!, "x2"];
+    color = RGBA.(colorant"rgb(0,128,128)", colors),
+    title = "weights\n(no active sampling)",
+    mscolor = nothing,
+    colorbar = false,
+    label = false,
+)
+scatter!(
+    p2,
+    [evidence["x1"]],
+    [evidence["x2"]];
+    color = :orange,
+    mscolor = nothing,
+    label = nothing,
+)
 #
 # As it turns out, when active sampling was not used, the algorithm tended to overfit to the closest yet sparse points, which did not represent the true distribution accurately.
 # We can also compare the estimated uncertainty, which is computed as the variance of the posterior.
 #
 # Without using active sampling, we obtain:
-round(uncertainty_active(evidence), digits=1)
+round(uncertainty_active(evidence); digits = 1)
 #
 # While for active sampling, we get:
-round(uncertainty(evidence), digits=1)
+round(uncertainty(evidence); digits = 1)
 
 # #### Experimental Designs for Uncertainty Reduction
 
 # We compare the set of cost-efficient designs in cases where active sampling is used and where it is not.
 #
 # We specify the experiments along with the associated features:
-experiments = Dict(
-    "x1" => 1.0,
-    "x2" => 1.0,
-    "y" => 6.0
-)
+experiments = Dict("x1" => 1.0, "x2" => 1.0, "y" => 6.0)
 
 # We specify the initial state.
-evidence = Evidence("x2" => 5.)
+evidence = Evidence("x2" => 5.0)
 
 # Next we compute the set of efficient designs.
 designs = efficient_designs(
@@ -156,13 +180,28 @@ designs = efficient_designs(
 
 designs_active = efficient_designs(
     experiments;
-    sampler=sampler_active,
-    uncertainty=uncertainty_active,
+    sampler = sampler_active,
+    uncertainty = uncertainty_active,
     thresholds = 5,
     evidence,
     mdp_options = (; max_parallel = 1),
 );
 
 # We can compare the fronts.
-p = scatter(map(x -> x[1][1], designs), map(x -> x[1][2], designs), ylabel="% uncertainty", label="efficient designs (no active sampling)", title="efficient front", color=:blue, mscolor=nothing)
-scatter!(p, map(x -> x[1][1], designs_active), map(x -> x[1][2], designs_active), label="efficient designs (active sampling)", color=:teal, mscolor=nothing)
+p = scatter(
+    map(x -> x[1][1], designs),
+    map(x -> x[1][2], designs);
+    ylabel = "% uncertainty",
+    label = "efficient designs (no active sampling)",
+    title = "efficient front",
+    color = :blue,
+    mscolor = nothing,
+)
+scatter!(
+    p,
+    map(x -> x[1][1], designs_active),
+    map(x -> x[1][2], designs_active);
+    label = "efficient designs (active sampling)",
+    color = :teal,
+    mscolor = nothing,
+)

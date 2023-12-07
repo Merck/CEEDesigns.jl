@@ -239,20 +239,26 @@ function DistanceBased(
     end
 
     # Compute "column-wise" priors.
-    weights = Dict{String, Vector{Float64}}()
-    
+    weights = Dict{String,Vector{Float64}}()
+
     # If "importance weight" is a function, apply it to the column to get a numeric vector.
     for (colname, val) in importance_weights
-        push!(weights, string(colname) => (val isa Function ? map(x -> val(x), data[!, colname]) : val))
+        push!(
+            weights,
+            string(colname) =>
+                (val isa Function ? map(x -> val(x), data[!, colname]) : val),
+        )
     end
 
     # Convert "desirable ranges" into importance weights.
     for (colname, range) in filter_range
         colname = string(colname)
         within_range = (data[!, colname] .>= range[1]) .&& (data[!, colname] .<= range[2])
-        
+
         weights[colname] = within_range .* get(weights, colname, ones(nrow(data)))
     end
+
+    @show weights
 
     # Convert distances into probabilistic weights.
     compute_weights = function (evidence::Evidence)
@@ -265,7 +271,7 @@ function DistanceBased(
 
         # Adjustment based on "column-wise" priors.
         for colname in keys(evidence)
-            if haskey(filter_range, colname)
+            if haskey(weights, colname)
                 similarities .*= weights[colname]
             end
         end
