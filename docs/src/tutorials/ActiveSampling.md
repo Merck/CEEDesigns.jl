@@ -53,10 +53,10 @@ Considering feature-wise priors can offer a more detailed and nuanced understand
 
 For more information about active sampling, refer to the following articles.
 
-[Evolutionary Multiobjective Optimization via Efficient Sampling-Based Strategies](https://link.springer.com/article/10.1007/s40747-023-00990-z).
-[Sample-Efficient Multi-Objective Learning via Generalized Policy Improvement Prioritization](https://arxiv.org/abs/2301.07784).
-[Conditional gradient method for multiobjective optimization](https://link.springer.com/article/10.1007/s10589-020-00260-5)
-[A practical guide to multi-objective reinforcement learning and planning](https://link.springer.com/article/10.1007/s10458-022-09552-y)
+- [Evolutionary Multiobjective Optimization via Efficient Sampling-Based Strategies](https://link.springer.com/article/10.1007/s40747-023-00990-z).
+- [Sample-Efficient Multi-Objective Learning via Generalized Policy Improvement Prioritization](https://arxiv.org/abs/2301.07784).
+- [Conditional gradient method for multiobjective optimization](https://link.springer.com/article/10.1007/s10589-020-00260-5)
+- [A practical guide to multi-objective reinforcement learning and planning](https://link.springer.com/article/10.1007/s10458-022-09552-y)
 
 ## Synthetic Data Example
 
@@ -73,23 +73,15 @@ using Random
 using DataFrames
 
 # Define the size of the dataset.
-n = 1000
-````
-
-````@example ActiveSampling
+n = 1000;
 # Generate `x1` and `x2` as independent random variables with normal distribution.
 x1 = randn(n)
-x2 = randn(n)
-````
-
-````@example ActiveSampling
-# We compute `y` as the sum of `x1`, `x2`, and the noise.
-y = x1 .+ 0.2 * x2 .+ 0.1 * randn(n)
-````
-
-````@example ActiveSampling
+x2 = randn(n);
+# Compute `y` as the sum of `x1`, `x2`, and the noise.
+y = x1 .+ 0.2 * x2 .+ 0.1 * randn(n);
 # Create a data frame.
-data = DataFrame(x1 = x1, x2 = x2, y = y)
+data = DataFrame(; x1 = x1, x2 = x2, y = y);
+data[1:10, :]
 ````
 
 ### Active Sampling
@@ -125,31 +117,61 @@ nothing #hide
 To compare behavior with and without active sampling, we call `DistanceBased` again:
 
 ````@example ActiveSampling
-(; sampler, uncertainty, weights) = DistanceBased(
-    data;
-    target = "y",
-    similarity = Exponential(; λ = 1)
-);
+(; sampler, uncertainty, weights) =
+    DistanceBased(data; target = "y", similarity = Exponential(; λ = 1));
 nothing #hide
 ````
 
 We plot the weights $w_j$ assigned to historical observations for both cases - with active sampling and without. The actual observation is shown in orange.
 
 ````@example ActiveSampling
-evidence = Evidence("x1" => 5., "x2" => 0.5)
+evidence = Evidence("x1" => 5.0, "x2" => 0.5)
 ````
 
 ````@example ActiveSampling
-using Plots; plotly()
+using Plots
+
 colors_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
-p1 = scatter(data[!, "x1"], data[!, "x2"], color = RGBA.(colorant"rgb(0,128,128)", colors_active), title="weights\n(active sampling)", mscolor=nothing, colorbar=false, label=false)
-scatter!(p1, [evidence["x1"]], [evidence["x2"]], color=:orange, mscolor=nothing, label=nothing)
+p1 = scatter(
+    data[!, "x1"],
+    data[!, "x2"];
+    color = RGBA.(colorant"rgb(0,128,128)", colors_active),
+    title = "weights\n(active sampling)",
+    mscolor = nothing,
+    colorbar = false,
+    label = false,
+)
+scatter!(
+    p1,
+    [evidence["x1"]],
+    [evidence["x2"]];
+    color = :orange,
+    mscolor = nothing,
+    label = nothing,
+)
+p1
 ````
 
 ````@example ActiveSampling
 colors = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
-p2 = scatter(data[!, "x1"], data[!, "x2"], color = RGBA.(colorant"rgb(0,128,128)", colors), title="weights\n(no active sampling)", mscolor=nothing, colorbar=false, label=false)
-scatter!(p2, [evidence["x1"]], [evidence["x2"]], color=:orange, mscolor=nothing, label=nothing)
+p2 = scatter(
+    data[!, "x1"],
+    data[!, "x2"];
+    color = RGBA.(colorant"rgb(0,128,128)", colors),
+    title = "weights\n(no active sampling)",
+    mscolor = nothing,
+    colorbar = false,
+    label = false,
+)
+scatter!(
+    p2,
+    [evidence["x1"]],
+    [evidence["x2"]];
+    color = :orange,
+    mscolor = nothing,
+    label = nothing,
+)
+p2
 ````
 
 As it turns out, when active sampling was not used, the algorithm tended to overfit to the closest yet sparse points, which did not represent the true distribution accurately.
@@ -158,13 +180,13 @@ We can also compare the estimated uncertainty, which is computed as the variance
 Without using active sampling, we obtain:
 
 ````@example ActiveSampling
-round(uncertainty_active(evidence), digits=1)
+round(uncertainty_active(evidence); digits = 1)
 ````
 
 While for active sampling, we get:
 
 ````@example ActiveSampling
-round(uncertainty(evidence), digits=1)
+round(uncertainty(evidence); digits = 1)
 ````
 
 #### Experimental Designs for Uncertainty Reduction
@@ -174,17 +196,13 @@ We compare the set of cost-efficient designs in cases where active sampling is u
 We specify the experiments along with the associated features:
 
 ````@example ActiveSampling
-experiments = Dict(
-    "x1" => 1.0,
-    "x2" => 1.0,
-    "y" => 6.0
-)
+experiments = Dict("x1" => 1.0, "x2" => 1.0, "y" => 6.0)
 ````
 
 We specify the initial state.
 
 ````@example ActiveSampling
-evidence = Evidence("x2" => 5.)
+evidence = Evidence("x2" => 5.0)
 ````
 
 Next we compute the set of efficient designs.
@@ -201,8 +219,8 @@ designs = efficient_designs(
 
 designs_active = efficient_designs(
     experiments;
-    sampler=sampler_active,
-    uncertainty=uncertainty_active,
+    sampler = sampler_active,
+    uncertainty = uncertainty_active,
     thresholds = 5,
     evidence,
     mdp_options = (; max_parallel = 1),
@@ -213,7 +231,23 @@ nothing #hide
 We can compare the fronts.
 
 ````@example ActiveSampling
-p = scatter(map(x -> x[1][1], designs), map(x -> x[1][2], designs), ylabel="% uncertainty", label="efficient designs (no active sampling)", title="efficient front", color=:blue, mscolor=nothing)
-scatter!(p, map(x -> x[1][1], designs_active), map(x -> x[1][2], designs_active), label="efficient designs (active sampling)", color=:teal, mscolor=nothing)
+p = scatter(
+    map(x -> x[1][1], designs),
+    map(x -> x[1][2], designs);
+    ylabel = "% uncertainty",
+    label = "efficient designs (no active sampling)",
+    title = "efficient front",
+    color = :blue,
+    mscolor = nothing,
+)
+scatter!(
+    p,
+    map(x -> x[1][1], designs_active),
+    map(x -> x[1][2], designs_active);
+    label = "efficient designs (active sampling)",
+    color = :teal,
+    mscolor = nothing,
+)
+p
 ````
 

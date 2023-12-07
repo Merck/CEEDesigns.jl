@@ -49,10 +49,10 @@
 
 # For more information about active sampling, refer to the following articles.
 
-# [Evolutionary Multiobjective Optimization via Efficient Sampling-Based Strategies](https://link.springer.com/article/10.1007/s40747-023-00990-z).
-# [Sample-Efficient Multi-Objective Learning via Generalized Policy Improvement Prioritization](https://arxiv.org/abs/2301.07784).
-# [Conditional gradient method for multiobjective optimization](https://link.springer.com/article/10.1007/s10589-020-00260-5)
-# [A practical guide to multi-objective reinforcement learning and planning](https://link.springer.com/article/10.1007/s10458-022-09552-y)
+# - [Evolutionary Multiobjective Optimization via Efficient Sampling-Based Strategies](https://link.springer.com/article/10.1007/s40747-023-00990-z).
+# - [Sample-Efficient Multi-Objective Learning via Generalized Policy Improvement Prioritization](https://arxiv.org/abs/2301.07784).
+# - [Conditional gradient method for multiobjective optimization](https://link.springer.com/article/10.1007/s10589-020-00260-5)
+# - [A practical guide to multi-objective reinforcement learning and planning](https://link.springer.com/article/10.1007/s10458-022-09552-y)
 
 # ## Synthetic Data Example
 
@@ -66,17 +66,15 @@ using Random
 using DataFrames
 
 ## Define the size of the dataset.
-n = 1000
-#
+n = 1000;
 ## Generate `x1` and `x2` as independent random variables with normal distribution.
 x1 = randn(n)
-x2 = randn(n)
-#
-## We compute `y` as the sum of `x1`, `x2`, and the noise.
-y = x1 .+ 0.2 * x2 .+ 0.1 * randn(n)
-#
+x2 = randn(n);
+## Compute `y` as the sum of `x1`, `x2`, and the noise.
+y = x1 .+ 0.2 * x2 .+ 0.1 * randn(n);
 ## Create a data frame.
-data = DataFrame(; x1 = x1, x2 = x2, y = y)
+data = DataFrame(; x1 = x1, x2 = x2, y = y);
+data[1:10, :]
 
 # ### Active Sampling
 
@@ -109,8 +107,8 @@ filter_range = Dict("x1" => (-1, 1), "x2" => (-1, 1))
 # We plot the weights $w_j$ assigned to historical observations for both cases - with active sampling and without. The actual observation is shown in orange.
 evidence = Evidence("x1" => 5.0, "x2" => 0.5)
 #
-using Plots;
-plotly();
+using Plots
+
 colors_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
 p1 = scatter(
     data[!, "x1"],
@@ -129,6 +127,7 @@ scatter!(
     mscolor = nothing,
     label = nothing,
 )
+p1
 #
 colors = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
 p2 = scatter(
@@ -148,6 +147,7 @@ scatter!(
     mscolor = nothing,
     label = nothing,
 )
+p2
 #
 # As it turns out, when active sampling was not used, the algorithm tended to overfit to the closest yet sparse points, which did not represent the true distribution accurately.
 # We can also compare the estimated uncertainty, which is computed as the variance of the posterior.
@@ -205,3 +205,4 @@ scatter!(
     color = :teal,
     mscolor = nothing,
 )
+p
