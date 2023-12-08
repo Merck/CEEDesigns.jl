@@ -96,24 +96,25 @@ filter_range = Dict("x1" => (-1, 1), "x2" => (-1, 1))
 (sampler_active, uncertainty_active, weights_active) = DistanceBased(
     data;
     target = "y",
-    similarity = Exponential(; λ = 1),
+    similarity = Exponential(; λ = 0.5),
     filter_range = filter_range,
 );
 
 # To compare behavior with and without active sampling, we call `DistanceBased` again:
 (; sampler, uncertainty, weights) =
-    DistanceBased(data; target = "y", similarity = Exponential(; λ = 1));
+    DistanceBased(data; target = "y", similarity = Exponential(; λ = 0.5));
 
 # We plot the weights $w_j$ assigned to historical observations for both cases - with active sampling and without. The actual observation is shown in orange.
 evidence = Evidence("x1" => 5.0, "x2" => 0.5)
 #
 using Plots
-
-colors_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
+## The plotting engine (GR) requires us to use RGB instead of RGBA.
+rgba_to_rgb(a) = RGB(((1 - a) .* (1, 1, 1) .+ a .* (0.0, 0.5, 0.5))...)
+alphas_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
 p1 = scatter(
     data[!, "x1"],
     data[!, "x2"];
-    color = RGBA.(colorant"rgb(0,128,128)", colors_active),
+    color = map(a -> rgba_to_rgb(a), alphas_active),
     title = "weights\n(active sampling)",
     mscolor = nothing,
     colorbar = false,
@@ -129,11 +130,11 @@ scatter!(
 )
 p1
 #
-colors = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
+alphas = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
 p2 = scatter(
     data[!, "x1"],
     data[!, "x2"];
-    color = RGBA.(colorant"rgb(0,128,128)", colors),
+    color = map(a -> rgba_to_rgb(a), alphas),
     title = "weights\n(no active sampling)",
     mscolor = nothing,
     colorbar = false,
