@@ -255,7 +255,7 @@ plot(p1, p2, p3, p4; layout = (2, 2), legend = false)
 
 # We can look at the uncertainty in $y$ for a state where a single
 # feature is "observed" at its mean value.
-# As we considering only a single non-missing entry, note that the probabilistic weights assigned by the squared Mahalanobis distance
+# As we consider only a single non-missing entry, note that the probabilistic weights assigned by the squared Mahalanobis distance
 # are generally less "spread out." This is because the variant of the squared Mahalanobis distance, which we implemented for handling missing values,
 # effectively multiplies the other quadratic distance by a factor greater than one.
 # For more details, refer to page 285 of
