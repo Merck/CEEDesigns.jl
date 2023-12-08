@@ -11,7 +11,7 @@ Here we assume that the same experimental design will be used for a population o
 
 For each subset of experiments, we consider an estimate of the value of acquired information. To give an example, if a set of experiments is used to predict the value of a specific target variable, our framework can leverage a built-in integration with [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) to estimate predictive accuracies of machine learning models fitted over subset of experimental features.
 
-In the cost-sensitive setting of CEEDesigns.jl`, a user provides the monetary cost and execution time of each experiment. Given the constraint on the maximum number of parallel experiments along with a fixed tradeoff between monetary cost and execution time, we devise an arrangement of each subset of experiments such that the expected combined cost is minimized.
+In the cost-sensitive setting of CEEDesigns.jl, a user provides the monetary cost and execution time of each experiment. Given the constraint on the maximum number of parallel experiments along with a fixed tradeoff between monetary cost and execution time, we devise an arrangement of each subset of experiments such that the expected combined cost is minimized.
 
 Assuming the information values and optimized experimental costs for each subset of experiments, we then generate a set of cost-efficient experimental designs.
 

@@ -26,7 +26,7 @@ DiscreteDistance(; λ = 1) = function (x, col; _...)
     return map(y -> y == x ? λ : 0.0, col)
 end
 
-# default similarity functional
+# Default similarity functional
 """
     Exponential(; λ=1)
 
@@ -184,6 +184,8 @@ A named tuple with the following fields:
   - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
   - `distance`: a dictionary of pairs `colname => similarity functional`, where a similarity functional must implement the signature `(readout, col; prior)`. Defaults to [`QuadraticDistance`](@ref) and [`DiscreteDistance`](@ref) for `Continuous` and `Multiclass` scitypes, respectively.
   - `prior`: prior across rows, uniform by default.
+  - `filter_range`: a dictionary of pairs `colname => (lower bound, upper bound)`. If there's data in the current state for a specific column specified in this list, only historical observations within the defined range for that column are considered.
+  - `importance_weights`: a dictionary of pairs `colname` with either `weights` or a function `x -> weight`, which will be applied to each element of the column to obtain the vector of weights. If data for a given column is available in the current state, the product of the corresponding weights is used to adjust the similarity vector.
 
 # Example
 
@@ -203,6 +205,8 @@ function DistanceBased(
     similarity = Exponential(),
     distance = Dict(),
     prior = ones(nrow(data)),
+    filter_range = Dict(),
+    importance_weights = Dict(),
 )
     prior = Weights(prior)
     targets = target isa AbstractVector ? target : [target]
@@ -234,13 +238,42 @@ function DistanceBased(
         error("distance $distance does not accept `(data, targets, prior)`")
     end
 
-    # convert distances into probabilistic weights
+    # Compute "column-wise" priors.
+    weights = Dict{String,Vector{Float64}}()
+
+    # If "importance weight" is a function, apply it to the column to get a numeric vector.
+    for (colname, val) in importance_weights
+        push!(
+            weights,
+            string(colname) =>
+                (val isa Function ? map(x -> val(x), data[!, colname]) : val),
+        )
+    end
+
+    # Convert "desirable ranges" into importance weights.
+    for (colname, range) in filter_range
+        colname = string(colname)
+        within_range = (data[!, colname] .>= range[1]) .&& (data[!, colname] .<= range[2])
+
+        weights[colname] = within_range .* get(weights, colname, ones(nrow(data)))
+    end
+
+    @show weights
+
+    # Convert distances into probabilistic weights.
     compute_weights = function (evidence::Evidence)
         similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
 
         # Perform hard match on target columns.
         for colname in collect(keys(evidence)) ∩ targets
             similarities .*= data[!, colname] .== evidence[colname]
+        end
+
+        # Adjustment based on "column-wise" priors.
+        for colname in keys(evidence)
+            if haskey(weights, colname)
+                similarities .*= weights[colname]
+            end
         end
 
         # If all similarities were zero, the `Weights` constructor would error.

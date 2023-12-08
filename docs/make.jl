@@ -9,6 +9,7 @@ const tutorials_src = [
     "StaticDesigns.jl",
     "StaticDesignsFiltration.jl",
     "GenerativeDesigns.jl",
+    "ActiveSampling.jl",
 ]
 const generated_dir = joinpath(@__DIR__, "src", "tutorials/")
 
@@ -39,6 +40,7 @@ pages = [
         "tutorials/StaticDesigns.md",
         "tutorials/StaticDesignsFiltration.md",
         "tutorials/GenerativeDesigns.md",
+        "tutorials/ActiveSampling.md",
     ],
     "api.md",
 ]

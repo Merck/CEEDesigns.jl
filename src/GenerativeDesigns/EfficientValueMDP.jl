@@ -45,7 +45,7 @@ struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
     )
         state = State((evidence, Tuple(zeros(2))))
 
-        # check if `sampler`, `uncertainty` are compatible
+        # Check if `sampler`, `uncertainty` are compatible
         @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
         @assert hasmethod(value, Tuple{Evidence,Vector{Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument."""
 

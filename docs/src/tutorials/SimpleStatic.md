@@ -162,7 +162,7 @@ sort(df_values, order(:value; rev = true))
 ````
 
 Now we are ready to find the subsets of experiments giving an optimal tradeoff between information
-value and combined cost. CEED exports a function `efficient_designs`
+value and combined cost. CEEDesigns exports a function `efficient_designs`
 which formulates the problem of finding optimal arrangements as a Markov Decision Process and solves
 optimal arrangements for each subset on the Pareto frontier.
 
