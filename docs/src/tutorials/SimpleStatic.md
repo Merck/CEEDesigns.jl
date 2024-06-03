@@ -2,7 +2,7 @@
 EditURL = "SimpleStatic.jl"
 ```
 
-# Static Experimental Designs
+# [Static Experimental Designs](@id simple_static)
 
 In this document we describe the theoretical background behind the tools in CEEDesigns.jl for producing optimal "static experimental designs," i.e.,
 arrangements of experiments that exist along a Pareto-optimal tradeoff between cost and information gain.
@@ -27,7 +27,7 @@ The arrangements produced by the tools introduced in this tutorial are called "s
 assume that for each experiment, future data will deterministically yield the same information gain as the "historical" data did.
 This information gain from the "historical" data is quantified based on certain aggregate statistics.
 
-We can also consider "generative experimental designs," where the information gain is modeled as a random variable. This concept is detailed in another [tutorial](./SimpleGenerative.jl).
+We can also consider "generative experimental designs," where the information gain is modeled as a random variable. This concept is detailed in another [tutorial](@ref simple_generative).
 
 This tutorial introduces the theoretical framework behind static experimental designs with synthetic data.
 For examples using real data, please see our other tutorials.

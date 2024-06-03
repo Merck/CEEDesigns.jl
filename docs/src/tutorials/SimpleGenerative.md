@@ -2,7 +2,7 @@
 EditURL = "SimpleGenerative.jl"
 ```
 
-# Generative Experimental Designs
+# [Generative Experimental Designs](@id simple_generative)
 
 This document describes the theoretical background behind tools in CEEDesigns.jl for generative experimental designs
 and demonstrates uses on synthetic data examples.
@@ -31,7 +31,7 @@ described below.
 ### Historical Data
 
 Like static designs, we consider a set $E$ of $n$ experiments, each with an associated tuple $(m_{e},t_{e})$ of monetary and
-time costs (for more details on experiments and arrangements, see the tutorial on [static experimental designs](SimpleStatic.md)).
+time costs (for more details on experiments and arrangements, see the tutorial on [static experimental designs](@ref simple_static)).
 
 Additionally, consider a historical dataset giving measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
 (with entities and features representing rows and columns, respectively). Each experiment $e$ may yield measurements on some

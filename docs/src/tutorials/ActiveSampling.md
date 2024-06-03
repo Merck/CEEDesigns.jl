@@ -2,7 +2,7 @@
 EditURL = "ActiveSampling.jl"
 ```
 
-# Active Sampling for Generative Designs
+# [Active Sampling for Generative Designs](@id generative_designs_active)
 
 ## Background on Active Sampling
 
@@ -26,7 +26,7 @@ active sampling can be used to assign more weight to recent data points or depri
 
 This way, the sampled data will offer a more precise representation of the current state or trend.
 
-For details on the theoretical background of generative designs and notation, please see our [introductory tutorial](SimpleGenerative.md) and an [applied tutorial](GenerativeDesigns.jl).
+For details on the theoretical background of generative designs and notation, please see our [introductory tutorial](@ref simple_generative) and an [applied tutorial](@ref generative_designs).
 
 Here we will again assume that the generative process is based on sampling from a historical dataset, which gives measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
 (with entities and features representing rows and columns, respectively).
@@ -108,7 +108,7 @@ We then call `DistanceBased` as follows:
 (sampler_active, uncertainty_active, weights_active) = DistanceBased(
     data;
     target = "y",
-    similarity = Exponential(; λ = 1),
+    similarity = Exponential(; λ = 0.5),
     filter_range = filter_range,
 );
 nothing #hide
@@ -118,7 +118,7 @@ To compare behavior with and without active sampling, we call `DistanceBased` ag
 
 ````@example ActiveSampling
 (; sampler, uncertainty, weights) =
-    DistanceBased(data; target = "y", similarity = Exponential(; λ = 1));
+    DistanceBased(data; target = "y", similarity = Exponential(; λ = 0.5));
 nothing #hide
 ````
 
@@ -130,12 +130,13 @@ evidence = Evidence("x1" => 5.0, "x2" => 0.5)
 
 ````@example ActiveSampling
 using Plots
-
-colors_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
+# The plotting engine (GR) requires us to use RGB instead of RGBA.
+rgba_to_rgb(a) = RGB(((1 - a) .* (1, 1, 1) .+ a .* (0.0, 0.5, 0.5))...)
+alphas_active = max.(0.1, weights_active(evidence) ./ maximum(weights_active(evidence)))
 p1 = scatter(
     data[!, "x1"],
     data[!, "x2"];
-    color = RGBA.(colorant"rgb(0,128,128)", colors_active),
+    color = map(a -> rgba_to_rgb(a), alphas_active),
     title = "weights\n(active sampling)",
     mscolor = nothing,
     colorbar = false,
@@ -153,11 +154,11 @@ p1
 ````
 
 ````@example ActiveSampling
-colors = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
+alphas = max.(0.1, weights(evidence) ./ maximum(weights(evidence)))
 p2 = scatter(
     data[!, "x1"],
     data[!, "x2"];
-    color = RGBA.(colorant"rgb(0,128,128)", colors),
+    color = map(a -> rgba_to_rgb(a), alphas),
     title = "weights\n(no active sampling)",
     mscolor = nothing,
     colorbar = false,
