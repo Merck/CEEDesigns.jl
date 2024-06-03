@@ -2,10 +2,10 @@
 EditURL = "GenerativeDesigns.jl"
 ```
 
-# Heart Disease Triage Meets Generative Modeling
+# [Heart Disease Triage Meets Generative Modeling](@id generative_designs)
 
 Consider again a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer; instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
-For details on the theoretical background and notation, please see our tutorial on [generative experimental designs](SimpleGenerative.md). This tutorial
+For details on the theoretical background and notation, please see our tutorial on [generative experimental designs](@ref simple_generative). This tutorial
 is a concrete application of the tools described in that document.
 
 Importantly, we aim to design personalized adaptive policies for each patient. At the beginning of the triage process, we use a patient's prior data, such as sex, age, or type of chest pain, to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model probable experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific decision policy from this set and acquiring additional experimental readouts, we adjust the continuation based on this evidence.

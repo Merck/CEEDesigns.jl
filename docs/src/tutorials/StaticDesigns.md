@@ -2,15 +2,15 @@
 EditURL = "StaticDesigns.jl"
 ```
 
-# Heart Disease Triage
+# [Heart Disease Triage](@id static_designs)
 
 Consider a situation where a group of patients is tested for a specific disease. It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
-For details on the theoretical background and notation, please see our tutorial on [static experimental designs](SimpleStatic.md), this tutorial
+For details on the theoretical background and notation, please see our tutorial on [static experimental designs](@ref simple_static), this tutorial
 is a concrete application of the tools described in that document.
 
 ### Application to Predictive Modeling
 
-Let's generalize the example from [static experimental designs](SimpleStatic.md) to the case where we want to compute the information value $v_{S}$ as the predictive
+Let's generalize the example from [static experimental designs](@ref simple_static) to the case where we want to compute the information value $v_{S}$ as the predictive
 ability of a machine learning model which uses the measurements gained from experiments in $S$ to predict some $y$ of interest.
 
 Let's introduce some formal notation.

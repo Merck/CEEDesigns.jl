@@ -1,4 +1,4 @@
-# # Active Sampling for Generative Designs
+# # [Active Sampling for Generative Designs](@id generative_designs_active)
 
 # ## Background on Active Sampling
 
@@ -22,7 +22,7 @@
 
 # This way, the sampled data will offer a more precise representation of the current state or trend.
 
-# For details on the theoretical background of generative designs and notation, please see our [introductory tutorial](SimpleGenerative.md) and an [applied tutorial](GenerativeDesigns.jl).
+# For details on the theoretical background of generative designs and notation, please see our [introductory tutorial](@ref simple_generative) and an [applied tutorial](@ref generative_designs).
 
 # Here we will again assume that the generative process is based on sampling from a historical dataset, which gives measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
 # (with entities and features representing rows and columns, respectively). 
