@@ -1,4 +1,4 @@
-# # Heart Disease Triage With Early Droupout
+# # [Heart Disease Triage With Early Droupout](@id static_designs_filtration)
 
 # Consider again a situation where a group of patients is tested for a specific disease. 
 # It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
@@ -7,7 +7,7 @@
 
 # ## Theoretical Framework
 
-# We take as a basis the setup and notation from the basic framework presented in the [static experimental designs tutorial](SimpleStatic.md).
+# We take as a basis the setup and notation from the basic framework presented in the [static experimental designs tutorial](@ref simple_static).
 
 # We again have a set of experiments $E$, but now assume that a set of extrinsic decision-making rules is imposed on the experimental readouts. 
 # If the experimental evidence acquired for a given entity satisfies a specific criterion, that entity is then removed from the triage. 
