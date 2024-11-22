@@ -258,8 +258,6 @@ function DistanceBased(
         weights[colname] = within_range .* get(weights, colname, ones(nrow(data)))
     end
 
-    @show weights
-
     # Convert distances into probabilistic weights.
     compute_weights = function (evidence::Evidence)
         similarities = prior .* map(x -> similarity(x), compute_distances(evidence))

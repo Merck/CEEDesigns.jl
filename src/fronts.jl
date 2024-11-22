@@ -118,11 +118,18 @@ Make labels used plotting of experimental designs.
 """
 function make_labels(designs)
     return map(designs) do x
-        if !haskey(x[2], :arrangement) || isempty(x[2].arrangement)
+        if x[2] isa AbstractDict
+            arrangement = get(x[2], "arrangement", nothing)
+        elseif x[2] isa NamedTuple && haskey(x[2], :arrangement)
+            arrangement = x[2].arrangement
+        else
+            arrangement = nothing
+        end
+
+        if isnothing(arrangement)
             "∅"
         else
-            labels =
-                ["$i: " * join(group, ", ") for (i, group) in enumerate(x[2].arrangement)]
+            labels = ["$i: " * join(group, ", ") for (i, group) in enumerate(arrangement)]
 
             join(labels, "; ")
         end

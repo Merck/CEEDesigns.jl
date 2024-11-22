@@ -1,6 +1,6 @@
 name = "CEEDesigns"
 uuid = "e939450b-799e-4198-a5f5-3f2f7fb1c671"
-version = "0.3.7"
+version = "0.3.8"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
