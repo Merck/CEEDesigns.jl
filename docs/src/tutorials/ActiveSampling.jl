@@ -41,7 +41,7 @@
 # Alternatively, we can use "feature-wise" priors, which are considered when a readout for the specific feature is available for the new entity. # It is important to note here that the distance, which forms the basis of the probabilistic weights, is inherently computed only over the observed features.
 
 # To be more precise, for each experiment $e\in E$, we let $p^e_j$ denote the "prior" associated with that specific experiment.
-# If $S$ represents the set of experiments that have been performed for the new compound so far, we compute the reweighted probabilistic weight as $w'_{j} = \product_{e\in S} p^e_j \cdot w_j$.
+# If $S$ represents the set of experiments that have been performed for the new compound so far, we compute the reweighted probabilistic weight as $w'_{j} = \prod_{e\in S} p^e_j \cdot w_j$.
 
 # We remark that this method can be used to filter out certain rows by setting their weight to zero.
 
@@ -59,7 +59,7 @@
 using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 # We create a synthetic dataset with continuous variables, `x1`, `x2`, and `y`. Both `x1` and `x2` are modeled as independent random variables that follow a normal distribution.
-# The target variable, `y`, is given as a weighted sum of `x1` and `x2`, with an additional noise component. The corrected version of your sentence should be: Consequently, if the value of `x2`, for example,
+# The target variable, `y`, is given as a weighted sum of `x1` and `x2`, with an additional noise component. Consequently, if the value of `x2`, for example,
 # falls into a "sparse" region, we want the algorithm to avoid overfitting and focus its attention more on the other variable.
 
 using Random
