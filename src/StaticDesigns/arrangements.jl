@@ -19,7 +19,7 @@ end
 
 function POMDPs.actions(m::ArrangementMDP, state)
     return Set.(
-        collect(powerset(collect(setdiff(m.experiments, state)), 1, m.max_parallel))
+        collect(powerset(collect(setdiff(m.experiments, state)), 1, m.max_parallel)),
     )
 end
 
