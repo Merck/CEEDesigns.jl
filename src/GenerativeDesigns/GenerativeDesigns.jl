@@ -20,6 +20,10 @@ export Variance, Entropy
 export Evidence, State
 export efficient_design, efficient_designs
 export efficient_value
+export ConditionalUncertaintyReductionMDP
+export conditional_efficient_design, conditional_efficient_designs
+export perform_ensemble_designs
+
 
 """
 Represent experimental evidence as an immutable dictionary.
@@ -58,6 +62,8 @@ const default_solver = DPWSolver(; n_iterations = 100_000, tree_in_info = true)
 
 # minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 include("UncertaintyReductionMDP.jl")
+include("ConditionalUncertaintyReductionMDP.jl")
+
 
 # maximize the value of the experimental evidence (such as clinical utility), adjusted for experimental costs.
 include("EfficientValueMDP.jl")

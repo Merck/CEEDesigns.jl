@@ -6,3 +6,6 @@ include("test_mahalanobis.jl")
 
 # test active sampling
 include("test_active_sampling.jl")
+
+include("test_conditional_constraints.jl")
+
