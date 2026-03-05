@@ -150,11 +150,12 @@ function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
     end
 end
 
-function POMDPs.reward(m::UncertaintyReductionMDP, _, action, state)
+function POMDPs.reward(m::UncertaintyReductionMDP, previous_state, action, state)
     if action == [eox]
         -m.bigM
     else
-        -sum(state.costs .* m.costs_tradeoff)
+        -sum(state.costs .* m.costs_tradeoff) +
+        sum(previous_state.costs .* m.costs_tradeoff)
     end
 end
 
