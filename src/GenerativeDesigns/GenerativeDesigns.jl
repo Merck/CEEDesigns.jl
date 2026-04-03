@@ -16,6 +16,7 @@ using ..CEEDesigns: front
 export UncertaintyReductionMDP, DistanceBased
 export QuadraticDistance, DiscreteDistance, SquaredMahalanobisDistance
 export Exponential
+export conditional_likelihood
 export Variance, Entropy
 export Evidence, State
 export efficient_design, efficient_designs

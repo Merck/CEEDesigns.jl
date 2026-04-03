@@ -1,5 +1,3 @@
-
-
 """
 Conditional (constraint-aware) uncertainty-reduction MDP.
 
@@ -10,8 +8,10 @@ It adds:
 - terminal_condition = (target_condition::Dict, tau::Float64): constraint ranges + belief threshold
 
 Behavior:
-- The MDP is terminal only when uncertainty <= threshold AND conditional likelihood >= tau (if constraints provided).
-- Transition can optionally "block" evidence updates if conditional likelihood is below tau.
+- The MDP is terminal only when uncertainty <= threshold AND
+  conditional likelihood >= tau (if constraints are provided).
+- Transitions always incorporate sampled evidence; feasibility is enforced
+  through the terminal condition and reward-driven solver behavior.
 """
 struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     # initial state
@@ -127,22 +127,11 @@ function conditional_likelihood(
     return sum(w[valid])
 end
 
-# mark that an experiment was attempted so it won't be re-selected
-function mark_attempts(evidence::Evidence, action_set)
-    d = Dict{String,Any}()
-    for a in action_set
-        d["__attempted__" * a] = true
-    end
-    return merge(evidence, d)
-end
-
 # --- POMDPs interface ---
 function POMDPs.actions(m::ConditionalUncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
-        attempted_key = "__attempted__" * a
-        return !isempty(m.costs[a].features) &&
-               !haskey(state.evidence, attempted_key) &&     # do not retry blocked action forever
-               !in(first(m.costs[a].features), keys(state.evidence))
+        !isempty(m.costs[a].features) &&
+        !in(first(m.costs[a].features), keys(state.evidence))
     end
 
     if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
@@ -196,40 +185,15 @@ function POMDPs.transition(m::ConditionalUncertaintyReductionMDP, state, action_
         obs = m.sampler(state.evidence, features, rng)
         observation = obs isa Dict ? obs : first(obs)
 
-        # state where we ALWAYS pay cost (even if we later block evidence update)
-        base_costed_state = State((state.evidence, state.costs .+ (cost_m, cost_t)))
-
-        # proposed next state (with evidence update)
-        updated_state = merge(state, observation, (cost_m, cost_t))
-
-        # if constraints exist, block evidence updates when likelihood < tau
-        target_condition, tau = m.terminal_condition
-        if !isempty(target_condition)
-            p = conditional_likelihood(
-                updated_state.evidence;
-                compute_weights = m.weights,
-                hist_data = m.data,
-                target_condition = target_condition,
-            )
-
-            if p < tau
-                # BLOCK evidence update, but:
-                # 1) keep the paid costs
-                # 2) mark the attempted action(s) so they won't be selected again
-                attempted_evidence = mark_attempts(base_costed_state.evidence, action_set)
-                return State((attempted_evidence, base_costed_state.costs))
-            end
-        end
-
-        return updated_state
+        return merge(state, observation, (cost_m, cost_t))
     end
 end
 
-function POMDPs.reward(m::ConditionalUncertaintyReductionMDP, _, action, state)
+function POMDPs.reward(m::ConditionalUncertaintyReductionMDP, previous_state, action, state)
     if action == [eox]
-        -m.bigM
+        return -m.bigM
     else
-        -sum(state.costs .* m.costs_tradeoff)
+        return -sum((state.costs .- previous_state.costs) .* m.costs_tradeoff)
     end
 end
 
@@ -404,4 +368,3 @@ function perform_ensemble_designs(
 
     return results
 end
-
