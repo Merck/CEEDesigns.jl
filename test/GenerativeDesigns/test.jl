@@ -8,4 +8,3 @@ include("test_mahalanobis.jl")
 include("test_active_sampling.jl")
 
 include("test_conditional_constraints.jl")
-

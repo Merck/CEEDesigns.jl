@@ -3,15 +3,17 @@ Conditional (constraint-aware) uncertainty-reduction MDP.
 
 This is an enhanced version of the baseline UncertaintyReductionMDP.
 It adds:
-- weights(evidence)::Vector: posterior weights over historical rows
-- data::DataFrame: historical data (rows correspond to weights)
-- terminal_condition = (target_condition::Dict, tau::Float64): constraint ranges + belief threshold
+
+  - weights(evidence)::Vector: posterior weights over historical rows
+  - data::DataFrame: historical data (rows correspond to weights)
+  - terminal_condition = (target_condition::Dict, tau::Float64): constraint ranges + belief threshold
 
 Behavior:
-- The MDP is terminal only when uncertainty <= threshold AND
-  conditional likelihood >= tau (if constraints are provided).
-- Transitions always incorporate sampled evidence; feasibility is enforced
-  through the terminal condition and reward-driven solver behavior.
+
+  - The MDP is terminal only when uncertainty <= threshold AND
+    conditional likelihood >= tau (if constraints are provided).
+  - Transitions always incorporate sampled evidence; feasibility is enforced
+    through the terminal condition and reward-driven solver behavior.
 """
 struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     # initial state
@@ -131,7 +133,7 @@ end
 function POMDPs.actions(m::ConditionalUncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
         !isempty(m.costs[a].features) &&
-        !in(first(m.costs[a].features), keys(state.evidence))
+            !in(first(m.costs[a].features), keys(state.evidence))
     end
 
     if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
@@ -151,12 +153,13 @@ function POMDPs.isterminal(m::ConditionalUncertaintyReductionMDP, state)
     target_condition, tau = m.terminal_condition
     cond_ok = true
     if !isempty(target_condition)
-        cond_ok = conditional_likelihood(
-            state.evidence;
-            compute_weights = m.weights,
-            hist_data = m.data,
-            target_condition = target_condition,
-        ) >= tau
+        cond_ok =
+            conditional_likelihood(
+                state.evidence;
+                compute_weights = m.weights,
+                hist_data = m.data,
+                target_condition = target_condition,
+            ) >= tau
     end
 
     return unc_ok && cond_ok
@@ -345,7 +348,7 @@ function perform_ensemble_designs(
 
     for tau in thred_set
         ensemble_results = []
-        for i in 1:N
+        for i = 1:N
             @info "Running ensemble $i for belief threshold τ=$tau"
             design = conditional_efficient_designs(
                 costs;
@@ -363,7 +366,7 @@ function perform_ensemble_designs(
             )
             push!(ensemble_results, design)
         end
-        results[:belief => tau] = ensemble_results
+        results[:belief=>tau] = ensemble_results
     end
 
     return results
