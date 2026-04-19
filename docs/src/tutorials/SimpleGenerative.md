@@ -465,7 +465,7 @@ so it will look artifically as if nothing is informative, but that is not the ca
 
 ````@example SimpleGenerative
 data_uncertainties =
-    [i => uncertainty(Evidence(i => mode(data[:, i]))) for i in names(data)[1:end-1]]
+    [i => uncertainty(Evidence(i => mode(data[:, i]))) for i in names(data)[1:(end-1)]]
 sort!(data_uncertainties; by = x -> x[2], rev = true)
 
 sticks(

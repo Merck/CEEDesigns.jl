@@ -6,6 +6,7 @@ export make_labels, plot_evals
 
 # make Pareto fronts
 include("fronts.jl")
+include("ensemble_fronts.jl")
 
 # experimental designs
 include("StaticDesigns/StaticDesigns.jl")
