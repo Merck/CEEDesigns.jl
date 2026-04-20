@@ -1,4 +1,4 @@
-using Documenter, DocumenterMarkdown, Literate
+using Documenter, Literate
 using CEEDesigns
 
 # Literate for tutorials
@@ -10,6 +10,7 @@ const tutorials_src = [
     "StaticDesignsFiltration.jl",
     "GenerativeDesigns.jl",
     "ActiveSampling.jl",
+    "GliomaGrading.jl",
 ]
 const generated_dir = joinpath(@__DIR__, "src", "tutorials/")
 
@@ -41,6 +42,7 @@ pages = [
         "tutorials/StaticDesignsFiltration.md",
         "tutorials/GenerativeDesigns.md",
         "tutorials/ActiveSampling.md",
+        "tutorials/GliomaGrading.md",
     ],
     "api.md",
 ]
@@ -51,6 +53,8 @@ makedocs(;
         prettyurls = false,
         edit_link = "main",
         assets = ["assets/favicon.ico"],
+        size_threshold = nothing,
+        example_size_threshold = nothing,
     ),
     pages,
 )
