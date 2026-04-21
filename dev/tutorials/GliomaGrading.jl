@@ -247,10 +247,8 @@ end
 
 design_new_feature = efficient_designs(experiments_new_feature, perf_eval_new_feature)
 
-design_new_feature_no_feature = efficient_designs(
-    experiments_new_feature_no_feature,
-    perf_eval_new_feature_no_feature,
-)
+design_new_feature_no_feature =
+    efficient_designs(experiments_new_feature_no_feature, perf_eval_new_feature_no_feature)
 
 p_new_feature = scatter(
     map(x -> x[1][1], design_new_feature),
