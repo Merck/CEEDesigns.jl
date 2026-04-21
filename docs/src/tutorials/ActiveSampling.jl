@@ -25,15 +25,15 @@
 # For details on the theoretical background of generative designs and notation, please see our [introductory tutorial](@ref simple_generative) and an [applied tutorial](@ref generative_designs).
 
 # Here we will again assume that the generative process is based on sampling from a historical dataset, which gives measurements on $m$ features $X = \{x_1, \ldots, x_m\}$ for $l$ entities
-# (with entities and features representing rows and columns, respectively). 
+# (with entities and features representing rows and columns, respectively).
 # Each experiment $e$ may yield measurements on some
 # subset of features $(X_{e}\subseteq X)$.
 
 # Given the current state, i.e., experimental evidence acquired thus far for the new entity, we assign probabilistic weights $w_{j}$ over historical entities which are similar to the new entity. These weights can be used to
-# weight the values of $y$ or features associated with $e_{S^{\prime}}$ to construct approximations of $q(y|e_{S})$ and 
+# weight the values of $y$ or features associated with $e_{S^{\prime}}$ to construct approximations of $q(y|e_{S})$ and
 # $q(e_{S^{\prime}}|e_{S})$.
 
-# In the context of active sampling, we aim to further adjust the weights, $w_{j}$, calculated by the algorithm. 
+# In the context of active sampling, we aim to further adjust the weights, $w_{j}$, calculated by the algorithm.
 
 # This adjustment can be accomplished by introducing a "prior", which is essentially a vector of weights that will multiply the computed weights, $w_{j}$, in an element-wise manner.
 # If we denote the "prior" weights as $p_{j}$, then the final weights assigned to the $j$-th row are computed as $w'_{j} = p_{j} * w_{j}$.
@@ -45,7 +45,7 @@
 
 # We remark that this method can be used to filter out certain rows by setting their weight to zero.
 
-# Considering feature-wise priors can offer a more detailed and nuanced understanding of the data. These priors can be used to dynamically adjust the weight of historical observations, based on the specific readouts considered for the observation across different features. 
+# Considering feature-wise priors can offer a more detailed and nuanced understanding of the data. These priors can be used to dynamically adjust the weight of historical observations, based on the specific readouts considered for the observation across different features.
 
 # For more information about active sampling, refer to the following articles.
 

@@ -1,6 +1,6 @@
 # # [Heart Disease Triage With Early Droupout](@id static_designs_filtration)
 
-# Consider again a situation where a group of patients is tested for a specific disease. 
+# Consider again a situation where a group of patients is tested for a specific disease.
 # It may be costly to conduct an experiment yielding the definitive answer. Instead, we want to utilize various proxy experiments that provide partial information about the presence of the disease.
 
 # Moreover, we may assume that for some patients, the evidence gathered from proxy experiments can be considered 'conclusive'. Effectively, some patients may not need any additional triage; they might be deemed healthy or require immediate commencement of treatment. By doing so, we could save significant resources.
@@ -9,16 +9,16 @@
 
 # We take as a basis the setup and notation from the basic framework presented in the [static experimental designs tutorial](@ref simple_static).
 
-# We again have a set of experiments $E$, but now assume that a set of extrinsic decision-making rules is imposed on the experimental readouts. 
-# If the experimental evidence acquired for a given entity satisfies a specific criterion, that entity is then removed from the triage. 
-# However, other entities within the batch will generally continue in the experimental process. 
+# We again have a set of experiments $E$, but now assume that a set of extrinsic decision-making rules is imposed on the experimental readouts.
+# If the experimental evidence acquired for a given entity satisfies a specific criterion, that entity is then removed from the triage.
+# However, other entities within the batch will generally continue in the experimental process.
 # In general, the process of establishing such rules is largely dependent on the specific problem and requires comprehensive understanding of the subject area.
 
 # We denote the expected fraction of entities that remain in the triage after conducting a set $S$ of experiments as the filtration rate, $f_S$. In the context of disease triage, this can be interpreted as the fraction of patients for whom the experimental evidence does not provide a 'conclusive' result.
 
 # As previously, each experiment $e$ incurs a cost $(m_e, t_e)$. Again, we let $O_{S}$ denote an arrangement of experiments in $S$.
 
-# Given a subset $S$ of experiments and their arrangement $O_{S}$, the total (discounted) monetary cost and execution time of the experimental design is given as $m_o = \sum_{i=1}^{l} r_{S_{i-1}}\sum_{e\in o_i} m_e$ and $t_o = \sum_{i=1}^{l} \max \{ t_e : e\in o_i\}$, respectively. 
+# Given a subset $S$ of experiments and their arrangement $O_{S}$, the total (discounted) monetary cost and execution time of the experimental design is given as $m_o = \sum_{i=1}^{l} r_{S_{i-1}}\sum_{e\in o_i} m_e$ and $t_o = \sum_{i=1}^{l} \max \{ t_e : e\in o_i\}$, respectively.
 # Importantly, the new factor $r_{S_{i-1}}$ models the fact that a set of entities may have dropped out in the previous experiments, hence saving the resources on running the subsequent experiments.
 
 # We note that these computations are based on the assumption that monetary cost is associated with the analysis of a single experimental entity, such as a patient. Therefore, the total monetary cost obtained for a specific arrangement is effectively the ["expected"](https://en.wikipedia.org/wiki/Expected_value) monetary cost, adjusted for a single entity. Conversely, we suppose that all entities can be concurrently examined in a specific experiment. As such, the total execution time is equivalent to the longest time until all experiments within an arrangement are finished or all entities have been eliminated (which ocurrs when the filtration rate the experiments conducted so far is zero). Importantly, this distinctly differs from calculating the 'expected lifespan' of an entity in the triage.
@@ -186,7 +186,7 @@ _, info = action_info(planner, Set{String}())
 
 t = D3Tree(info[:tree]; init_expand = 2)
 
-# 
+#
 
 plot_front(designs; labels = make_labels(designs), ylabel = "discriminative power")
 

@@ -1,4 +1,3 @@
-
 using CEEDesigns, CEEDesigns.StaticDesigns
 using CSV, DataFrames
 

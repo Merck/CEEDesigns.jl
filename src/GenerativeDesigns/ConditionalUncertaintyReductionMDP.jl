@@ -15,16 +15,16 @@ Behavior:
   - Transitions always incorporate sampled evidence; feasibility is enforced
     through the terminal condition and reward-driven solver behavior.
 """
-struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
+struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
     threshold::Float64
 
     # actions and costs
-    costs::Dict{String,ActionCost}
+    costs::Dict{String, ActionCost}
     # monetary cost v. time tradeoff
-    costs_tradeoff::NTuple{2,Float64}
+    costs_tradeoff::NTuple{2, Float64}
     # maximum number of assays that can be run in parallel
     max_parallel::Int
     # discount
@@ -44,26 +44,26 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     # NEW: historical data
     data::DataFrame
     # NEW: (target constraints, belief threshold tau)
-    terminal_condition::Tuple{Dict,Float64}
+    terminal_condition::Tuple{Dict, Float64}
 
     function ConditionalUncertaintyReductionMDP(
-        costs;
-        sampler,
-        uncertainty,
-        threshold,
-        evidence = Evidence(),
-        costs_tradeoff = (1.0, 0.0),
-        max_parallel::Int = 1,
-        discount = 1.0,
-        bigM = const_bigM,
-        max_experiments = bigM,
-        weights,
-        data,
-        terminal_condition = (Dict(), 0.0),
-    )
+            costs;
+            sampler,
+            uncertainty,
+            threshold,
+            evidence = Evidence(),
+            costs_tradeoff = (1.0, 0.0),
+            max_parallel::Int = 1,
+            discount = 1.0,
+            bigM = const_bigM,
+            max_experiments = bigM,
+            weights,
+            data,
+            terminal_condition = (Dict(), 0.0),
+        )
         state = State((evidence, Tuple(zeros(2))))
 
-        @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """
+        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """
             `sampler` must implement a method accepting (evidence, features, rng).
         """
         @assert hasmethod(uncertainty, Tuple{Evidence}) """
@@ -71,23 +71,23 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
         """
 
         # Parse costs dict into CEED ActionCost format
-        parsed_costs = Dict{String,ActionCost}(
+        parsed_costs = Dict{String, ActionCost}(
             try
-                if action isa Pair && action[2] isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
-                        features = convert(Vector{String}, action[2][2]),
-                    )
+                    if action isa Pair && action[2] isa Pair
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2][1]..., 0][1:2]),
+                            features = convert(Vector{String}, action[2][2]),
+                        )
                 elseif action isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2]..., 0][1:2]),
-                        features = String[action[1]],
-                    )
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2]..., 0][1:2]),
+                            features = String[action[1]],
+                        )
                 else
-                    error()
+                        error()
                 end
             catch
-                error("could not parse $action as an action")
+                    error("could not parse $action as an action")
             end for action in costs
         )
 
@@ -111,11 +111,11 @@ end
 
 # --- helper: conditional likelihood for multiple constraints ---
 function conditional_likelihood(
-    evidence;
-    compute_weights,
-    hist_data::DataFrame,
-    target_condition::Dict,
-)
+        evidence;
+        compute_weights,
+        hist_data::DataFrame,
+        target_condition::Dict,
+    )
     w = compute_weights(evidence)
     @assert length(w) == nrow(hist_data) "weights length must match number of rows in hist_data"
 
@@ -136,7 +136,7 @@ function POMDPs.actions(m::ConditionalUncertaintyReductionMDP, state)
             !in(first(m.costs[a].features), keys(state.evidence))
     end
 
-    if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
+    return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
         collect(powerset(all_actions, 1, m.max_parallel))
     else
         [[eox]]
@@ -155,11 +155,11 @@ function POMDPs.isterminal(m::ConditionalUncertaintyReductionMDP, state)
     if !isempty(target_condition)
         cond_ok =
             conditional_likelihood(
-                state.evidence;
-                compute_weights = m.weights,
-                hist_data = m.data,
-                target_condition = target_condition,
-            ) >= tau
+            state.evidence;
+            compute_weights = m.weights,
+            hist_data = m.data,
+            target_condition = target_condition,
+        ) >= tau
     end
 
     return unc_ok && cond_ok
@@ -203,19 +203,19 @@ end
 # --- public helpers (parallel to baseline efficient_design/efficient_designs) ---
 
 function conditional_efficient_design(
-    costs;
-    sampler,
-    uncertainty,
-    threshold,
-    evidence = Evidence(),
-    weights,
-    data,
-    terminal_condition = (Dict(), 0.8),
-    solver = default_solver,
-    repetitions = 0,
-    realized_uncertainty = false,
-    mdp_options = (;),
-)
+        costs;
+        sampler,
+        uncertainty,
+        threshold,
+        evidence = Evidence(),
+        weights,
+        data,
+        terminal_condition = (Dict(), 0.8),
+        solver = default_solver,
+        repetitions = 0,
+        realized_uncertainty = false,
+        mdp_options = (;),
+    )
     mdp = ConditionalUncertaintyReductionMDP(
         costs;
         sampler,
@@ -230,11 +230,13 @@ function conditional_efficient_design(
 
     if isterminal(mdp, mdp.initial_state)
         return (
-            (0.0, if realized_uncertainty
-                mdp.uncertainty(mdp.initial_state.evidence)
-            else
-                threshold
-            end),
+            (
+                0.0, if realized_uncertainty
+                    mdp.uncertainty(mdp.initial_state.evidence)
+                else
+                    threshold
+                end,
+            ),
             (; monetary_cost = 0.0, time = 0.0),
         )
     end
@@ -242,8 +244,8 @@ function conditional_efficient_design(
     planner = solve(solver, mdp)
     action, info = action_info(planner, mdp.initial_state)
 
-    if repetitions > 0
-        queue = [Sim(mdp, planner) for _ = 1:repetitions]
+    return if repetitions > 0
+        queue = [Sim(mdp, planner) for _ in 1:repetitions]
         stats = run_parallel(queue) do _, hist
             monetary_cost, time = hist[end][:s].costs
             return (;
@@ -291,19 +293,19 @@ function conditional_efficient_design(
 end
 
 function conditional_efficient_designs(
-    costs;
-    sampler,
-    uncertainty,
-    thresholds,
-    evidence = Evidence(),
-    weights,
-    data,
-    terminal_condition = (Dict(), 0.8),
-    solver = default_solver,
-    repetitions = 0,
-    realized_uncertainty = false,
-    mdp_options = (;),
-)
+        costs;
+        sampler,
+        uncertainty,
+        thresholds,
+        evidence = Evidence(),
+        weights,
+        data,
+        terminal_condition = (Dict(), 0.8),
+        solver = default_solver,
+        repetitions = 0,
+        realized_uncertainty = false,
+        mdp_options = (;),
+    )
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
@@ -329,26 +331,26 @@ function conditional_efficient_designs(
 end
 
 function perform_ensemble_designs(
-    costs;
-    sampler,
-    uncertainty,
-    thresholds,
-    evidence = Evidence(),
-    weights,
-    data,
-    terminal_condition = (Dict(), 0.0),
-    realized_uncertainty = false,
-    solver = default_solver,
-    repetitions = 0,
-    mdp_options = (;),
-    thred_set = [0.9],
-    N = 30,
-)
+        costs;
+        sampler,
+        uncertainty,
+        thresholds,
+        evidence = Evidence(),
+        weights,
+        data,
+        terminal_condition = (Dict(), 0.0),
+        realized_uncertainty = false,
+        solver = default_solver,
+        repetitions = 0,
+        mdp_options = (;),
+        thred_set = [0.9],
+        N = 30,
+    )
     results = Dict()
 
     for tau in thred_set
         ensemble_results = []
-        for i = 1:N
+        for i in 1:N
             @info "Running ensemble $i for belief threshold τ=$tau"
             design = conditional_efficient_designs(
                 costs;
@@ -366,7 +368,7 @@ function perform_ensemble_designs(
             )
             push!(ensemble_results, design)
         end
-        results[:belief=>tau] = ensemble_results
+        results[:belief => tau] = ensemble_results
     end
 
     return results

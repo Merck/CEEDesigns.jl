@@ -23,16 +23,16 @@ Internally, a state of the decision process is modeled as a tuple `(evidence::Ev
   - `bigM`: it refers to the penalty that arises in a scenario where further experimental action is not an option, yet the uncertainty exceeds the allowable limit.
   - `max_experiments`: this denotes the maximum number of experiments that are permissible to be conducted.
 """
-struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
+struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
     threshold::Float64
 
     # actions and costs
-    costs::Dict{String,ActionCost}
+    costs::Dict{String, ActionCost}
     # monetary cost v. time tradeoff
-    costs_tradeoff::NTuple{2,Float64}
+    costs_tradeoff::NTuple{2, Float64}
     # maximum number of assays that can be run in parallel
     max_parallel::Int
     # discount
@@ -48,41 +48,41 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State,Vector{String}}
     uncertainty::Function
 
     function UncertaintyReductionMDP(
-        costs;
-        sampler,
-        uncertainty,
-        threshold,
-        evidence = Evidence(),
-        costs_tradeoff = (1, 0),
-        max_parallel::Int = 1,
-        discount = 1.0,
-        bigM = const_bigM,
-        max_experiments = bigM,
-    )
+            costs;
+            sampler,
+            uncertainty,
+            threshold,
+            evidence = Evidence(),
+            costs_tradeoff = (1, 0),
+            max_parallel::Int = 1,
+            discount = 1.0,
+            bigM = const_bigM,
+            max_experiments = bigM,
+        )
         state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
-        @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
+        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
         @assert hasmethod(uncertainty, Tuple{Evidence}) """`uncertainty` must implement a method accepting `evidence` as its argument."""
 
         # actions and their costs
-        costs = Dict{String,ActionCost}(
+        costs = Dict{String, ActionCost}(
             try
-                if action isa Pair && action[2] isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
-                        features = convert(Vector{String}, action[2][2]),
-                    )
+                    if action isa Pair && action[2] isa Pair
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2][1]..., 0][1:2]),
+                            features = convert(Vector{String}, action[2][2]),
+                        )
                 elseif action isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2]..., 0][1:2]),
-                        features = String[action[1]],
-                    )
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2]..., 0][1:2]),
+                            features = String[action[1]],
+                        )
                 else
-                    error()
+                        error()
                 end
             catch
-                error("could not parse $action as an action")
+                    error("could not parse $action as an action")
             end for action in costs
         )
 
@@ -109,10 +109,10 @@ const eox = "EOX"
 function POMDPs.actions(m::UncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
         return !isempty(m.costs[a].features) &&
-               !in(first(m.costs[a].features), keys(state.evidence))
+            !in(first(m.costs[a].features), keys(state.evidence))
     end
 
-    if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
+    return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
         collect(powerset(all_actions, 1, m.max_parallel))
     else
         [[eox]]
@@ -128,7 +128,7 @@ POMDPs.discount(m::UncertaintyReductionMDP) = m.discount
 POMDPs.initialstate(m::UncertaintyReductionMDP) = Deterministic(m.initial_state)
 
 function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
-    if action_set == [eox]
+    return if action_set == [eox]
         Deterministic(merge(state, Dict(eox => -1), (0.0, 0.0)))
     else
         # costs
@@ -138,7 +138,7 @@ function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
             cost_t = max(cost_t, m.costs[experiment].costs[2]) # time
         end
 
-        # readout features 
+        # readout features
         features = vcat(map(action -> m.costs[action].features, action_set)...)
         ImplicitDistribution() do rng
             # sample readouts from history
@@ -151,11 +151,11 @@ function POMDPs.transition(m::UncertaintyReductionMDP, state, action_set)
 end
 
 function POMDPs.reward(m::UncertaintyReductionMDP, previous_state, action, state)
-    if action == [eox]
+    return if action == [eox]
         -m.bigM
     else
         -sum(state.costs .* m.costs_tradeoff) +
-        sum(previous_state.costs .* m.costs_tradeoff)
+            sum(previous_state.costs .* m.costs_tradeoff)
     end
 end
 
@@ -206,16 +206,16 @@ designs = efficient_design(
 ```
 """
 function efficient_design(
-    costs;
-    sampler,
-    uncertainty,
-    threshold,
-    evidence = Evidence(),
-    solver = default_solver,
-    repetitions = 0,
-    realized_uncertainty = false,
-    mdp_options = (;),
-)
+        costs;
+        sampler,
+        uncertainty,
+        threshold,
+        evidence = Evidence(),
+        solver = default_solver,
+        repetitions = 0,
+        realized_uncertainty = false,
+        mdp_options = (;),
+    )
     mdp = UncertaintyReductionMDP(
         costs;
         sampler,
@@ -226,11 +226,13 @@ function efficient_design(
     )
     if isterminal(mdp, mdp.initial_state)
         return (
-            (0.0, if realized_uncertainty
-                mdp.uncertainty(mdp.initial_state.evidence)
-            else
-                threshold
-            end),
+            (
+                0.0, if realized_uncertainty
+                    mdp.uncertainty(mdp.initial_state.evidence)
+                else
+                    threshold
+                end,
+            ),
             (; monetary_cost = 0.0, time = 0.0),
         )
     else
@@ -239,7 +241,7 @@ function efficient_design(
         action, info = action_info(planner, mdp.initial_state)
 
         if repetitions > 0
-            queue = [Sim(mdp, planner) for _ = 1:repetitions]
+            queue = [Sim(mdp, planner) for _ in 1:repetitions]
 
             stats = run_parallel(queue) do _, hist
                 monetary_cost, time = hist[end][:s].costs
@@ -337,16 +339,16 @@ designs = efficient_designs(
 ```
 """
 function efficient_designs(
-    costs;
-    sampler,
-    uncertainty,
-    thresholds,
-    evidence = Evidence(),
-    solver = default_solver,
-    repetitions = 0,
-    realized_uncertainty = false,
-    mdp_options = (;),
-)
+        costs;
+        sampler,
+        uncertainty,
+        thresholds,
+        evidence = Evidence(),
+        solver = default_solver,
+        repetitions = 0,
+        realized_uncertainty = false,
+        mdp_options = (;),
+    )
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
@@ -365,6 +367,6 @@ function efficient_designs(
             ),
         )
     end
-    ## rewrite 
+    ## rewrite
     return front(x -> x[1], designs)
 end

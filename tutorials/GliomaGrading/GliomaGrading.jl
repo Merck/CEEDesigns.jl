@@ -6,12 +6,14 @@ using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    return quote
         local iv = try
-            Base.loaded_modules[Base.PkgId(
-                Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
-                "AbstractPlutoDingetjes",
-            )].Bonds.initial_value
+            Base.loaded_modules[
+                Base.PkgId(
+                    Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                    "AbstractPlutoDingetjes",
+                ),
+            ].Bonds.initial_value
         catch
             b -> missing
         end
@@ -29,10 +31,10 @@ begin
 
     using PlutoUI
     md"""
-   Case [_TCGA-HT-8564_](https://portal.gdc.cancer.gov/cases/f625e522-226b-450f-af94-dd2f5adb605e?filters=%7B%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.project.project_id%22%2C%22value%22%3A%5B%22TCGA-LGG%22%5D%7D%2C%22op%22%3A%22in%22%7D%5D%2C%22op%22%3A%22and%22%7D), Diagnosis _Astrocytoma, anaplastic_:
-   	
-   $(LocalResource("glioma_slide.jpeg", :width => 500, :style => "display: block; margin-left: auto; margin-right: auto;"))
-       """
+    Case [_TCGA-HT-8564_](https://portal.gdc.cancer.gov/cases/f625e522-226b-450f-af94-dd2f5adb605e?filters=%7B%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.project.project_id%22%2C%22value%22%3A%5B%22TCGA-LGG%22%5D%7D%2C%22op%22%3A%22in%22%7D%5D%2C%22op%22%3A%22and%22%7D), Diagnosis _Astrocytoma, anaplastic_:
+    	
+    $(LocalResource("glioma_slide.jpeg", :width => 500, :style => "display: block; margin-left: auto; margin-right: auto;"))
+        """
 end
 
 # ╔═╡ d66ad52c-4ac9-4a04-884b-bfa013f9acd9
@@ -208,12 +210,12 @@ begin
     designs = efficient_designs(experiments, perf_eval)
 
     function plot_front_invert(
-        designs;
-        grad = cgrad(:Paired_12),
-        xlabel = "combined cost",
-        ylabel = "information measure",
-        labels = make_labels(designs),
-    )
+            designs;
+            grad = cgrad(:Paired_12),
+            xlabel = "combined cost",
+            ylabel = "information measure",
+            labels = make_labels(designs),
+        )
         xs = map(x -> x[1][1], designs)
         ys = map(x -> x[1][2], designs)
 
@@ -229,7 +231,7 @@ begin
             legendposition = :bottomright,
             title = "cost-efficient experimental designs",
         )
-        for i = 2:length(designs)
+        for i in 2:length(designs)
             if xs[i] < 10_000
                 scatter!(
                     p,
@@ -258,13 +260,13 @@ md"We proceed to construct the set of cost-efficient experimental designs. In do
 # ╔═╡ dcd790bd-36a5-4536-9e21-4f54fe2cf4e4
 begin
     function predict(
-        X;
-        positive_label = 1,
-        negative_label = 0,
-        sensitivity::Float64,
-        specificity::Float64,
-    )
-        y_pred = similar(X, Union{typeof(positive_label),typeof(negative_label)})
+            X;
+            positive_label = 1,
+            negative_label = 0,
+            sensitivity::Float64,
+            specificity::Float64,
+        )
+        y_pred = similar(X, Union{typeof(positive_label), typeof(negative_label)})
 
         # simulate a predictor with given sensitivity and specificity
         for i in eachindex(X)
@@ -285,32 +287,32 @@ begin
     cost_slider = @bind cost Slider(1:1:10, default = 1, show_value = true)
 
     md"""
- ## Assessing the Impact of Histoathology Image Analysis on the Experimental Cost-Efficiency
+    ## Assessing the Impact of Histoathology Image Analysis on the Experimental Cost-Efficiency
 
- Building on the previous example, we will consider the introduction of a new feature in the task of glioma grading, where this feature will essentially function as a predictor of the glioma grade. 
+    Building on the previous example, we will consider the introduction of a new feature in the task of glioma grading, where this feature will essentially function as a predictor of the glioma grade. 
 
- In [Glioma Grading via Analysis of Digital Pathology Images Using Machine Learning](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7139732/), the authors proposed a computational method that exploits pattern analysis methods for grade prediction in gliomas using digital pathology images. 
+    In [Glioma Grading via Analysis of Digital Pathology Images Using Machine Learning](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7139732/), the authors proposed a computational method that exploits pattern analysis methods for grade prediction in gliomas using digital pathology images. 
 
- From the abstract, _according to the remarkable performance of computational approaches in the digital pathology domain, we hypothesized that machine learning can help to distinguish low-grade gliomas (LGG) from high-grade gliomas (HGG) by exploiting the rich phenotypic information that reflects the microvascular proliferation level, mitotic activity, presence of necrosis, and nuclear atypia present in digital pathology images. A set of 735 whole-slide digital pathology images of glioma patients (median age: 49.65 years, male: 427, female: 308, median survival: 761.26 days) were obtained from TCGA. Sub-images that contained a viable tumor area, showing sufficient histologic characteristics, and that did not have any staining artifact were extracted. Several clinical measures and imaging features, including conventional (intensity, morphology) and advanced textures features (gray-level co-occurrence matrix and gray-level run-length matrix), extracted from the sub-images were further used for training the support vector machine model with linear configuration._
+    From the abstract, _according to the remarkable performance of computational approaches in the digital pathology domain, we hypothesized that machine learning can help to distinguish low-grade gliomas (LGG) from high-grade gliomas (HGG) by exploiting the rich phenotypic information that reflects the microvascular proliferation level, mitotic activity, presence of necrosis, and nuclear atypia present in digital pathology images. A set of 735 whole-slide digital pathology images of glioma patients (median age: 49.65 years, male: 427, female: 308, median survival: 761.26 days) were obtained from TCGA. Sub-images that contained a viable tumor area, showing sufficient histologic characteristics, and that did not have any staining artifact were extracted. Several clinical measures and imaging features, including conventional (intensity, morphology) and advanced textures features (gray-level co-occurrence matrix and gray-level run-length matrix), extracted from the sub-images were further used for training the support vector machine model with linear configuration._
 
- $(LocalResource("architecture.png", :width => 600, :style => "display: block; margin-left: auto; margin-right: auto;"))
+    $(LocalResource("architecture.png", :width => 600, :style => "display: block; margin-left: auto; margin-right: auto;"))
 
- The authors aimed to evaluate the combined effect of conventional imaging, clinical, and texture features by assessing the predictive value of each feature type and their combinations through a predictive classifier.
+    The authors aimed to evaluate the combined effect of conventional imaging, clinical, and texture features by assessing the predictive value of each feature type and their combinations through a predictive classifier.
 
- For our specific intent, we will focus on the predictive accuracy of a classifier that utilizes only imaging features.
- 	
- $(LocalResource("accuracy.png", :width => 600, :style => "display: block; margin-left: auto; margin-right: auto;"))
+    For our specific intent, we will focus on the predictive accuracy of a classifier that utilizes only imaging features.
+    	
+    $(LocalResource("accuracy.png", :width => 600, :style => "display: block; margin-left: auto; margin-right: auto;"))
 
- We will artificially produce the grade predictions, modelling them as predictor outputs with the defined sensitivity and specificity. Note that we will not incorporate any further correlations with other features such as clinical factors, mutation factors, or histology.
+    We will artificially produce the grade predictions, modelling them as predictor outputs with the defined sensitivity and specificity. Note that we will not incorporate any further correlations with other features such as clinical factors, mutation factors, or histology.
 
- In addition, we consider the cost of the predictive classifier development.
+    In addition, we consider the cost of the predictive classifier development.
 
- | parameter | value picker |
- | :-----: | :------: |
- | sensitivity | $sensitivity_slider |
- | specificity | $specificity_slider |
- | cost | $cost_slider |
- """
+    | parameter | value picker |
+    | :-----: | :------: |
+    | sensitivity | $sensitivity_slider |
+    | specificity | $specificity_slider |
+    | cost | $cost_slider |
+    """
 end
 
 # ╔═╡ c2121983-7135-4833-a33a-2dbc331272f3
@@ -344,7 +346,7 @@ begin
         Dict(
             (
                 name => Multiclass for
-                name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
+                    name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
             )...,
             :new_feature => Multiclass,
         ),
@@ -424,7 +426,7 @@ begin
         1 .- ys1_new_feature;
         ticks = 1:4:length(evals1_new_feature),
         xformatter = i ->
-            isempty(xs1_new_feature[Int(i)]) ? "∅" : join(xs1_new_feature[Int(i)], ", "),
+        isempty(xs1_new_feature[Int(i)]) ? "∅" : join(xs1_new_feature[Int(i)], ", "),
         guidefontsize = 8,
         tickfontsize = 8,
         ylabel = "accuracy",

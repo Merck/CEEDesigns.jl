@@ -3,14 +3,14 @@ using Distributions
 
 features_discriminative_power = Dict(
     f => rand(0.7:0.05:0.95) for f in [
-        "RestingBP",
-        "RestingECG",
-        "Oldpeak",
-        "ST_Slope",
-        "MaxHR",
-        "Cholesterol",
-        "FastingBS",
-    ]
+            "RestingBP",
+            "RestingECG",
+            "Oldpeak",
+            "ST_Slope",
+            "MaxHR",
+            "Cholesterol",
+            "FastingBS",
+        ]
 )
 
 merge!(

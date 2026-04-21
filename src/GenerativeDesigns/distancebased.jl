@@ -8,7 +8,7 @@ If `standardize` is set to `true`, `σ` represents `col`'s variance calculated i
 function QuadraticDistance(; λ = 1, standardize = true)
     σ = nothing
 
-    function (x, col; prior = ones(length(col)))
+    return function (x, col; prior = ones(length(col)))
         if isnothing(σ)
             σ = standardize ? var(col, Weights(prior); corrected = false) : 1
         end
@@ -36,11 +36,11 @@ Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
 # default uncertainty functionals
 function compute_variance(data::AbstractVector; weights)
-    var(data, Weights(weights); corrected = false)
+    return var(data, Weights(weights); corrected = false)
 end
 
 function compute_variance(data; weights)
-    sum(var(Matrix(data), Weights(weights), 1; corrected = false))
+    return sum(var(Matrix(data), Weights(weights), 1; corrected = false))
 end
 
 """
@@ -66,7 +66,7 @@ Return a function of `(labels; prior)`.  When this function is called as part of
 it returns an internal function of `weights` that computes the fraction of information entropy, relative to the entropy calculated with respect to a specified `prior`.
 """
 function Entropy()
-    function (labels; prior)
+    return function (labels; prior)
         @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
         initial = compute_entropy(labels; weights = prior)
         return weights -> (compute_entropy(labels; weights) / initial)
@@ -75,7 +75,7 @@ end
 
 # Return a function that calculates the sum of distances in each row, column-wise, and applies weights based on the prior.
 function sum_of_distances(data::DataFrame, targets::Vector, distances; prior::Weights)
-    function (evidence::Evidence)
+    return function (evidence::Evidence)
         if isempty(evidence)
             return zeros(nrow(data))
         else
@@ -114,7 +114,7 @@ It returns a high-level function of `(data, targets, prior)`.
 When called, that function will return an internal function `compute_distances` that takes an `Evidence` and computes the squared Mahalanobis distance based on the input data and the evidence.
 """
 function SquaredMahalanobisDistance(; diagonal = 0)
-    function (data, targets, prior)
+    return function (data, targets, prior)
         non_targets = setdiff(names(data), targets)
         if !all(t -> t <: Real, eltype.(eachcol(data[!, non_targets])))
             @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
@@ -122,12 +122,12 @@ function SquaredMahalanobisDistance(; diagonal = 0)
 
         Λ = Dict(
             Set(features) => begin
-                Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
-                # Add diagonal entries.
-                foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+                    Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
+                    # Add diagonal entries.
+                    foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
 
-                inv(Σ)
-            end for features in powerset(non_targets, 1, length(non_targets))
+                    inv(Σ)
+                end for features in powerset(non_targets, 1, length(non_targets))
         )
 
         compute_distances = function (evidence::Evidence)
@@ -199,35 +199,35 @@ A named tuple with the following fields:
 ```
 """
 function DistanceBased(
-    data::DataFrame;
-    target,
-    uncertainty = Variance(),
-    similarity = Exponential(),
-    distance = Dict(),
-    prior = ones(nrow(data)),
-    filter_range = Dict(),
-    importance_weights = Dict(),
-)
+        data::DataFrame;
+        target,
+        uncertainty = Variance(),
+        similarity = Exponential(),
+        distance = Dict(),
+        prior = ones(nrow(data)),
+        filter_range = Dict(),
+        importance_weights = Dict(),
+    )
     prior = Weights(prior)
     targets = target isa AbstractVector ? target : [target]
 
     if distance isa Dict
         distances = Dict(
             try
-                if haskey(distance, colname)
-                    string(colname) => distance[colname]
+                    if haskey(distance, colname)
+                        string(colname) => distance[colname]
                 elseif elscitype(data[!, colname]) <: Continuous
-                    string(colname) => QuadraticDistance()
+                        string(colname) => QuadraticDistance()
                 elseif elscitype(data[!, colname]) <: Multiclass
-                    string(colname) => DiscreteDistance()
+                        string(colname) => DiscreteDistance()
                 else
-                    error()
+                        error()
                 end
             catch
-                error(
-                    """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
-                Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
-                )
+                    error(
+                        """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
+                        Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
+                    )
             end for colname in names(data[!, Not(target)])
         )
 
@@ -239,7 +239,7 @@ function DistanceBased(
     end
 
     # Compute "column-wise" priors.
-    weights = Dict{String,Vector{Float64}}()
+    weights = Dict{String, Vector{Float64}}()
 
     # If "importance weight" is a function, apply it to the column to get a numeric vector.
     for (colname, val) in importance_weights
