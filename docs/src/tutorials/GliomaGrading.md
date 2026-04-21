@@ -8,7 +8,9 @@ Gliomas are the most common primary tumors of the brain. They can be graded as L
 
 Case [_TCGA-HT-8564_](https://portal.gdc.cancer.gov/cases/f625e522-226b-450f-af94-dd2f5adb605e?filters=%7B%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.project.project_id%22%2C%22value%22%3A%5B%22TCGA-LGG%22%5D%7D%2C%22op%22%3A%22in%22%7D%5D%2C%22op%22%3A%22and%22%7D), diagnosis _Astrocytoma, anaplastic_:
 
-![glioma slide](assets/glioma_slide.jpeg)
+```@raw html
+<img src="assets/glioma_slide.jpeg" alt="glioma slide" style="width: 30%; display: block; margin-left: auto; margin-right: auto;">
+```
 
 ## Theoretical Framework
 
@@ -185,13 +187,13 @@ We simulate a predictor with the given sensitivity and specificity.
 
 ````@example GliomaGrading
 function predict(
-    X;
-    positive_label = 1,
-    negative_label = 0,
-    sensitivity::Float64,
-    specificity::Float64,
-)
-    y_pred = similar(X, Union{typeof(positive_label),typeof(negative_label)})
+        X;
+        positive_label = 1,
+        negative_label = 0,
+        sensitivity::Float64,
+        specificity::Float64,
+    )
+    y_pred = similar(X, Union{typeof(positive_label), typeof(negative_label)})
     for i in eachindex(X)
         if X[i] == positive_label
             y_pred[i] = rand() < sensitivity ? positive_label : negative_label
@@ -231,7 +233,7 @@ data_new_feature_typefix = coerce(
     Dict(
         (
             name => Multiclass for
-            name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
+                name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
         )...,
         :digital_pathology => Multiclass,
     ),
@@ -280,10 +282,8 @@ end
 
 design_new_feature = efficient_designs(experiments_new_feature, perf_eval_new_feature)
 
-design_new_feature_no_feature = efficient_designs(
-    experiments_new_feature_no_feature,
-    perf_eval_new_feature_no_feature,
-)
+design_new_feature_no_feature =
+    efficient_designs(experiments_new_feature_no_feature, perf_eval_new_feature_no_feature)
 
 p_new_feature = scatter(
     map(x -> x[1][1], design_new_feature),

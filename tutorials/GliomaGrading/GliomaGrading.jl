@@ -33,7 +33,7 @@ begin
     md"""
     Case [_TCGA-HT-8564_](https://portal.gdc.cancer.gov/cases/f625e522-226b-450f-af94-dd2f5adb605e?filters=%7B%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.project.project_id%22%2C%22value%22%3A%5B%22TCGA-LGG%22%5D%7D%2C%22op%22%3A%22in%22%7D%5D%2C%22op%22%3A%22and%22%7D), Diagnosis _Astrocytoma, anaplastic_:
     	
-    $(LocalResource("glioma_slide.jpeg", :width => 500, :style => "display: block; margin-left: auto; margin-right: auto;"))
+    $(LocalResource("glioma_slide.jpeg", :style => "width: 50%; display: block; margin-left: auto; margin-right: auto;"))
         """
 end
 
