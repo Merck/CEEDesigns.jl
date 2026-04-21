@@ -158,13 +158,13 @@ cost = 1.0
 # We simulate a predictor with the given sensitivity and specificity.
 
 function predict(
-    X;
-    positive_label = 1,
-    negative_label = 0,
-    sensitivity::Float64,
-    specificity::Float64,
-)
-    y_pred = similar(X, Union{typeof(positive_label),typeof(negative_label)})
+        X;
+        positive_label = 1,
+        negative_label = 0,
+        sensitivity::Float64,
+        specificity::Float64,
+    )
+    y_pred = similar(X, Union{typeof(positive_label), typeof(negative_label)})
     for i in eachindex(X)
         if X[i] == positive_label
             y_pred[i] = rand() < sensitivity ? positive_label : negative_label
@@ -202,7 +202,7 @@ data_new_feature_typefix = coerce(
     Dict(
         (
             name => Multiclass for
-            name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
+                name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
         )...,
         :digital_pathology => Multiclass,
     ),
