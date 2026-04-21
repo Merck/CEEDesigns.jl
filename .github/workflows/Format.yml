@@ -1,5 +1,7 @@
 name: Format suggestions
 on:
+  push:
+    branches: [ main ]
   pull_request:
     # this argument is not required if you don't use the `suggestion-label` input
     types: [ opened, reopened, synchronize, labeled, unlabeled ]
