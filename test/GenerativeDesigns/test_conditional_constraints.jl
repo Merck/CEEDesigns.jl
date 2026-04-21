@@ -6,7 +6,7 @@ using CEEDesigns.GenerativeDesigns
 
 @testset "Conditional constraints MDP" begin
     # tiny historical data
-    data = DataFrame(target = [0.2, 0.7, 0.9], x = [1, 2, 3])
+    data = DataFrame(; target = [0.2, 0.7, 0.9], x = [1, 2, 3])
 
     # fixed posterior weights over rows
     weights_fn = evidence -> [0.2, 0.3, 0.5]
