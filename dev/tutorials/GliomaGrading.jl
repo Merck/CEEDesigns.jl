@@ -4,7 +4,9 @@
 
 # Case [_TCGA-HT-8564_](https://portal.gdc.cancer.gov/cases/f625e522-226b-450f-af94-dd2f5adb605e?filters=%7B%22content%22%3A%5B%7B%22content%22%3A%7B%22field%22%3A%22cases.project.project_id%22%2C%22value%22%3A%5B%22TCGA-LGG%22%5D%7D%2C%22op%22%3A%22in%22%7D%5D%2C%22op%22%3A%22and%22%7D), diagnosis _Astrocytoma, anaplastic_:
 #
-# ![glioma slide](assets/glioma_slide.jpeg)
+# ```@raw html
+# <img src="assets/glioma_slide.jpeg" alt="glioma slide" style="width: 30%; display: block; margin-left: auto; margin-right: auto;">
+# ```
 
 # ## Theoretical Framework
 #
