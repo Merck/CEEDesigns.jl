@@ -19,12 +19,12 @@ Internally, the reward associated with a particular experimental `evidence` and 
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
 """
-struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
+struct EfficientValueMDP <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
 
     # actions and costs
-    costs::Dict{String,ActionCost}
+    costs::Dict{String, ActionCost}
     # maximum number of assays that can be run in parallel
     max_parallel::Int
     # discount
@@ -36,37 +36,37 @@ struct EfficientValueMDP <: POMDPs.MDP{State,Vector{String}}
     value::Function
 
     function EfficientValueMDP(
-        costs;
-        sampler,
-        value,
-        evidence = Evidence(),
-        max_parallel::Int = 1,
-        discount = 1.0,
-    )
+            costs;
+            sampler,
+            value,
+            evidence = Evidence(),
+            max_parallel::Int = 1,
+            discount = 1.0,
+        )
         state = State((evidence, Tuple(zeros(2))))
 
         # Check if `sampler`, `uncertainty` are compatible
-        @assert hasmethod(sampler, Tuple{Evidence,Vector{String},AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
-        @assert hasmethod(value, Tuple{Evidence,Vector{Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument."""
+        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
+        @assert hasmethod(value, Tuple{Evidence, Vector{Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument."""
 
         # actions and their costs
-        costs = Dict{String,ActionCost}(
+        costs = Dict{String, ActionCost}(
             try
-                if action isa Pair && action[2] isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
-                        features = convert(Vector{String}, action[2][2]),
-                    )
+                    if action isa Pair && action[2] isa Pair
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2][1]..., 0][1:2]),
+                            features = convert(Vector{String}, action[2][2]),
+                        )
                 elseif action isa Pair
-                    string(action[1]) => (;
-                        costs = Tuple(Float64[action[2]..., 0][1:2]),
-                        features = String[action[1]],
-                    )
+                        string(action[1]) => (;
+                            costs = Tuple(Float64[action[2]..., 0][1:2]),
+                            features = String[action[1]],
+                        )
                 else
-                    error()
+                        error()
                 end
             catch
-                error("could not parse $action as an action")
+                    error("could not parse $action as an action")
             end for action in costs
         )
 
@@ -77,7 +77,7 @@ end
 function POMDPs.actions(m::EfficientValueMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
         return !isempty(m.costs[a].features) &&
-               !in(first(m.costs[a].features), keys(state.evidence))
+            !in(first(m.costs[a].features), keys(state.evidence))
     end
 
     return collect(powerset(all_actions, 1, m.max_parallel))
@@ -99,7 +99,7 @@ function POMDPs.transition(m::EfficientValueMDP, state, action_set)
 
     # readout features
     features = vcat(map(action -> m.costs[action].features, action_set)...)
-    ImplicitDistribution() do rng
+    return ImplicitDistribution() do rng
         # sample readouts from history
         observation = m.sampler(state.evidence, features, rng)
 
@@ -110,7 +110,7 @@ end
 
 function POMDPs.reward(m::EfficientValueMDP, previous_state::State, _, state::State)
     return m.value(state.evidence, state.costs) -
-           m.value(previous_state.evidence, previous_state.costs)
+        m.value(previous_state.evidence, previous_state.costs)
 end
 
 """
@@ -160,22 +160,22 @@ design = efficient_value(
 ```
 """
 function efficient_value(
-    costs;
-    sampler,
-    value,
-    evidence = Evidence(),
-    solver = default_solver,
-    repetitions = 0,
-    mdp_options = (;),
-)
+        costs;
+        sampler,
+        value,
+        evidence = Evidence(),
+        solver = default_solver,
+        repetitions = 0,
+        mdp_options = (;),
+    )
     mdp = EfficientValueMDP(costs; sampler, value, evidence, mdp_options...)
 
     # planner
     planner = solve(solver, mdp)
     action, info = action_info(planner, mdp.initial_state)
 
-    if repetitions > 0
-        queue = [Sim(mdp, planner) for _ = 1:repetitions]
+    return if repetitions > 0
+        queue = [Sim(mdp, planner) for _ in 1:repetitions]
 
         stats = run_parallel(queue) do _, hist
             monetary_cost, time = hist[end][:s].costs

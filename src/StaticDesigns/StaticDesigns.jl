@@ -11,8 +11,8 @@ using ..CEEDesigns: front
 
 export evaluate_experiments, efficient_designs
 
-# performance evaluation: predictive loss, fraction of population not filtered out by the experiment 
-const ExperimentalEval = NamedTuple{(:loss, :filtration),NTuple{2,Float64}}
+# performance evaluation: predictive loss, fraction of population not filtered out by the experiment
+const ExperimentalEval = NamedTuple{(:loss, :filtration), NTuple{2, Float64}}
 
 # optimal arrangement as a MDP task
 include("arrangements.jl")
@@ -60,18 +60,18 @@ evaluate_experiments(
 ```
 """
 function evaluate_experiments(
-    experiments::Dict{String,T},
-    model,
-    X,
-    y;
-    max_cardinality = length(experiments),
-    zero_cost_features = [],
-    evaluate_empty_subset::Bool = true,
-    return_full_metrics::Bool = false,
-    kwargs...,
-) where {T}
+        experiments::Dict{String, T},
+        model,
+        X,
+        y;
+        max_cardinality = length(experiments),
+        zero_cost_features = [],
+        evaluate_empty_subset::Bool = true,
+        return_full_metrics::Bool = false,
+        kwargs...,
+    ) where {T}
     # predictive accuracy scores over subsets of experiments
-    scores = Dict{Set{String},return_full_metrics ? PerformanceEvaluation : Float64}()
+    scores = Dict{Set{String}, return_full_metrics ? PerformanceEvaluation : Float64}()
     # generate all the possible subsets from the set of experiments, with a minimum size of 1 and maximum size of 'max_cardinality'
     experimental_subsets = collect(powerset(collect(keys(experiments)), 1, max_cardinality))
     # lock
@@ -139,12 +139,12 @@ evaluate_experiments(experiments, data_binary; zero_cost_features)
 ```
 """
 function evaluate_experiments(
-    experiments::Dict{String,T},
-    X::DataFrame;
-    zero_cost_features = [],
-    evaluate_empty_subset::Bool = true,
-) where {T}
-    scores = Dict{Set{String},ExperimentalEval}()
+        experiments::Dict{String, T},
+        X::DataFrame;
+        zero_cost_features = [],
+        evaluate_empty_subset::Bool = true,
+    ) where {T}
+    scores = Dict{Set{String}, ExperimentalEval}()
 
     for exp_set in powerset(collect(keys(experiments)), 1)
         features = eltype(names(X))[zero_cost_features...]
@@ -206,22 +206,22 @@ efficient_designs(
 ```
 """
 function efficient_designs(
-    experiments::Dict{String,T},
-    evals::Dict{Set{String},S};
-    max_parallel::Int = 1,
-    tradeoff = (1, 0),
-    mdp_kwargs = default_mdp_kwargs,
-) where {T,S}
+        experiments::Dict{String, T},
+        evals::Dict{Set{String}, S};
+        max_parallel::Int = 1,
+        tradeoff = (1, 0),
+        mdp_kwargs = default_mdp_kwargs,
+    ) where {T, S}
     experimental_costs = Dict(e => v isa Pair ? v[1] : v for (e, v) in experiments)
 
-    evals = Dict{Set{String},ExperimentalEval}(
+    evals = Dict{Set{String}, ExperimentalEval}(
         if e isa Number
-            s => (; loss = convert(Float64, e), filtration = 1.0)
+                s => (; loss = convert(Float64, e), filtration = 1.0)
         else
-            s => (;
-                loss = convert(Float64, e.loss),
-                filtration = convert(Float64, e.filtration),
-            )
+                s => (;
+                    loss = convert(Float64, e.loss),
+                    filtration = convert(Float64, e.filtration),
+                )
         end for (s, e) in evals
     )
 
@@ -282,11 +282,11 @@ efficient_designs(
 ```
 """
 function efficient_designs(
-    experiments::Dict{String,T},
-    args...;
-    eval_options = (;),
-    arrangement_options = (;),
-) where {T}
+        experiments::Dict{String, T},
+        args...;
+        eval_options = (;),
+        arrangement_options = (;),
+    ) where {T}
     evals = evaluate_experiments(experiments, args...; eval_options...)
 
     return efficient_designs(experiments, evals; arrangement_options...)

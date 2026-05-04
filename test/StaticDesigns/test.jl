@@ -51,7 +51,7 @@ perf_eval = evaluate_experiments(
     zero_cost_features,
     measure = LogLoss(),
 )
-@test perf_eval isa Dict{Set{String},Float64}
+@test perf_eval isa Dict{Set{String}, Float64}
 
 ## binary dataset, use filtration
 data = CSV.File("StaticDesigns/data/heart_binary.csv") |> DataFrame
@@ -71,7 +71,7 @@ experiments = Dict(
 seed!(1)
 perf_eval = evaluate_experiments(experiments, data; zero_cost_features)
 @test perf_eval isa
-      Dict{Set{String},NamedTuple{(:loss, :filtration),Tuple{Float64,Float64}}}
+    Dict{Set{String}, NamedTuple{(:loss, :filtration), Tuple{Float64, Float64}}}
 
 seed!(1)
 designs = efficient_designs(experiments, perf_eval)

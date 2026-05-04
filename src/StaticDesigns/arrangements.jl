@@ -3,18 +3,18 @@
 ArrangementMDP(; experiments, experimental_costs, evals, max_parallel=1, tradeoff=(1, 0))
 Structure to parametrize a MDP that is used to approximate the optimal experimental arrangement.
 """
-Base.@kwdef struct ArrangementMDP{T1<:Number,T2<:Number} <:
-                   POMDPs.MDP{Set{String},Set{String}}
+Base.@kwdef struct ArrangementMDP{T1 <: Number, T2 <: Number} <:
+    POMDPs.MDP{Set{String}, Set{String}}
     # experiments
     experiments::Set{String}
     # experimental costs
-    experimental_costs::Dict{String,NTuple{2,Float64}}
+    experimental_costs::Dict{String, NTuple{2, Float64}}
     # loss, filtration
-    evals::Dict{Set{String},ExperimentalEval}
+    evals::Dict{Set{String}, ExperimentalEval}
     # maximum number of parallel experiments
     max_parallel::Int = 1
     # monetary cost v. time tradeoff
-    tradeoff::Tuple{T1,T2} = (1, 0)
+    tradeoff::Tuple{T1, T2} = (1, 0)
 end
 
 function POMDPs.actions(m::ArrangementMDP, state)
@@ -28,7 +28,7 @@ POMDPs.isterminal(m::ArrangementMDP, state) = m.experiments == state
 POMDPs.initialstate(::ArrangementMDP) = Deterministic(Set{String}())
 
 function POMDPs.transition(::ArrangementMDP, state, action)
-    # readout features 
+    # readout features
     return Deterministic(state ∪ action)
 end
 
@@ -63,18 +63,18 @@ Otherwise, the function returns a named tuple `(; arrangement, combined cost, mo
 """
 # if the execution times for the experimental setup are specified
 function optimal_arrangement(
-    costs::Dict{String,T},
-    evals::Dict{Set{String},ExperimentalEval},
-    experiments::Set{String};
-    max_parallel = 1,
-    tradeoff = (1, 0),
-    mdp_kwargs = default_mdp_kwargs,
-) where {T}
-    experimental_costs = Dict{String,NTuple{2,Float64}}(
+        costs::Dict{String, T},
+        evals::Dict{Set{String}, ExperimentalEval},
+        experiments::Set{String};
+        max_parallel = 1,
+        tradeoff = (1, 0),
+        mdp_kwargs = default_mdp_kwargs,
+    ) where {T}
+    experimental_costs = Dict{String, NTuple{2, Float64}}(
         k => if v isa Number
-            (convert(Float64, v), v)
+                (convert(Float64, v), v)
         else
-            (convert(Float64, v[1]), convert(Float64, v[2]))
+                (convert(Float64, v[1]), convert(Float64, v[2]))
         end for (k, v) in costs
     )
 

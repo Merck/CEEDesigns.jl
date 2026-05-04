@@ -36,21 +36,21 @@ front(v; atol2 = 0.2)
 """
 function front end
 
-function front(v::T; atol1::Float64 = 0.0, atol2::Float64 = atol1) where {T<:AbstractVector}
+function front(v::T; atol1::Float64 = 0.0, atol2::Float64 = atol1) where {T <: AbstractVector}
     return front(identity, v; atol1, atol2)
 end
 
 function front(
-    f::F,
-    v::T;
-    atol1::Float64 = 0.0,
-    atol2::Float64 = atol1,
-) where {F<:Function,T<:AbstractVector}
+        f::F,
+        v::T;
+        atol1::Float64 = 0.0,
+        atol2::Float64 = atol1,
+    ) where {F <: Function, T <: AbstractVector}
     # dict sort
     v_sorted = sort(
         v;
         lt = (x, y) ->
-            (f(x)[1] < f(y)[1] || (f(x)[1] == f(y)[1] && f(x)[2] <= f(y)[2])),
+        (f(x)[1] < f(y)[1] || (f(x)[1] == f(y)[1] && f(x)[2] <= f(y)[2])),
     )
 
     # check if the second coordinate drops below the second coordinate of the last non-dominated point
@@ -58,7 +58,7 @@ function front(
     ix_current = 2
     while ix_current <= length(v_sorted)
         if (f(v_sorted[ix_current])[2] < f(v_sorted[ix_front])[2] - atol2) &&
-           (f(v_sorted[ix_current])[1] > f(v_sorted[ix_front])[1] + atol1)
+                (f(v_sorted[ix_current])[1] > f(v_sorted[ix_front])[1] + atol1)
             ix_front = ix_current
             ix_current += 1
         else
@@ -85,12 +85,12 @@ plot_front(designs; grad = cgrad(:Paired_12))
 ```
 """
 function plot_front(
-    designs;
-    grad = cgrad(:Paired_12),
-    xlabel = "combined cost",
-    ylabel = "information measure",
-    labels = make_labels(designs),
-)
+        designs;
+        grad = cgrad(:Paired_12),
+        xlabel = "combined cost",
+        ylabel = "information measure",
+        labels = make_labels(designs),
+    )
     xs = map(x -> x[1][1], designs)
     ys = map(x -> x[1][2], designs)
 
@@ -104,7 +104,7 @@ function plot_front(
         mscolor = nothing,
         fontsize = 16,
     )
-    for i = 2:length(designs)
+    for i in 2:length(designs)
         scatter!(p, [xs[i]], [ys[i]]; label = labels[i], c = grad[i], mscolor = nothing)
     end
 
@@ -146,10 +146,10 @@ should take as input `evals` and return a list of its keys in the order to be pl
 By default they are sorted by length.
 """
 function plot_evals(
-    evals;
-    ylabel = "information measure",
-    f = x -> sort(collect(keys(x)); by = length),
-)
+        evals;
+        ylabel = "information measure",
+        f = x -> sort(collect(keys(x)); by = length),
+    )
     xs = f(evals)
     ys = map(xs) do x
         return evals[x] isa Number ? evals[x] : evals[x].loss

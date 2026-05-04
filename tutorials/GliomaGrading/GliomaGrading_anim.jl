@@ -14,12 +14,14 @@ using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
-    quote
+    return quote
         local iv = try
-            Base.loaded_modules[Base.PkgId(
-                Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
-                "AbstractPlutoDingetjes",
-            )].Bonds.initial_value
+            Base.loaded_modules[
+                Base.PkgId(
+                    Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                    "AbstractPlutoDingetjes",
+                ),
+            ].Bonds.initial_value
         catch
             b -> missing
         end
@@ -121,7 +123,7 @@ For this purpose, we merged a publicly available dataset [Glioma Grading Clinica
 # ╔═╡ 6737a98e-20b9-4016-85f6-c8f4a07d04f8
 md"""
 
-    _Somatic mutations sorted by affected cases in cohort_"""
+_Somatic mutations sorted by affected cases in cohort_"""
 
 # ╔═╡ 1364c91a-4331-4a1b-8c3d-fb40743c1df7
 md"We load the dataset:"
@@ -233,12 +235,12 @@ begin
     designs = efficient_designs(experiments, perf_eval)
 
     function plot_front_invert(
-        designs;
-        grad = cgrad(:Paired_12),
-        xlabel = "combined cost",
-        ylabel = "information measure",
-        labels = make_labels(designs),
-    )
+            designs;
+            grad = cgrad(:Paired_12),
+            xlabel = "combined cost",
+            ylabel = "information measure",
+            labels = make_labels(designs),
+        )
         xs = map(x -> x[1][1], designs)
         ys = map(x -> x[1][2], designs)
 
@@ -254,7 +256,7 @@ begin
             legendposition = :bottomright,
             title = "cost-efficient designs",
         )
-        for i = 2:length(designs)
+        for i in 2:length(designs)
             if xs[i] < 10_000
                 scatter!(
                     p,
@@ -319,7 +321,7 @@ function make_plot(specificity, sensitivity, cost, perf_eval)
             Dict(
                 (
                     name => Multiclass for
-                    name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
+                        name in [Symbol.(features_mutation); :Grade; :Gender; :Race]
                 )...,
                 :new_feature => Multiclass,
             ),
@@ -406,7 +408,7 @@ perf_eval = evaluate_experiments(
 
 #
 gr()
-anim = @animate for sens = 0.5:0.2:0.9, spec = 0.5:0.2:0.9, cost = 1:2:5
+anim = @animate for sens in 0.5:0.2:0.9, spec in 0.5:0.2:0.9, cost in 1:2:5
     println("sensitivity = $sens, specificity = $spec, cost = $cost")
     p = make_plot(spec, sens, cost, perf_eval)
     p

@@ -15,7 +15,7 @@ types = Dict(
 data = coerce(data, types);
 
 continuous_cols = filter(colname -> eltype(data[!, colname]) == Float64, names(data))
-data = data[!, continuous_cols∪["HeartDisease"]]
+data = data[!, continuous_cols ∪ ["HeartDisease"]]
 
 using CEEDesigns, CEEDesigns.GenerativeDesigns
 

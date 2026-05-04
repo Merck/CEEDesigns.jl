@@ -4,11 +4,11 @@
 # For details on the theoretical background and notation, please see our tutorial on [static experimental designs](@ref simple_static), this tutorial
 # is a concrete application of the tools described in that document.
 
-# ### Application to Predictive Modeling 
+# ### Application to Predictive Modeling
 
 # Let's generalize the example from [static experimental designs](@ref simple_static) to the case where we want to compute the information value $v_{S}$ as the predictive
 # ability of a machine learning model which uses the measurements gained from experiments in $S$ to predict some $y$ of interest.
-# 
+#
 # Let's introduce some formal notation.
 # Consider a dataset of historical readouts over $m$ features $X = \{x_1, \ldots, x_m\}$, and let $y$ denote the target variable that we want to predict.
 # Assume that each experiment $e \in E$ yields readouts over a subset $X_e \subseteq X$ of features.

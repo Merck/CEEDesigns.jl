@@ -47,7 +47,7 @@ using CEEDesigns, CEEDesigns.GenerativeDesigns
 
 # Note that internally, a state of the decision process is represented as a tuple `(evidence, costs)`.
 
-# You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively. 
+# You can specify the method for computing the distance using the `distance` keyword. By default, the Kronecker delta and quadratic distance will be utilised for categorical and continuous features, respectively.
 
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
@@ -111,7 +111,7 @@ p = bar(
     xrot = 40,
     ylabel = "probability",
     color = :teal,
-    title = "unc: $(round(uncertainty(evidence), digits=1))",
+    title = "unc: $(round(uncertainty(evidence), digits = 1))",
     kind = :bar,
     legend = false,
 );
@@ -129,7 +129,7 @@ p = bar(
     xrot = 40,
     ylabel = "probability",
     color = :teal,
-    title = "unc: $(round(uncertainty(evidence_with_bp), digits=2))",
+    title = "unc: $(round(uncertainty(evidence_with_bp), digits = 2))",
     kind = :bar,
     legend = false,
 );
