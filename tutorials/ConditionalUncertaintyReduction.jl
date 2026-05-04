@@ -1,22 +1,22 @@
 # # [Conditional Uncertainty Reduction: Case-Guided Sequential Experimental Design](@id conditional_uncertainty_reduction)
 
-# This document describes the background behind conditional (constraint-aware) uncertainty-reduction MDP and applies this 
-# enhanced version of the baseline CEEDesigns.jl framework to a real-world problem of sequential assay planning for drug discovery. 
+# This document describes the background behind conditional (constraint-aware) uncertainty-reduction MDP and applies this
+# enhanced version of the baseline CEEDesigns.jl framework to a real-world problem of sequential assay planning for drug discovery.
 
-# In the experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains 
+# In the experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains
 # below a specified threshold and that a conditional likelihood criterion is satisfied.
 
 # Consider a situation where we have a set of assays or experiments that can be performed sequentially to gather information
-# about a compound. In this example, our objective is to efficiently determine a compound's brain penetration potential 
-# which is dependent on the compound's ability to cross the blood-brain barrier. We must create an assay plan by selecting 
-# from a set of cheap, fast, but less informative in vitro assays and an expensive, slow, but definitive in vivo assay that 
+# about a compound. In this example, our objective is to efficiently determine a compound's brain penetration potential
+# which is dependent on the compound's ability to cross the blood-brain barrier. We must create an assay plan by selecting
+# from a set of cheap, fast, but less informative in vitro assays and an expensive, slow, but definitive in vivo assay that
 # directly measures the unbound brain-to-plasma partition coefficient, k_puu.
 
 # ## Brain Penetration Assays Dataset
 
 # In this tutorial, we consider a dataset that includes 220 compounds with complete measurements for all relevant assays
-# (100 nM PgP, 1 µM PgP, 100 nM BCRP) and the target property k_puu (unbound brain-to-plasma partition coefficient). 
-# The dataset also includes associated Quantitative Structure-Activity Relationship (QSAR) model predictions, which 
+# (100 nM PgP, 1 µM PgP, 100 nM BCRP) and the target property k_puu (unbound brain-to-plasma partition coefficient).
+# The dataset also includes associated Quantitative Structure-Activity Relationship (QSAR) model predictions, which
 # provide initial estimates for the assay outcomes and other relevant properties such as Mean Residence Time (MRT).
 
 # The dataset was originally published in [Chen et al., 2026](https://arxiv.org/abs/2601.14710) and can be found at
@@ -31,7 +31,7 @@ data[1:10, :]
 # When setting up the full experimental planning pipeline, the necessary components are:
 # 1. A distance-based generative model derived from historical data, weighting the historical compounds by similarity.
 # 2. A table mapping each assay to its operational costs, both monetary and temporal.
-# 3. A conditional terminal condition: the MDP is terminal only when both 
+# 3. A conditional terminal condition: the MDP is terminal only when both
 #    `H(s) ≤ ε` (uncertainty threshold) and `L(s) ≥ τ` (goal-likelihood threshold) are met.
 # 4. A Monte Carlo Tree Search-Double Progressive Widening (MCTS-DPW) solver that searches over combinatorial assay batches.
 
@@ -58,12 +58,12 @@ physical = [
     "100nM_BCRP",
 ];
 
-# The distance dictionary assigns a per-feature weight λ_k that controls how strongly each feature influences the similarity kernel. 
-# Distances are variance-normalized then transformed into similarities via an exponential kernel. In-silico QSAR predictions are estimates 
-# and thus less reliable, so we down-weight them (λ = 50) relative to the physical assay results (λ = 200), ensuring that the available 
-# physical measurements have a stronger influence on the belief update.  
+# The distance dictionary assigns a per-feature weight λ_k that controls how strongly each feature influences the similarity kernel.
+# Distances are variance-normalized then transformed into similarities via an exponential kernel. In-silico QSAR predictions are estimates
+# and thus less reliable, so we down-weight them (λ = 50) relative to the physical assay results (λ = 200), ensuring that the available
+# physical measurements have a stronger influence on the belief update.
 
-distances = Dict{String,Any}()
+distances = Dict{String, Any}()
 for f in in_silico
     distances[f] = QuadraticDistance(; λ = 50)
 end
@@ -74,12 +74,12 @@ end
 # ### Generative Model Construction
 
 # We obtain three functions in what follows, which together define the implicit generative model:
-#  -  `sampler` — this is a function of `(evidence, features, rng)` which samples a historical case from the dataset with probabilities 
-#      proportional to the similarity weights.  The `evidence` is the current experimental evidence for the compound of interest, 
+#  -  `sampler` — this is a function of `(evidence, features, rng)` which samples a historical case from the dataset with probabilities
+#      proportional to the similarity weights.  The `evidence` is the current experimental evidence for the compound of interest,
 #      `features` is the set of features (assays) we want to sample from, and `rng` is a random number generator.
-#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance H(s) of the target property kpuu over the 
-#      historical data. 
-#  -  `weights(evidence)` — this represents a function of `evidence` that gives the similarity weight vector w_i(s) for each 
+#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance H(s) of the target property kpuu over the
+#      historical data.
+#  -  `weights(evidence)` — this represents a function of `evidence` that gives the similarity weight vector w_i(s) for each
 #      historical compound. It serves as a probability distribution for  sampling and is used to compute the goal-likelihood L(s).
 
 (; sampler, uncertainty, weights) = DistanceBased(
@@ -94,9 +94,9 @@ end
 
 # Each experiment is specified as `name => (monetary_cost, time_in_days)`.
 
-# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo kpuu assay. 
+# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo kpuu assay.
 
-# The solver finds the Pareto-optimal sequences that trade off total cost against terminal uncertainty, recommending the cheapest 
+# The solver finds the Pareto-optimal sequences that trade off total cost against terminal uncertainty, recommending the cheapest
 # plan that meets the confidence requirements.
 
 experiments = Dict(
@@ -106,18 +106,18 @@ experiments = Dict(
     "kpuu" => (4000.0, 21.0),
 );
 
-# ### Solver Configuration 
+# ### Solver Configuration
 
-# The conditional terminal condition requires that the posterior probability of kpuu falling in the desirable range [0.5, 1.0] 
-# exceeds the belief threshold τ.  
+# The conditional terminal condition requires that the posterior probability of kpuu falling in the desirable range [0.5, 1.0]
+# exceeds the belief threshold τ.
 
 target_condition = Dict("kpuu" => [0.5, 1.0])
 taus = [0.6, 0.9];
 
 # The MCTS-DPW solver uses a very low value of `n_iterations` per MCTS run, to keep runtime manageable; in real applications this should
-# be increased. Other options such as `exploration_constant = 5.0` controls the balance between exploration of new actions with exploitation 
-# of known high-value actions within the search tree, and `depth = 5`, again keeping runtime down. Setting `depth = 11` would allow the planner to 
-# look ahead through all possible assay orderings. 
+# be increased. Other options such as `exploration_constant = 5.0` controls the balance between exploration of new actions with exploitation
+# of known high-value actions within the search tree, and `depth = 5`, again keeping runtime down. Setting `depth = 11` would allow the planner to
+# look ahead through all possible assay orderings.
 
 solver = GenerativeDesigns.DPWSolver(;
     n_iterations = 2_000,
@@ -127,10 +127,10 @@ solver = GenerativeDesigns.DPWSolver(;
     keep_tree = true,
 );
 
-# ## Representative Compound Scenarios with Varying Initial Evidence 
+# ## Representative Compound Scenarios with Varying Initial Evidence
 
-# We evaluate four representative scenarios designed to test the planner against a heuristic that deems compounds as promising 
-# (likely 0.5 ≤ kpuu ≤ 1) when QSAR_PgP < 2 AND QSAR_BCRP < 2 and not promising (kpuu < 0.5) when QSAR_PgP > 4 OR QSAR_BCRP > 4. 
+# We evaluate four representative scenarios designed to test the planner against a heuristic that deems compounds as promising
+# (likely 0.5 ≤ kpuu ≤ 1) when QSAR_PgP < 2 AND QSAR_BCRP < 2 and not promising (kpuu < 0.5) when QSAR_PgP > 4 OR QSAR_BCRP > 4.
 
 # | Scenario | PgP QSAR | BCRP QSAR | Challenge                         |
 # |----------|----------|-----------|-----------------------------------|
@@ -139,20 +139,20 @@ solver = GenerativeDesigns.DPWSolver(;
 # | 3        | > 4      | < 2       | PgP false negative                |
 # | 4        | > 4      | > 4       | Double false negative             |
 
-# All selected compounds have true kpuu > 0.5. 
-# The `select_representative_rows` function below selects the compound with the lowest kpuu from each category, the hardest case, and 
+# All selected compounds have true kpuu > 0.5.
+# The `select_representative_rows` function below selects the compound with the lowest kpuu from each category, the hardest case, and
 # constructs its initial evidence state from the three QSAR predictions (MRT, PgP, BCRP).
 
 function select_representative_rows(data::DataFrame; num_instances::Int = 20)
     conditions = [
         (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .&
-        (data[!, "kpuu"] .> 0.5),
+            (data[!, "kpuu"] .> 0.5),
         (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .&
-        (data[!, "kpuu"] .> 0.5),
+            (data[!, "kpuu"] .> 0.5),
         (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .&
-        (data[!, "kpuu"] .> 0.5),
+            (data[!, "kpuu"] .> 0.5),
         (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .&
-        (data[!, "kpuu"] .> 0.5),
+            (data[!, "kpuu"] .> 0.5),
     ]
 
     selected_columns = [
@@ -209,8 +209,8 @@ scenarios = [
 # 1. Compute separate Pareto fronts for each τ value (τ = 0.6 and τ = 0.9), mapping out the cost vs uncertainty trade-off
 #    frontier under each goal-likelihood constraint.
 # 2. Run a single ensemble of N = 5 independent MCTS planners using the strictest constraint (τ = 0.9). The ensemble results
-#    are then evaluated at various levels of uncertainty threshold. In the following example, we generate 5 thresholds spaces 
-#    evenly between 0 and 1, inclusive. Majority voting across runs at each uncertainty level yields the  Maximum-Likelihood 
+#    are then evaluated at various levels of uncertainty threshold. In the following example, we generate 5 thresholds spaces
+#    evenly between 0 and 1, inclusive. Majority voting across runs at each uncertainty level yields the  Maximum-Likelihood
 #    Action-Sets Path (MLASP), the most robust assay recommendation.
 
 all_designs = Dict()
@@ -265,7 +265,7 @@ for (idx, evidence) in enumerate(state_init_list)
 
     ## Process results for each tau value
     for tau in taus
-        runs = ensemble_results[:belief=>tau]
+        runs = ensemble_results[:belief => tau]
         df_ensemble = ensemble_to_dataframe(runs)
 
         if !haskey(all_ensemble_dfs, tau)
@@ -290,11 +290,11 @@ plot(all_plots[2])
 # ## Summary of Scenario Outcomes
 
 # The summary table gives the following results for each scenario and belief threshold τ:
-# - `P_kpuu_in_range` - initial posterior probability of kpuu falling in the desirable range [0.5, 1.0] given the 
+# - `P_kpuu_in_range` - initial posterior probability of kpuu falling in the desirable range [0.5, 1.0] given the
 #    initial evidence (QSAR predictions).
 # - `Constraint` - whether the initial belief already meets the constraint P ≥ τ without any physical assays.
 # - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
-# - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions 
+# - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions
 #    (assays) recommended by the ensemble policies at each stage. Provided is at each uncertainty threshold, the assay/s that
 #    won the majority vote across the ensemble.
 
@@ -323,7 +323,7 @@ for tau in taus
         prob_kpuu = round(cond_prob; digits = 3)
         constraint_met = cond_prob >= tau ? "✓" : "✗"
 
-        ## Pareto designs 
+        ## Pareto designs
         designs = all_designs[tau][i]
         costs = [perf[1] for (perf, _) in designs]
         uncs = [perf[2] for (perf, _) in designs]
@@ -334,7 +334,7 @@ for tau in taus
             "N/A"
         end
         unc_range = if !isempty(uncs)
-            "$(round(minimum(uncs); digits=3)) – $(round(maximum(uncs); digits=3))"
+            "$(round(minimum(uncs); digits = 3)) – $(round(maximum(uncs); digits = 3))"
         else
             "N/A"
         end
@@ -352,7 +352,7 @@ for tau in taus
             total_freq = sum(sub.Frequency)
             pct = round(100 * best.Frequency / total_freq; digits = 0)
             actions_str = isempty(best.Action_Set) ? "(none)" : best.Action_Set
-            push!(mlasp_info, "ε=$(round(t; digits=2)): $(actions_str) ($(Int(pct))%)")
+            push!(mlasp_info, "ε=$(round(t; digits = 2)): $(actions_str) ($(Int(pct))%)")
         end
 
         push!(

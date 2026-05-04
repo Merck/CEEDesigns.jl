@@ -8,7 +8,7 @@ Flatten a vector of Pareto fronts (one per ensemble run) into
 Frequency, Average_Utility
 """
 function ensemble_to_dataframe(runs)
-    counts = Dict{Tuple{Float64,String},Tuple{Int,Float64}}()
+    counts = Dict{Tuple{Float64, String}, Tuple{Int, Float64}}()
     for front in runs
         for design in front
             threshold = design[1][2]
@@ -25,11 +25,11 @@ function ensemble_to_dataframe(runs)
     end
     rows = [
         (
-            Threshold = k[1],
-            Action_Set = k[2],
-            Average_Utility = v[2] / v[1],
-            Frequency = v[1],
-        ) for (k, v) in counts
+                Threshold = k[1],
+                Action_Set = k[2],
+                Average_Utility = v[2] / v[1],
+                Frequency = v[1],
+            ) for (k, v) in counts
     ]
     return DataFrame(rows)
 end
@@ -68,11 +68,11 @@ Create Pareto front visualization for ensemble results with viridis color scheme
   - Global normalization is recommended as it preserves relative frequencies across thresholds    # Calculate normalized frequencies for coloring
 """
 function plot_ensemble_pareto(
-    df::DataFrame,
-    tau::Float64;
-    show_annotations::Bool = true,
-    normalization::Symbol = :global,
-)  # :global, :per_threshold, or :none
+        df::DataFrame,
+        tau::Float64;
+        show_annotations::Bool = true,
+        normalization::Symbol = :global,
+    )  # :global, :per_threshold, or :none
     # Calculate normalized frequencies for coloring
     df_copy = copy(df)
 
@@ -83,8 +83,8 @@ function plot_ensemble_pareto(
 
     # Calculate horizontal dispersion for each threshold to show distinct action sets
     threshold_groups = groupby(df_copy, :Threshold)
-    dispersion_offsets = Dict{Float64,Vector{Float64}}()
-    action_counts = Dict{Float64,Int}()
+    dispersion_offsets = Dict{Float64, Vector{Float64}}()
+    action_counts = Dict{Float64, Int}()
 
     x_range = maximum(df_copy.Average_Utility) - minimum(df_copy.Average_Utility)
 
@@ -107,7 +107,7 @@ function plot_ensemble_pareto(
             center_first_order = Int[]
             left = 1
             right = n_actions
-            for i = 1:n_actions
+            for i in 1:n_actions
                 if i % 2 == 1
                     push!(center_first_order, div(n_actions + i, 2))
                 else
@@ -128,7 +128,7 @@ function plot_ensemble_pareto(
     # Apply dispersion to x-coordinates
     # IMPORTANT: Process in the same order to maintain alignment with norm_frequencies
     x_coords = Float64[]
-    threshold_indices = Dict{Float64,Int}()
+    threshold_indices = Dict{Float64, Int}()
 
     for (idx, row) in enumerate(eachrow(df_copy))
         threshold = row.Threshold
@@ -144,7 +144,7 @@ function plot_ensemble_pareto(
         group_data = filter(r -> r.Threshold == threshold, df_copy)
         point_index = findfirst(
             r ->
-                r.Action_Set == row.Action_Set &&
+            r.Action_Set == row.Action_Set &&
                 r.Average_Utility == row.Average_Utility &&
                 r.Frequency == row.Frequency,
             eachrow(group_data),
@@ -163,7 +163,7 @@ function plot_ensemble_pareto(
     colorbar_label = "Probability"
 
     # Check actual successful runs at each threshold
-    threshold_counts = Dict{Float64,Int}()
+    threshold_counts = Dict{Float64, Int}()
     for threshold in unique(df_copy.Threshold)
         threshold_data = filter(row -> row.Threshold == threshold, df_copy)
         threshold_counts[threshold] = round(Int, sum(threshold_data.Frequency))
@@ -218,7 +218,7 @@ function plot_ensemble_pareto(
     # Normalize so that the MAX frequency at each threshold gets the same size
 
     # First, find max frequency at each threshold
-    max_freq_per_threshold = Dict{Float64,Float64}()
+    max_freq_per_threshold = Dict{Float64, Float64}()
     for threshold in unique(df_copy.Threshold)
         threshold_data = filter(row -> row.Threshold == threshold, df_copy)
         if !isempty(threshold_data)
@@ -433,10 +433,10 @@ function plot_ensemble_pareto(
             # Find this exact point in the original coordinate arrays
             # by matching threshold, frequency, AND the utility value
             found = false
-            for i = 1:length(df_copy.Threshold)
+            for i in 1:length(df_copy.Threshold)
                 if df_copy.Threshold[i] == best_row.Threshold &&
-                   df_copy.Frequency[i] == best_row.Frequency &&
-                   df_copy.Average_Utility[i] == best_row.Average_Utility
+                        df_copy.Frequency[i] == best_row.Frequency &&
+                        df_copy.Average_Utility[i] == best_row.Average_Utility
                     # Use the exact scaled coordinate from the scatter plot
                     push!(mlasp_x_coords, x_coords_scaled[i])
                     push!(mlasp_y_coords, df_copy.Threshold[i])

@@ -57,8 +57,14 @@ We distinguish between cheap, in-silico predictions and expensive, physical assa
 ````@example ConditionalUncertaintyReduction
 in_silico = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt"]
 physical = [
-    "blood_frac_conc", "brain_conc", "brain_binding", "plasma_protein_binding",
-    "kpuu", "100nM_PgP", "1uM_PgP", "100nM_BCRP",
+    "blood_frac_conc",
+    "brain_conc",
+    "brain_binding",
+    "plasma_protein_binding",
+    "kpuu",
+    "100nM_PgP",
+    "1uM_PgP",
+    "100nM_BCRP",
 ];
 nothing #hide
 ````
@@ -111,10 +117,10 @@ plan that meets the confidence requirements.
 
 ````@example ConditionalUncertaintyReduction
 experiments = Dict(
-    "100nM_PgP"  => (400.0, 7.0),
+    "100nM_PgP" => (400.0, 7.0),
     "100nM_BCRP" => (400.0, 7.0),
-    "1uM_PgP"    => (400.0, 7.0),
-    "kpuu"       => (4000.0, 21.0),
+    "1uM_PgP" => (400.0, 7.0),
+    "kpuu" => (4000.0, 21.0),
 );
 nothing #hide
 ````
@@ -165,13 +171,25 @@ constructs its initial evidence state from the three QSAR predictions (MRT, PgP,
 ````@example ConditionalUncertaintyReduction
 function select_representative_rows(data::DataFrame; num_instances::Int = 20)
     conditions = [
-        (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .& (data[!, "kpuu"] .> 0.5),
-        (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .& (data[!, "kpuu"] .> 0.5),
-        (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .& (data[!, "kpuu"] .> 0.5),
-        (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .& (data[!, "kpuu"] .> 0.5),
+        (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .&
+        (data[!, "kpuu"] .> 0.5),
+        (data[!, "1uM_PgP_qsar"] .< 2) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .&
+        (data[!, "kpuu"] .> 0.5),
+        (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .< 2) .&
+        (data[!, "kpuu"] .> 0.5),
+        (data[!, "1uM_PgP_qsar"] .> 4) .& (data[!, "100_nM_Mouse_BCRP_qsar"] .> 4) .&
+        (data[!, "kpuu"] .> 0.5),
     ]
 
-    selected_columns = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt", "kpuu", "100nM_PgP", "1uM_PgP", "100nM_BCRP"]
+    selected_columns = [
+        "1uM_PgP_qsar",
+        "100_nM_Mouse_BCRP_qsar",
+        "qsar_mrt",
+        "kpuu",
+        "100nM_PgP",
+        "1uM_PgP",
+        "100nM_BCRP",
+    ]
     selected_rows = DataFrame()
     state_init_list = []
 
@@ -179,7 +197,10 @@ function select_representative_rows(data::DataFrame; num_instances::Int = 20)
         filtered_data = data[condition, :]
         if nrow(filtered_data) > 0
             sorted_data = sort(filtered_data, :kpuu)
-            representative_rows = first(sorted_data, min(num_instances, nrow(sorted_data)))[!, selected_columns]
+            representative_rows = first(sorted_data, min(num_instances, nrow(sorted_data)))[
+                !,
+                selected_columns,
+            ]
             selected_rows = vcat(selected_rows, representative_rows)
 
             if nrow(representative_rows) > 0
@@ -240,11 +261,7 @@ for (idx, evidence) in enumerate(state_init_list)
             terminal_condition = (target_condition, tau),
             solver = solver,
             realized_uncertainty = true,
-            mdp_options = (;
-                max_parallel = 3,
-                costs_tradeoff = (1.0, 0.0),
-                bigM = 10_000,
-            ),
+            mdp_options = (; max_parallel = 3, costs_tradeoff = (1.0, 0.0), bigM = 10_000),
         )
 
         if !haskey(all_designs, tau)
@@ -277,7 +294,7 @@ for (idx, evidence) in enumerate(state_init_list)
 
     # Process results for each tau value
     for tau in taus
-        runs = ensemble_results[:belief => tau]
+        runs = ensemble_results[:belief=>tau]
         df_ensemble = ensemble_to_dataframe(runs)
 
         if !haskey(all_ensemble_dfs, tau)
@@ -286,7 +303,7 @@ for (idx, evidence) in enumerate(state_init_list)
         push!(all_ensemble_dfs[tau], df_ensemble)
 
         plt = plot_ensemble_pareto(df_ensemble, tau)
-        plot!(plt, title = "$(scenarios[idx]) (τ = $(tau))")
+        plot!(plt; title = "$(scenarios[idx]) (τ = $(tau))")
         push!(all_plots, plt)
     end
 end
@@ -327,27 +344,35 @@ for tau in taus
         # Initial evidence values
         evidence_cols = Dict()
         for (k, v) in pairs(ev)
-            evidence_cols[k] = round(v; digits=3)
+            evidence_cols[k] = round(v; digits = 3)
         end
 
-        init_unc = round(uncertainty(ev); digits=3)
+        init_unc = round(uncertainty(ev); digits = 3)
 
         cond_prob = conditional_likelihood(
             ev;
-            compute_weights  = weights,
-            hist_data        = data,
+            compute_weights = weights,
+            hist_data = data,
             target_condition = target_condition,
         )
-        prob_kpuu = round(cond_prob; digits=3)
+        prob_kpuu = round(cond_prob; digits = 3)
         constraint_met = cond_prob >= tau ? "✓" : "✗"
 
         # Pareto designs
         designs = all_designs[tau][i]
         costs = [perf[1] for (perf, _) in designs]
-        uncs  = [perf[2] for (perf, _) in designs]
+        uncs = [perf[2] for (perf, _) in designs]
         num_pareto = length(designs)
-        cost_range = !isempty(costs) ? "\$$(round(Int, minimum(costs))) – \$$(round(Int, maximum(costs)))" : "N/A"
-        unc_range = !isempty(uncs) ? "$(round(minimum(uncs); digits=3)) – $(round(maximum(uncs); digits=3))" : "N/A"
+        cost_range = if !isempty(costs)
+            "\$$(round(Int, minimum(costs))) – \$$(round(Int, maximum(costs)))"
+        else
+            "N/A"
+        end
+        unc_range = if !isempty(uncs)
+            "$(round(minimum(uncs); digits=3)) – $(round(maximum(uncs); digits=3))"
+        else
+            "N/A"
+        end
 
         # Ensemble summary
         df = all_ensemble_dfs[tau][i]
@@ -360,25 +385,28 @@ for tau in taus
             sub = filter(r -> r.Threshold == t, df)
             best = sub[argmax(sub.Frequency), :]
             total_freq = sum(sub.Frequency)
-            pct = round(100 * best.Frequency / total_freq; digits=0)
+            pct = round(100 * best.Frequency / total_freq; digits = 0)
             actions_str = isempty(best.Action_Set) ? "(none)" : best.Action_Set
             push!(mlasp_info, "ε=$(round(t; digits=2)): $(actions_str) ($(Int(pct))%)")
         end
 
-        push!(summary_data, (
-            Scenario = replace(name, r"^Scenario \d+: " => ""),
-            QSar_MRT = get(evidence_cols, "qsar_mrt", NaN),
-            PgP_QSAR = get(evidence_cols, "1uM_PgP_qsar", NaN),
-            BCRP_QSAR = get(evidence_cols, "100_nM_Mouse_BCRP_qsar", NaN),
-            Init_Uncertainty = init_unc,
-            P_kpuu_in_range = prob_kpuu,
-            Constraint = constraint_met,
-            Pareto_Designs = num_pareto,
-            Cost_Range = cost_range,
-            Unc_Range = unc_range,
-            Unique_Actions = num_unique_actions,
-            MLASP = join(mlasp_info, "; "),
-        ))
+        push!(
+            summary_data,
+            (
+                Scenario = replace(name, r"^Scenario \d+: " => ""),
+                QSar_MRT = get(evidence_cols, "qsar_mrt", NaN),
+                PgP_QSAR = get(evidence_cols, "1uM_PgP_qsar", NaN),
+                BCRP_QSAR = get(evidence_cols, "100_nM_Mouse_BCRP_qsar", NaN),
+                Init_Uncertainty = init_unc,
+                P_kpuu_in_range = prob_kpuu,
+                Constraint = constraint_met,
+                Pareto_Designs = num_pareto,
+                Cost_Range = cost_range,
+                Unc_Range = unc_range,
+                Unique_Actions = num_unique_actions,
+                MLASP = join(mlasp_info, "; "),
+            ),
+        )
     end
 
     push!(tau_summary, summary_data)
