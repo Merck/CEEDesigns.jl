@@ -33,7 +33,7 @@ seed!(1) #hide
 # ## Brain Penetration Assays Dataset
 
 # In this tutorial, we consider a dataset that includes 220 compounds with complete measurements for all relevant assays
-# (100 nM PgP, 1 µM PgP, 100 nM BCRP) and the target property k_puu (unbound brain-to-plasma partition coefficient).
+# (100 nM PgP, 1 µM PgP, 100 nM BCRP) and the target property $k_\text{puu}$ (unbound brain-to-plasma partition coefficient).
 # The dataset also includes associated Quantitative Structure-Activity Relationship (QSAR) model predictions, which
 # provide initial estimates for the assay outcomes and other relevant properties such as Mean Residence Time (MRT).
 
@@ -50,7 +50,7 @@ data[1:10, :]
 # 1. A distance-based generative model derived from historical data, weighting the historical compounds by similarity.
 # 2. A table mapping each assay to its operational costs, both monetary and temporal.
 # 3. A conditional terminal condition: the MDP is terminal only when both
-#    `H(s) ≤ ε` (uncertainty threshold) and `L(s) ≥ τ` (goal-likelihood threshold) are met.
+#    $H(s) \leq \varepsilon$ (uncertainty threshold) and $L(s) \geq \tau$ (goal-likelihood threshold) are met.
 # 4. A Monte Carlo Tree Search-Double Progressive Widening (MCTS-DPW) solver that searches over combinatorial assay batches.
 
 # ### Feature Distance Weights
@@ -71,9 +71,9 @@ physical = [
     "100nM_BCRP",
 ];
 
-# The distance dictionary assigns a per-feature weight λ_k that controls how strongly each feature influences the similarity kernel.
+# The distance dictionary assigns a per-feature weight $\lambda_k$ that controls how strongly each feature influences the similarity kernel.
 # Distances are variance-normalized then transformed into similarities via an exponential kernel. In-silico QSAR predictions are estimates
-# and thus less reliable, so we down-weight them (λ = 50) relative to the physical assay results (λ = 200), ensuring that the available
+# and thus less reliable, so we down-weight them ($\lambda = 50$) relative to the physical assay results ($\lambda = 200$), ensuring that the available
 # physical measurements have a stronger influence on the belief update.
 
 distances = Dict{String, Any}()
@@ -94,10 +94,10 @@ end
 #  -  `sampler` — this is a function of `(evidence, features, rng)` which samples a historical case from the dataset with probabilities
 #      proportional to the similarity weights.  The `evidence` is the current experimental evidence for the compound of interest,
 #      `features` is the set of features (assays) we want to sample from, and `rng` is a random number generator.
-#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance H(s) of the target property kpuu over the
+#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance $H(s)$ of the target property kpuu over the
 #      historical data.
-#  -  `weights(evidence)` — this represents a function of `evidence` that gives the similarity weight vector w_i(s) for each
-#      historical compound. It serves as a probability distribution for  sampling and is used to compute the goal-likelihood L(s).
+#  -  `weights(evidence)` — this represents a function of `evidence` that gives the similarity weight vector $w_i(s)$ for each
+#      historical compound. It serves as a probability distribution for  sampling and is used to compute the goal-likelihood $L(s)$.
 
 (; sampler, uncertainty, weights) = DistanceBased(
     data;
@@ -126,7 +126,7 @@ experiments = Dict(
 # ### Solver Configuration
 
 # The conditional terminal condition requires that the posterior probability of kpuu falling in the desirable range [0.5, 1.0]
-# exceeds the belief threshold τ.
+# exceeds the belief threshold $\tau$.
 
 target_condition = Dict("kpuu" => [0.5, 1.0])
 taus = [0.6, 0.9];
@@ -147,7 +147,7 @@ solver = GenerativeDesigns.DPWSolver(;
 # ## Representative Compound Scenarios with Varying Initial Evidence
 
 # We evaluate four representative scenarios designed to test the planner against a heuristic that deems compounds as promising
-# (likely 0.5 ≤ kpuu ≤ 1) when QSAR_PgP < 2 AND QSAR_BCRP < 2 and not promising (kpuu < 0.5) when QSAR_PgP > 4 OR QSAR_BCRP > 4.
+# (likely $0.5 \leq k_\text{puu} \leq 1$) when $\text{QSAR\_PgP} < 2$ AND $\text{QSAR\_BCRP} < 2$ and not promising ($k_\text{puu} < 0.5$) when $\text{QSAR\_PgP} > 4$ OR $\text{QSAR\_BCRP} > 4$.
 
 # | Scenario | PgP QSAR | BCRP QSAR | Challenge                         |
 # |----------|----------|-----------|-----------------------------------|
@@ -223,9 +223,9 @@ scenarios = [
 # ## Ensemble Planning Across All Scenarios and Thresholds
 
 # For each of the four scenarios we:
-# 1. Compute separate Pareto fronts for each τ value (τ = 0.6 and τ = 0.9), mapping out the cost vs uncertainty trade-off
+# 1. Compute separate Pareto fronts for each $\tau$ value ($\tau = 0.6$ and $\tau = 0.9$), mapping out the cost vs uncertainty trade-off
 #    frontier under each goal-likelihood constraint.
-# 2. Run a single ensemble of N = 5 independent MCTS planners using the strictest constraint (τ = 0.9). By *ensemble* we
+# 2. Run a single ensemble of N = 5 independent MCTS planners using the strictest constraint ($\tau = 0.9$). By *ensemble* we
 # mean running $N$ independent MCTS-DPW planners on the same initial evidence. Each planner yields its own Pareto front
 # of candidate designs; aggregating by majority vote over the selected action sets at each uncertainty level yields a
 # more robust recommendation (the MLASP) than any single run, and the spread across runs gives an empirical measure of
@@ -299,7 +299,7 @@ for (idx, evidence) in enumerate(state_init_list)
     end
 end
 
-# Let's see the plot for the first value of τ.
+# Let's see the plot for the first value of $\tau$.
 
 plot(all_plots[1])
 
@@ -309,10 +309,10 @@ plot(all_plots[2])
 
 # ## Summary of Scenario Outcomes
 
-# The summary table gives the following results for each scenario and belief threshold τ:
+# The summary table gives the following results for each scenario and belief threshold $\tau$:
 # - `P_kpuu_in_range` — posterior probability $P(k_\text{puu} \in [0.5, 1.0] \mid \text{QSAR})$ that the compound lies in
 #   the desirable range given QSAR features alone (before any physical assays).
-# - `Constraint` - whether the initial belief already meets the constraint P ≥ τ without any physical assays.
+# - `Constraint` - whether the initial belief already meets the constraint $P \geq \tau$ without any physical assays.
 # - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
 # - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions
 #    (assays) recommended by the ensemble policies at each stage. Provided is at each uncertainty threshold, the assay/s that
@@ -397,7 +397,7 @@ for tau in taus
     push!(tau_summary, summary_data)
 end;
 
-# We can examiune the results for the first value of τ:
+# We can examine the results for the first value of $\tau$:
 
 DataFrame(tau_summary[1])
 
