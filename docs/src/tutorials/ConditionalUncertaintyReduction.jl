@@ -15,11 +15,20 @@
 # confident the compound lies in the promising region. See the [Generative Experimental Designs tutorial](@ref simple_generative)
 # for the underlying similarity-weighted belief.
 
+
 # Consider a situation where we have a set of assays or experiments that can be performed sequentially to gather information
 # about a compound. In this example, our objective is to efficiently determine a compound's brain penetration potential
 # which is dependent on the compound's ability to cross the blood-brain barrier. We must create an assay plan by selecting
 # from a set of cheap, fast, but less informative in vitro assays and an expensive, slow, but definitive in vivo assay that
-# directly measures the unbound brain-to-plasma partition coefficient, k_puu.
+# directly measures the unbound brain-to-plasma partition coefficient, $k_\text{puu}$.
+
+# The following preamble loads the necessary packages and fixes the RNG seed for reproducibility.
+
+using Plots #hide
+using CEEDesigns, CEEDesigns.GenerativeDesigns #hide
+using CEEDesigns: ensemble_to_dataframe, plot_ensemble_pareto #hide
+using Random: seed! #hide
+seed!(1) #hide
 
 # ## Brain Penetration Assays Dataset
 
@@ -43,15 +52,6 @@ data[1:10, :]
 # 3. A conditional terminal condition: the MDP is terminal only when both
 #    `H(s) ≤ ε` (uncertainty threshold) and `L(s) ≥ τ` (goal-likelihood threshold) are met.
 # 4. A Monte Carlo Tree Search-Double Progressive Widening (MCTS-DPW) solver that searches over combinatorial assay batches.
-
-## Preamble: load packages and fix RNG seed for reproducibility
-using Plots #hide
-using CEEDesigns, CEEDesigns.GenerativeDesigns #hide
-using CEEDesigns: ensemble_to_dataframe, plot_ensemble_pareto #hide
-#hide
-using Random: seed! #hide
-seed!(1) #hide
-nothing #hide
 
 # ### Feature Distance Weights
 
@@ -311,7 +311,7 @@ plot(all_plots[2])
 
 # The summary table gives the following results for each scenario and belief threshold τ:
 # - `P_kpuu_in_range` — posterior probability $P(k_\text{puu} \in [0.5, 1.0] \mid \text{QSAR})$ that the compound lies in
-# the desirable range given QSAR features alone (before any physical assays).
+#   the desirable range given QSAR features alone (before any physical assays).
 # - `Constraint` - whether the initial belief already meets the constraint P ≥ τ without any physical assays.
 # - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
 # - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions

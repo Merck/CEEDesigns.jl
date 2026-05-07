@@ -8,9 +8,18 @@ This document describes the background behind conditional (constraint-aware) unc
 
 In the experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold and that a conditional likelihood criterion is satisfied.
 
-In our setting, the conditional likelihood is the posterior probability mass the generative model assigns to the target variable $y$ falling in a "desirable" range, given the evidence accumulated so far, i.e. $ (s) = P(y \in Y^\star \mid \text{evidence}(s))$. Concretely in this tutorial, $L(s) = P(0.5 \leq k_\tex {puu} \leq 1 \mid \text{QSAR and assay readouts})$. Because the planner is free to stop only once $L(s) \geq \tau$, the policy is steered toward evidence states that are not only low-uncertainty but also confident the compound lies in the promising region. See the [Generative Experimental Designs tutorial (@ref simple_generative) for the underlying similarity-weighted belief.
+In our setting, the conditional likelihood is the posterior probability mass the generative model assigns to the target variable $y$ falling in a "desirable" range, given the evidence accumulated so far, i.e. $ L(s) = P(y \in Y^\star \mid \text{evidence}(s))$. Concretely in this tutorial, $L(s) = P(0.5 \leq k_\text{puu} \leq 1 \mid \text{QSAR and assay readouts})$. Because the planner is free to stop only once $L(s) \geq \tau$, the policy is steered toward evidence states that are not only low-uncertainty but also confident the compound lies in the promising region. See the [Generative Experimental Designs tutorial](@ref simple_generative) for the underlying similarity-weighted belief.
 
 Consider a situation where we have a set of assays or experiments that can be performed sequentially to gather information about a compound. In this example, our objective is to efficiently determine a compound's brain penetration potential which is dependent on the compound's ability to cross the blood-brain barrier. We must create an assay plan by selecting from a set of cheap, fast, but less informative in vitro assays and an expensive, slow, but definitive in vivo assay that directly measures the unbound brain-to-plasma partition coefficient, k_puu.
+
+````@setup ConditionalUncertaintyReduction
+using Plots
+using CEEDesigns, CEEDesigns.GenerativeDesigns
+using CEEDesigns: ensemble_to_dataframe, plot_ensemble_pareto
+
+using Random: seed!
+seed!(1)
+````
 
 ## Brain Penetration Assays Dataset
 
@@ -31,15 +40,6 @@ When setting up the full experimental planning pipeline, the necessary component
 2. A table mapping each assay to its operational costs, both monetary and temporal.
 3. A conditional terminal condition: the MDP is terminal only when both `H(s) ≤ ε` (uncertainty threshold) and `L(s) ≥ τ` (goal-likelihood threshold) are met.
 4. A Monte Carlo Tree Search-Double Progressive Widening (MCTS-DPW) solver that searches over combinatorial assay batches.
-
-````@example ConditionalUncertaintyReduction
-using Plots
-using CEEDesigns, CEEDesigns.GenerativeDesigns
-using CEEDesigns: ensemble_to_dataframe, plot_ensemble_pareto
-
-using Random: seed!
-seed!(1)
-````
 
 ### Feature Distance Weights
 
