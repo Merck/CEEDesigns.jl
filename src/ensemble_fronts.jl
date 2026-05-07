@@ -64,8 +64,8 @@ Create Pareto front visualization for ensemble results with viridis color scheme
 # Notes
 
   - Uses viridis color scheme for better perceptual uniformity and accessibility
-  - Horizontal spread indicates number of distinct action sets at each threshold  # :global, :per_threshold, or :none
-  - Global normalization is recommended as it preserves relative frequencies across thresholds    # Calculate normalized frequencies for coloring
+  - Horizontal spread indicates number of distinct action sets at each threshold
+  - Global normalization is recommended as it preserves relative frequencies across thresholds
 """
 function plot_ensemble_pareto(
         df::DataFrame,
@@ -243,13 +243,7 @@ function plot_ensemble_pareto(
     end
 
     # Determine title - keep it concise
-    title_text = if "Action_Set" in names(df_copy)
-        unique_action_sets = unique(df_copy.Action_Set)
-        n_unique = length(unique_action_sets)
-        "Ensemble Pareto Front (τ = $tau, N=$max_ensemble_count)"
-    else
-        "Ensemble Pareto Front (τ = $tau, N=$max_ensemble_count)"
-    end
+    title_text = "Ensemble Pareto Front (τ = $tau, N=$max_ensemble_count)"
 
     # Create initial plot with scatter points
     # Use normal frequencies but reverse the colormap for darker = higher probability
@@ -415,41 +409,18 @@ function plot_ensemble_pareto(
 
     # Process each unique threshold level
     for threshold in sort(unique(df_copy.Threshold); rev = true)
-        threshold_data = filter(row -> row.Threshold == threshold, df_copy)
-        if nrow(threshold_data) > 0
-            # Find the maximum frequency at this threshold
-            max_freq = maximum(threshold_data.Frequency)
-
-            # Get all points with this max frequency (there might be ties)
-            max_freq_points = filter(row -> row.Frequency == max_freq, threshold_data)
-
-            # If there are ties, select the first one (consistent selection)
-            # This ensures we always pick the same point when there are ties
-            best_row = max_freq_points[1, :]
+        # Find row indices in df_copy matching this threshold
+        candidate_indices = [i for i in 1:nrow(df_copy) if df_copy.Threshold[i] == threshold]
+        if !isempty(candidate_indices)
+            # Select the index with the maximum frequency (first occurrence breaks ties)
+            best_idx = candidate_indices[argmax(df_copy.Frequency[candidate_indices])]
 
             # Add to mlasp_points for annotations
-            push!(mlasp_points, best_row; promote = true)
+            push!(mlasp_points, df_copy[best_idx, :]; promote = true)
 
-            # Find this exact point in the original coordinate arrays
-            # by matching threshold, frequency, AND the utility value
-            found = false
-            for i in 1:length(df_copy.Threshold)
-                if df_copy.Threshold[i] == best_row.Threshold &&
-                        df_copy.Frequency[i] == best_row.Frequency &&
-                        df_copy.Average_Utility[i] == best_row.Average_Utility
-                    # Use the exact scaled coordinate from the scatter plot
-                    push!(mlasp_x_coords, x_coords_scaled[i])
-                    push!(mlasp_y_coords, df_copy.Threshold[i])
-                    found = true
-                    break
-                end
-            end
-
-            # Fallback if not found (shouldn't happen)
-            if !found
-                push!(mlasp_x_coords, best_row.Average_Utility / scale_factor)
-                push!(mlasp_y_coords, best_row.Threshold)
-            end
+            # Use the pre-computed scaled coordinate directly via row index
+            push!(mlasp_x_coords, x_coords_scaled[best_idx])
+            push!(mlasp_y_coords, df_copy.Threshold[best_idx])
         end
     end
 

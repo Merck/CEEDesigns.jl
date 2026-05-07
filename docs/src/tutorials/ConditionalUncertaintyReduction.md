@@ -46,7 +46,7 @@ When setting up the full experimental planning pipeline, the necessary component
 We discount the informativeness gap (or 'fidelity gap') between cheap, in-silico predictions and expensive, physical assays by assigning different distance scales (per-feature $\lambda_k$) — a smaller $\lambda$ makes a feature less decisive for similarity, so two compounds that differ on that feature are still considered close neighbors in the weighted kernel.
 
 ````@example ConditionalUncertaintyReduction
-in_silico = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt"]
+in_silico = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt"];
 physical = [
     "blood_frac_conc",
     "brain_conc",
@@ -94,7 +94,7 @@ nothing #hide
 
 ### Experiment Costs
 
-Each experiment is specified as `name => (monetary_cost, time_in_days)`.
+Each experiment is specified as `name => (monetary_cost, time_in_days)`. We trade off cost vs uncertainty only; extending to time is straightforward by setting the second weight > 0.
 
 The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo kpuu assay.
 
@@ -120,7 +120,7 @@ taus = [0.6, 0.9];
 nothing #hide
 ````
 
-The MCTS-DPW solver uses a very low value of `n_iterations` per MCTS run, to keep runtime manageable; in real applications this should be increased. Other options such as `exploration_constant = 5.0` controls the balance between exploration of new actions with exploitation of known high-value actions within the search tree, and `depth = 5`, again keeping runtime down. Setting `depth = 11` would allow the planner to look ahead through all possible assay orderings.
+The MCTS-DPW solver uses a very low value of `n_iterations` per MCTS run, to keep runtime manageable; in real applications this should be increased. `exploration_constant = 5.0` controls the balance between exploration of new actions with exploitation of known high-value actions within the search tree and `depth = 5` defines the MCTS search depth bounding how many sequential decisions the solver can look ahead when planning experiments. Both parameters are again kept small to keep runtime manageable for the tutorial.
 
 ````@example ConditionalUncertaintyReduction
 solver = GenerativeDesigns.DPWSolver(;
@@ -213,7 +213,7 @@ nothing #hide
 
 For each of the four scenarios we:
 1. Compute separate Pareto fronts for each $\tau$ value ($\tau = 0.6$ and $\tau = 0.9$), mapping out the cost vs uncertainty trade-off frontier under each goal-likelihood constraint.
-2. Run a single ensemble of N = 5 independent MCTS planners using the strictest constraint ($\tau = 0.9$). By *ensemble* we mean running $N$ independent MCTS-DPW planners on the same initial evidence. Each planner yields its own Pareto front of candidate designs; aggregating by majority vote over the selected action sets at each uncertainty level yields a more robust recommendation (the MLASP) than any single run, and the spread across runs gives an empirical measure of policy variance. The ensemble results are then evaluated at various levels of uncertainty threshold. In the following example, we generate 5 thresholds spaces evenly between 0 and 1, inclusive. Majority voting across runs at each uncertainty level yields the  Maximum-Likelihood Action-Sets Path (MLASP), the most robust assay recommendation.
+2. Run a single ensemble of N = 5 independent MCTS planners using the strictest constraint ($\tau = 0.9$). By *ensemble* we mean running $N$ independent MCTS-DPW planners on the same initial evidence. Each planner yields its own Pareto front of candidate designs; aggregating by majority vote over the selected action sets at each uncertainty level yields a more robust recommendation (the MLASP) than any single run, and the spread across runs gives an empirical measure of policy variance. The ensemble results are then evaluated at various levels of uncertainty threshold. In the following example, we generate 5 thresholds spaced evenly between 0 and 1, inclusive. Majority voting across runs at each uncertainty level yields the  Maximum-Likelihood Action-Sets Path (MLASP), the most robust assay recommendation.
 
 ````@example ConditionalUncertaintyReduction
 all_designs = Dict()
@@ -301,7 +301,7 @@ The summary table gives the following results for each scenario and belief thres
 - `P_kpuu_in_range` — posterior probability $P(k_\text{puu} \in [0.5, 1.0] \mid \text{QSAR})$ that the compound lies in the desirable range given QSAR features alone (before any physical assays).
 - `Constraint` - whether the initial belief already meets the constraint $P \geq \tau$ without any physical assays.
 - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
-- `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions (assays) recommended by the ensemble policies at each stage. Provided is at each uncertainty threshold, the assay/s that won the majority vote across the ensemble.
+- `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions (assays) recommended by the ensemble policies at each stage. For each uncertainty threshold we report the assay set that won the majority vote across the ensemble.
 
 ````@example ConditionalUncertaintyReduction
 tau_summary = []
