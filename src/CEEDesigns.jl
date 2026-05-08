@@ -3,9 +3,11 @@ module CEEDesigns
 using DataFrames, Plots
 export front, plot_front
 export make_labels, plot_evals
+export ensemble_to_dataframe, plot_ensemble_pareto
 
 # make Pareto fronts
 include("fronts.jl")
+include("ensemble_fronts.jl")
 
 # experimental designs
 include("StaticDesigns/StaticDesigns.jl")

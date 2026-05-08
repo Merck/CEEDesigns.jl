@@ -3,6 +3,7 @@
 *.jl.mem
 docs/build/
 docs/site/
+docs/src/tutorials/
 tmp.gif
 gks.*
 Manifest.toml
