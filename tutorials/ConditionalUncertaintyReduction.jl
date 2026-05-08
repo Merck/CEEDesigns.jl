@@ -61,7 +61,7 @@ data[1:10, :]
 
 in_silico = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt"];
 physical = [
-    "blood_frac_conc", 
+    "blood_frac_conc",
     "brain_conc",
     "brain_binding",
     "plasma_protein_binding",
