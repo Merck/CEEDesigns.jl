@@ -14,6 +14,7 @@ const tutorials_src = [
     "GliomaGrading.jl",
 ]
 const generated_dir = joinpath(@__DIR__, "src", "tutorials/")
+mkpath(generated_dir)
 
 # copy tutorials src
 for file in tutorials_src
