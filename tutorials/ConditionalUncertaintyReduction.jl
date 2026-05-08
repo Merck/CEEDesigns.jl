@@ -61,7 +61,7 @@ data[1:10, :]
 
 in_silico = ["1uM_PgP_qsar", "100_nM_Mouse_BCRP_qsar", "qsar_mrt"];
 physical = [
-    "blood_frac_conc",
+    "blood_frac_conc", 
     "brain_conc",
     "brain_binding",
     "plasma_protein_binding",
@@ -94,7 +94,7 @@ end
 #  -  `sampler` — this is a function of `(evidence, features, rng)` which samples a historical case from the dataset with probabilities
 #      proportional to the similarity weights.  The `evidence` is the current experimental evidence for the compound of interest,
 #      `features` is the set of features (assays) we want to sample from, and `rng` is a random number generator.
-#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance $H(s)$ of the target property kpuu over the
+#  -  `uncertainty`: this is a function of `evidence`, computes the weighted variance $H(s)$ of the target property `kpuu` over the
 #      historical data.
 #  -  `weights(evidence)` — this represents a function of `evidence` that gives the similarity weight vector $w_i(s)$ for each
 #      historical compound. It serves as a probability distribution for  sampling and is used to compute the goal-likelihood $L(s)$.
@@ -112,7 +112,7 @@ end
 # Each experiment is specified as `name => (monetary_cost, time_in_days)`. We trade off cost vs uncertainty only; extending to time is
 # straightforward by setting the second weight > 0.
 
-# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo kpuu assay.
+# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo $k_\text{puu}$ assay.
 
 # The solver finds the Pareto-optimal sequences that trade off total cost against terminal uncertainty, recommending the cheapest
 # plan that meets the confidence requirements.
@@ -126,7 +126,7 @@ experiments = Dict(
 
 # ### Solver Configuration
 
-# The conditional terminal condition requires that the posterior probability of kpuu falling in the desirable range [0.5, 1.0]
+# The conditional terminal condition requires that the posterior probability of $k_\text{puu}$ falling in the desirable range [0.5, 1.0]
 # exceeds the belief threshold $\tau$.
 
 target_condition = Dict("kpuu" => [0.5, 1.0])
@@ -157,8 +157,8 @@ solver = GenerativeDesigns.DPWSolver(;
 # | 3        | > 4      | < 2       | PgP false negative                |
 # | 4        | > 4      | > 4       | Double false negative             |
 
-# All selected compounds have true kpuu > 0.5.
-# The `select_representative_rows` function below selects the compound with the lowest kpuu from each category, the hardest case, and
+# All selected compounds have true $k_\text{puu} > 0.5$.
+# The `select_representative_rows` function below selects the compound with the lowest $k_\text{puu}$ from each category, the hardest case, and
 # constructs its initial evidence state from the three QSAR predictions (MRT, PgP, BCRP).
 
 function select_representative_rows(data::DataFrame; num_instances::Int = 20)

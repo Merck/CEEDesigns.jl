@@ -72,7 +72,7 @@ function plot_ensemble_pareto(
         tau::Float64;
         show_annotations::Bool = true,
         normalization::Symbol = :global,
-    )  # :global, :per_threshold, or :none
+    )
     # Calculate normalized frequencies for coloring
     df_copy = copy(df)
 
