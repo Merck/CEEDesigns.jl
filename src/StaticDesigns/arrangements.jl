@@ -70,6 +70,33 @@ function optimal_arrangement(
         tradeoff = (1, 0),
         mdp_kwargs = default_mdp_kwargs,
     ) where {T}
+    # validate that `evals` covers every non-terminal state the MDP rollout may visit.
+    # the rollout visits all subsets of `experiments` of size 0..|experiments|-1, so each
+    # such subset must be present in `evals` (its `filtration` is read in `reward`).
+    # This guards against KeyError when callers pass `evals` produced via `evaluate_experiments`
+    # with `max_cardinality` smaller than the full experiment set.
+    missing_states = Set{String}[]
+    for sub in powerset(collect(experiments), 0, length(experiments) - 1)
+        s = Set{String}(sub)
+        if !haskey(evals, s)
+            push!(missing_states, s)
+        end
+    end
+    if !isempty(missing_states)
+        n_missing = length(missing_states)
+        example = first(missing_states)
+        throw(
+            ArgumentError(
+                "`evals` is missing $(n_missing) experimental subset(s) required by the " *
+                    "arrangement search (e.g. $(example)). This typically happens when " *
+                    "`evaluate_experiments` was called with a `max_cardinality` smaller than " *
+                    "the full experiment set. Re-run `evaluate_experiments` without " *
+                    "`max_cardinality` (and with `evaluate_empty_subset = true`) before " *
+                    "computing arrangements over the full set.",
+            ),
+        )
+    end
+
     experimental_costs = Dict{String, NTuple{2, Float64}}(
         k => if v isa Number
                 (convert(Float64, v), v)

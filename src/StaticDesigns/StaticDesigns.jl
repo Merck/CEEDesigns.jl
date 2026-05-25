@@ -42,7 +42,9 @@ Evaluations are run in parallel.
 # Keyword arguments
 
   - `max_cardinality`: maximum cardinality of experimental subsets (defaults to the number of experiments).
-  - `zero_cost_features`: additional zero-cost features available for each experimental subset (defaults to an empty list).
+  - `zero_cost_features`: additional zero-cost features available for each experimental subset
+    (defaults to an empty list). Accepts either a `Vector{String}` (e.g. `["Age", "Sex"]`) or a
+    `Vector{Symbol}` (e.g. `[:Age, :Sex]`); symbols are normalized to strings internally.
   - `evaluate_empty_subset`: flag indicating whether to evaluate empty experimental subset. A constant column will be added if `zero_cost_features` is empty (defaults to true).
   - `return_full_metrics`: flag indicating whether to return full `MLJ.PerformanceEvaluation` metrics. Otherwise return an aggregate "measurement" for the first measure (defaults to false).
 
@@ -70,6 +72,8 @@ function evaluate_experiments(
         return_full_metrics::Bool = false,
         kwargs...,
     ) where {T}
+    # normalize zero-cost feature names so both Vector{String} and Vector{Symbol} work
+    zero_cost_features = string.(zero_cost_features)
     # predictive accuracy scores over subsets of experiments
     scores = Dict{Set{String}, return_full_metrics ? PerformanceEvaluation : Float64}()
     # generate all the possible subsets from the set of experiments, with a minimum size of 1 and maximum size of 'max_cardinality'
@@ -129,7 +133,9 @@ Evaluations are run in parallel.
 
 # Keyword arguments
 
-  - `zero_cost_features`: additional zero-cost features available for each experimental subset (defaults to an empty list).
+  - `zero_cost_features`: additional zero-cost features available for each experimental subset
+    (defaults to an empty list). Accepts either a `Vector{String}` (e.g. `["Age", "Sex"]`) or a
+    `Vector{Symbol}` (e.g. `[:Age, :Sex]`); symbols are normalized to strings internally.
   - `evaluate_empty_subset`: flag indicating whether to evaluate empty experimental subset.
 
 # Example
@@ -144,6 +150,8 @@ function evaluate_experiments(
         zero_cost_features = [],
         evaluate_empty_subset::Bool = true,
     ) where {T}
+    # normalize zero-cost feature names so both Vector{String} and Vector{Symbol} work
+    zero_cost_features = string.(zero_cost_features)
     scores = Dict{Set{String}, ExperimentalEval}()
 
     for exp_set in powerset(collect(keys(experiments)), 1)
