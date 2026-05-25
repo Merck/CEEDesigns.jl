@@ -102,7 +102,7 @@ function evaluate_experiments(
         X_ = if !isempty(zero_cost_features)
             X[!, zero_cost_features]
         else
-            DataFrame(; dummy = fill(0.0, nrow(data)))
+            DataFrame(; dummy = fill(0.0, nrow(X)))
         end
         perf_eval = evaluate(model, X_, y; kwargs...)
 

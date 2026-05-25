@@ -51,6 +51,11 @@ it returns an internal function of `weights` that computes the fraction of varia
 """
 Variance() = function (data; prior)
     initial = compute_variance(data; weights = prior)
+    initial > 0 || throw(
+        ArgumentError(
+            "`Variance()` requires the target to have non-zero variance under the prior; got $initial. Provide a non-degenerate target column or supply a custom uncertainty functional.",
+        ),
+    )
     return weights -> (compute_variance(data; weights) / initial)
 end
 
@@ -69,6 +74,11 @@ function Entropy()
     return function (labels; prior)
         @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
         initial = compute_entropy(labels; weights = prior)
+        initial > 0 || throw(
+            ArgumentError(
+                "`Entropy()` requires the target to have non-zero entropy under the prior; got $initial. Provide labels with at least two represented classes or supply a custom uncertainty functional.",
+            ),
+        )
         return weights -> (compute_entropy(labels; weights) / initial)
     end
 end
@@ -131,24 +141,23 @@ function SquaredMahalanobisDistance(; diagonal = 0)
         )
 
         compute_distances = function (evidence::Evidence)
-            evidence_keys = collect(keys(evidence) ∩ non_targets)
+            # Canonicalize evidence_keys to the column order used when Λ was
+            # built; otherwise the dot product silently misaligns axes.
+            evidence_keys = filter(k -> haskey(evidence, k), non_targets)
 
             if length(evidence_keys) == 0
                 return zeros(nrow(data))
             end
 
             vec_evidence = map(k -> evidence[k], evidence_keys)
+            Λ_marginal = Λ[Set(evidence_keys)]
 
             factor_p_q = length(non_targets) / length(evidence_keys)
             distances = map(eachrow(data)) do row
                 # We retrieve the precomputed inverse of the covariance matrix coresponding to the "observed part"
                 # See #12 and, in particular, https://www.jstor.org/stable/3559861
-                Λ_marginal = Λ[Set(evidence_keys)]
-
-                factor_p_q * dot(
-                    (vec_evidence - Vector(row[evidence_keys])),
-                    Λ_marginal * (vec_evidence - Vector(row[evidence_keys])),
-                )
+                diff = vec_evidence - Vector(row[evidence_keys])
+                factor_p_q * dot(diff, Λ_marginal * diff)
             end
 
             return distances
@@ -259,33 +268,43 @@ function DistanceBased(
     end
 
     # Convert distances into probabilistic weights.
-    compute_weights = function (evidence::Evidence)
-        similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
-
-        # Perform hard match on target columns.
+    apply_masks! = function (sims, evidence)
+        # Hard match on target columns.
         for colname in collect(keys(evidence)) ∩ targets
-            similarities .*= data[!, colname] .== evidence[colname]
+            sims .*= data[!, colname] .== evidence[colname]
         end
-
-        # Adjustment based on "column-wise" priors.
+        # Per-column importance / filter masks supplied by the caller.
         for colname in keys(evidence)
             if haskey(weights, colname)
-                similarities .*= weights[colname]
+                sims .*= weights[colname]
             end
         end
+        return sims
+    end
 
-        # If all similarities were zero, the `Weights` constructor would error.
-        if sum(similarities) ≈ 0
-            similarities .= 1
-            for colname in collect(keys(evidence)) ∩ targets
-                similarities .*= data[!, colname] .== evidence[colname]
-            end
+    compute_weights = function (evidence::Evidence)
+        similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
+        apply_masks!(similarities, evidence)
+
+        # Distance-driven similarities can underflow to zero (e.g. evidence far
+        # from every historical row, or singular-Σ Mahalanobis subsets). Fall
+        # back to a uniform prior over rows that still satisfy the user-supplied
+        # hard constraints; if no rows survive those constraints either, fail
+        # loudly rather than return a meaningless weight vector.
+        if iszero(sum(similarities))
+            similarities .= 1.0
+            apply_masks!(similarities, evidence)
+            iszero(sum(similarities)) && throw(
+                ArgumentError(
+                    "No historical rows satisfy the hard constraints implied by the current evidence (target hard-match, `filter_range`, or `importance_weights`). Cannot construct a weight vector.",
+                ),
+            )
         end
 
         return Weights(similarities ./ sum(similarities))
     end
 
-    sampler = function (evidence::Evidence, columns, rng = default_rng())
+    sampler = function (evidence::Evidence, columns, rng::AbstractRNG)
         observed = data[sample(rng, compute_weights(evidence)), :]
 
         return Dict(c => observed[c] for c in columns)

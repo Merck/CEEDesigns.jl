@@ -108,8 +108,8 @@ const eox = "EOX"
 
 function POMDPs.actions(m::UncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
-        return !isempty(m.costs[a].features) &&
-            !in(first(m.costs[a].features), keys(state.evidence))
+        feats = m.costs[a].features
+        return !isempty(feats) && !any(f -> haskey(state.evidence, f), feats)
     end
 
     return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
@@ -215,6 +215,7 @@ function efficient_design(
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
     mdp = UncertaintyReductionMDP(
         costs;
@@ -241,7 +242,7 @@ function efficient_design(
         action, info = action_info(planner, mdp.initial_state)
 
         if repetitions > 0
-            queue = [Sim(mdp, planner) for _ in 1:repetitions]
+            queue = [Sim(mdp, planner; rng) for _ in 1:repetitions]
 
             stats = run_parallel(queue) do _, hist
                 monetary_cost, time = hist[end][:s].costs
@@ -348,7 +349,9 @@ function efficient_designs(
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
+    thresholds < 2 && throw(ArgumentError("`thresholds` must be at least 2 (got $thresholds); use `efficient_design` for a single threshold."))
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
@@ -364,6 +367,7 @@ function efficient_designs(
                 repetitions,
                 realized_uncertainty,
                 mdp_options,
+                rng,
             ),
         )
     end

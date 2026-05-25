@@ -35,7 +35,7 @@ r = DistanceBased(
 
 # test signatures
 using Random: default_rng
-@test applicable(sampler, evidence, ["HeartDisease"], default_rng)
+@test applicable(sampler, evidence, ["HeartDisease"], default_rng())
 
 @test applicable(uncertainty, evidence)
 @test applicable(weights, evidence)

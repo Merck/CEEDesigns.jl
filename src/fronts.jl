@@ -2,18 +2,32 @@
     front(v)
     front(f, v; atol1=0, atol2=0)
 
-Construct a Pareto front of `v`. Elements of `v` will be masked by `f` in the computation.
+Construct the Pareto front of `v` under joint minimization on the two
+objectives `f(x)[1]` and `f(x)[2]`. When `f` is omitted, `identity` is used,
+so each element of `v` is taken to be a `(c1, c2)` pair directly.
 
-The first and second (objective) coordinates have to differ by at least `atol1`, `atol2`, respectively, relatively to the latest point on the front.
+A point `p` is on the front iff no other point strictly dominates it: there
+is no `q ∈ v` with `f(q)[1] ≤ f(p)[1]` and `f(q)[2] ≤ f(p)[2]` and at least
+one inequality strict. Points with identical `(c1, c2)` are mutually
+non-dominated and are all retained.
+
+The optional tolerances `atol1`, `atol2` thin the front *after* the
+dominance pass: a candidate is kept only if its first coordinate exceeds the
+last kept point's by at least `atol1` *and* its second coordinate is at
+least `atol2` smaller. With both tolerances `0` (the default), no thinning
+occurs and the result is the exact Pareto front.
 
 # Examples
 
-```jldocstest
-v = [(1,2), (2,3), (2,1)]
+```jldoctest
+v = [(1, 2), (2, 3), (2, 1)]
 front(v)
 
 # output
-[(1, 2), (2, 1)]
+
+2-element Vector{Tuple{Int64, Int64}}:
+ (1, 2)
+ (2, 1)
 ```
 
 ```jldoctest
@@ -22,7 +36,9 @@ front(x -> x[2], v)
 
 # output
 
-[(1, (1, 2)), (3, (2, 1))]
+2-element Vector{Tuple{Int64, Tuple{Int64, Int64}}}:
+ (1, (1, 2))
+ (3, (2, 1))
 ```
 
 ```jldoctest
@@ -31,7 +47,9 @@ front(v; atol2 = 0.2)
 
 # output
 
-[(1, 2), (3, 1)]
+2-element Vector{Tuple{Int64, Float64}}:
+ (1, 2.0)
+ (3, 1.0)
 ```
 """
 function front end
@@ -46,27 +64,57 @@ function front(
         atol1::Float64 = 0.0,
         atol2::Float64 = atol1,
     ) where {F <: Function, T <: AbstractVector}
-    # dict sort
+    # Sort lexicographically with a strict-weak comparator.
     v_sorted = sort(
         v;
-        lt = (x, y) ->
-        (f(x)[1] < f(y)[1] || (f(x)[1] == f(y)[1] && f(x)[2] <= f(y)[2])),
+        lt = (x, y) -> begin
+            fx, fy = f(x), f(y)
+            fx[1] == fy[1] ? fx[2] < fy[2] : fx[1] < fy[1]
+        end,
     )
 
-    # check if the second coordinate drops below the second coordinate of the last non-dominated point
-    ix_front = 1
-    ix_current = 2
-    while ix_current <= length(v_sorted)
-        if (f(v_sorted[ix_current])[2] < f(v_sorted[ix_front])[2] - atol2) &&
-                (f(v_sorted[ix_current])[1] > f(v_sorted[ix_front])[1] + atol1)
-            ix_front = ix_current
-            ix_current += 1
-        else
-            deleteat!(v_sorted, ix_current)
+    # Online Pareto front (minimization on both axes). Because `v_sorted` is
+    # ordered by ascending first coordinate then ascending second, a candidate
+    # is non-dominated by all previously kept points iff its second coordinate
+    # is strictly below the running minimum, OR it ties exactly with the most
+    # recently kept point on both coordinates (mutually non-dominated tie).
+    pareto = empty(v_sorted)
+    min_y = Inf
+    for p in v_sorted
+        fp = f(p)
+        if isempty(pareto)
+            push!(pareto, p)
+            min_y = fp[2]
+        elseif fp[2] < min_y
+            push!(pareto, p)
+            min_y = fp[2]
+        elseif fp[2] == min_y
+            flast = f(pareto[end])
+            if flast[1] == fp[1]
+                push!(pareto, p)
+            end
         end
     end
 
-    return v_sorted
+    # Tolerance thinning: keep a candidate only if it is meaningfully separated
+    # from the last kept front point on both axes. With atol1 = atol2 = 0 (the
+    # default), this pass is a no-op.
+    if atol1 == 0.0 && atol2 == 0.0
+        return pareto
+    end
+    result = empty(pareto)
+    for p in pareto
+        if isempty(result)
+            push!(result, p)
+            continue
+        end
+        fp = f(p)
+        flast = f(result[end])
+        if (fp[1] - flast[1]) >= atol1 && (flast[2] - fp[2]) >= atol2
+            push!(result, p)
+        end
+    end
+    return result
 end
 
 """

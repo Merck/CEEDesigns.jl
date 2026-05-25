@@ -34,7 +34,7 @@ r = DistanceBased(
 
 # test signatures
 using Random: default_rng
-@test applicable(sampler, evidence, ["HeartDisease"], default_rng)
+@test applicable(sampler, evidence, ["HeartDisease"], default_rng())
 
 @test applicable(uncertainty, evidence)
 @test applicable(weights, evidence)
@@ -120,3 +120,14 @@ design = efficient_value(experiments; sampler, value, evidence, solver, repetiti
 design = efficient_value(experiments; sampler, value, evidence, solver);
 @test design isa Tuple
 @test !hasproperty(design[2], :stats)
+
+# Regression: the distance must be invariant to evidence-insertion order.
+# Prior to canonicalizing `evidence_keys` against `non_targets`, two
+# evidences with the same content but different insertion orders produced
+# different Mahalanobis distances when Σ had non-uniform off-diagonals.
+let
+    e1 = Evidence("RestingBP" => 130.0, "Cholesterol" => 250.0, "MaxHR" => 150.0)
+    e2 = Evidence("MaxHR" => 150.0, "Cholesterol" => 250.0, "RestingBP" => 130.0)
+    @test weights(e1) ≈ weights(e2)
+    @test uncertainty(e1) ≈ uncertainty(e2)
+end

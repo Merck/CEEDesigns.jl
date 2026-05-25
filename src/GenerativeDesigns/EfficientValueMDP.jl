@@ -47,7 +47,7 @@ struct EfficientValueMDP <: POMDPs.MDP{State, Vector{String}}
 
         # Check if `sampler`, `uncertainty` are compatible
         @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
-        @assert hasmethod(value, Tuple{Evidence, Vector{Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument."""
+        @assert hasmethod(value, Tuple{Evidence, NTuple{2, Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument, where `costs::NTuple{2, Float64}` is `(monetary cost, execution time)`."""
 
         # actions and their costs
         costs = Dict{String, ActionCost}(
@@ -76,8 +76,8 @@ end
 
 function POMDPs.actions(m::EfficientValueMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
-        return !isempty(m.costs[a].features) &&
-            !in(first(m.costs[a].features), keys(state.evidence))
+        feats = m.costs[a].features
+        return !isempty(feats) && !any(f -> haskey(state.evidence, f), feats)
     end
 
     return collect(powerset(all_actions, 1, m.max_parallel))
@@ -167,6 +167,7 @@ function efficient_value(
         solver = default_solver,
         repetitions = 0,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
     mdp = EfficientValueMDP(costs; sampler, value, evidence, mdp_options...)
 
@@ -175,7 +176,7 @@ function efficient_value(
     action, info = action_info(planner, mdp.initial_state)
 
     return if repetitions > 0
-        queue = [Sim(mdp, planner) for _ in 1:repetitions]
+        queue = [Sim(mdp, planner; rng) for _ in 1:repetitions]
 
         stats = run_parallel(queue) do _, hist
             monetary_cost, time = hist[end][:s].costs
