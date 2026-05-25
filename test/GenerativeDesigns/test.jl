@@ -8,3 +8,6 @@ include("test_mahalanobis.jl")
 include("test_active_sampling.jl")
 
 include("test_conditional_constraints.jl")
+
+# regression / unit tests for `EfficientValueMDP`
+include("test_efficient_value.jl")

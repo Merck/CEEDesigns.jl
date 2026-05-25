@@ -7,6 +7,23 @@ In this experimental setup, our objective is to minimize the expected experiment
 
 Internally, a state of the decision process is modeled as a tuple `(evidence::Evidence, [total accumulated monetary cost, total accumulated execution time])`.
 
+The per-step reward is the negative marginal cost incurred at that step, i.e.
+`-(costs_tradeoff' * Δcosts)` where `Δcosts` is the increment in
+`(monetary_cost, execution_time)` between successive states. Reaching a state
+where uncertainty is still above `threshold` after `max_experiments` produces a
+terminal `-bigM` penalty. Consequently:
+
+  - With `discount = 1.0` (the default), the discounted return telescopes and
+    the planner maximizes `-(costs_tradeoff' * total_costs)`, i.e. it
+    minimizes the **total** expected experimental cost (subject to the
+    threshold and `bigM` penalty).
+  - With `discount < 1.0`, the planner instead maximizes
+    `-Σₜ γᵗ * (costs_tradeoff' * Δcostsₜ)`, a γ-weighted sum of marginal
+    cost increments. Cost incurred *earlier* in the sequence is weighted more
+    heavily than cost incurred later, so the resulting policy is biased toward
+    deferring expensive experiments rather than minimizing total cost. Use
+    `discount = 1.0` if you want the objective to be total expected cost.
+
 # Arguments
 
   - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
@@ -174,7 +191,7 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
   - `threshold`: uncertainty threshold.
   - `evidence=Evidence()`: initial experimental evidence.
-  - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
+  - `solver=default_solver()`: a POMDPs.jl compatible solver used to solve the decision process. The default solver, returned by the [`default_solver`](@ref) factory, is a fresh [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/) per call.
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
   - `realized_uncertainty=false`: whenever the initial state uncertainty is below the selected threshold, return the actual uncertainty of this state.
@@ -211,7 +228,7 @@ function efficient_design(
         uncertainty,
         threshold,
         evidence = Evidence(),
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
@@ -308,7 +325,7 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
   - `thresholds`: number of thresholds to consider uniformly in the range between 0 and 1, inclusive.
   - `evidence=Evidence()`: initial experimental evidence.
-  - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
+  - `solver=default_solver()`: a POMDPs.jl compatible solver used to solve the decision process. The default solver, returned by the [`default_solver`](@ref) factory, is a fresh [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/) per call.
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
   - `realized_uncertainty=false`: whenever the initial state uncertainty is below the selected threshold, return the actual uncertainty of this state.
@@ -345,7 +362,7 @@ function efficient_designs(
         uncertainty,
         thresholds,
         evidence = Evidence(),
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),

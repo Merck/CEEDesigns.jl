@@ -129,7 +129,7 @@ Internally, an instance of the `EfficientValueMDP` structure is created and a su
   - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
   - `value`: a function of `(evidence, (monetary costs, execution time))`; it quantifies the utility of experimental evidence.
   - `evidence=Evidence()`: initial experimental evidence.
-  - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
+  - `solver=default_solver()`: a POMDPs.jl compatible solver used to solve the decision process. The default solver, returned by the [`default_solver`](@ref) factory, is a fresh [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/) per call.
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`EfficientValueMDP`](@ref).
 
@@ -164,7 +164,7 @@ function efficient_value(
         sampler,
         value,
         evidence = Evidence(),
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         mdp_options = (;),
         rng::AbstractRNG = default_rng(),
