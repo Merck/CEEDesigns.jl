@@ -54,12 +54,13 @@ using CEEDesigns, CEEDesigns.GenerativeDesigns
         # Build a sampler/weights/uncertainty over the typed dataset which
         # still contains the Multiclass `Sex` column.
         sub = raw_typed[!, ["Age", "RestingBP", "Sex", "HeartDisease"]]
-        (; sampler = s2, uncertainty = u2, weights = w2) = DistanceBased(
+        r2 = DistanceBased(
             sub;
             target = "HeartDisease",
             uncertainty = Variance(),
             similarity = Exponential(; λ = 5),
         )
+        s2, u2, w2 = r2.sampler, r2.uncertainty, r2.weights
         # Should fail at construction with an ArgumentError naming `Sex`.
         @test_throws ArgumentError ConditionalUncertaintyReductionMDP(
             Dict("BloodPressure" => 1.0 => ["RestingBP"]);
