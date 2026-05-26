@@ -8,6 +8,16 @@ It adds:
   - data::DataFrame: historical data (rows correspond to weights)
   - terminal_condition = (target_condition::Dict, tau::Float64): constraint ranges + belief threshold
 
+`target_condition` is a `Dict{String, <:AbstractVector}` (or any pair-style
+mapping) whose keys are column names in `data` and whose values are
+two-element ranges `[rmin, rmax]`. The membership test is the inclusive
+range `rmin <= x <= rmax`, so the keyed columns **must be numeric** (i.e.
+`eltype(data[!, colname]) <: Real`). A non-numeric column (e.g. a
+`Multiclass` categorical) raises `ArgumentError` at construction. Rows
+containing `NaN` in any constraint column are excluded from the conditional
+likelihood (because `NaN >= rmin` is `false`); this is documented behavior,
+not silent dropping.
+
 Behavior:
 
   - The MDP is terminal only when uncertainty <= threshold AND
@@ -69,6 +79,30 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
         @assert hasmethod(uncertainty, Tuple{Evidence}) """
             `uncertainty` must implement a method accepting (evidence).
         """
+
+        # Validate that every column referenced in `target_condition` is numeric.
+        # The conditional-likelihood mask uses `>=` / `<=` and is only meaningful
+        # on columns whose elements support inclusive numeric range comparisons.
+        target_cond_dict = first(terminal_condition)
+        for (colname, _) in target_cond_dict
+            if !(string(colname) in names(data))
+                throw(
+                    ArgumentError(
+                        "target_condition references column `$(colname)` which is not present in `data`.",
+                    ),
+                )
+            end
+            col_eltype = eltype(data[!, string(colname)])
+            if !(col_eltype <: Real)
+                throw(
+                    ArgumentError(
+                        "target_condition column `$(colname)` has eltype `$(col_eltype)`, " *
+                            "but conditional ranges (rmin <= x <= rmax) are only supported on numeric columns. " *
+                            "Coerce the column to a numeric scitype (e.g. Continuous) before constructing the MDP.",
+                    ),
+                )
+            end
+        end
 
         # Parse costs dict into CEED ActionCost format
         parsed_costs = Dict{String, ActionCost}(
@@ -184,10 +218,7 @@ function POMDPs.transition(m::ConditionalUncertaintyReductionMDP, state, action_
     features = vcat(map(a -> m.costs[a].features, action_set)...)
 
     return ImplicitDistribution() do rng
-        # sampler may return Dict OR (Dict, ...)
-        obs = m.sampler(state.evidence, features, rng)
-        observation = obs isa Dict ? obs : first(obs)
-
+        observation = m.sampler(state.evidence, features, rng)
         return merge(state, observation, (cost_m, cost_t))
     end
 end
@@ -211,7 +242,7 @@ function conditional_efficient_design(
         weights,
         data,
         terminal_condition = (Dict(), 0.8),
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
@@ -302,7 +333,7 @@ function conditional_efficient_designs(
         weights,
         data,
         terminal_condition = (Dict(), 0.8),
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
@@ -334,6 +365,22 @@ function conditional_efficient_designs(
     return front(x -> x[1], designs)
 end
 
+"""
+    perform_ensemble_designs(costs; ..., thred_set = [0.9], N = 30)
+
+Run an ensemble of `N` independent `conditional_efficient_designs` calls per
+belief threshold `tau` in `thred_set`, returning a
+`Dict{Float64, Vector}` keyed by `tau::Float64`. Each value is the vector of
+`N` ensemble outputs (each output is itself the Pareto front returned by
+`conditional_efficient_designs`).
+
+Example access pattern:
+
+```julia
+results = perform_ensemble_designs(experiments; ..., thred_set = [0.6, 0.9])
+runs_at_06 = results[0.6]   # Vector of length N
+```
+"""
 function perform_ensemble_designs(
         costs;
         sampler,
@@ -344,14 +391,14 @@ function perform_ensemble_designs(
         data,
         terminal_condition = (Dict(), 0.0),
         realized_uncertainty = false,
-        solver = default_solver,
+        solver = default_solver(),
         repetitions = 0,
         mdp_options = (;),
         thred_set = [0.9],
         N = 30,
         rng::AbstractRNG = default_rng(),
     )
-    results = Dict()
+    results = Dict{Float64, Vector}()
 
     for tau in thred_set
         ensemble_results = []
@@ -374,7 +421,7 @@ function perform_ensemble_designs(
             )
             push!(ensemble_results, design)
         end
-        results[:belief => tau] = ensemble_results
+        results[Float64(tau)] = ensemble_results
     end
 
     return results

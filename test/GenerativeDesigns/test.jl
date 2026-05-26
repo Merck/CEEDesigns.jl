@@ -11,3 +11,6 @@ include("test_conditional_constraints.jl")
 
 # regression / unit tests for `EfficientValueMDP`
 include("test_efficient_value.jl")
+
+# regression / unit tests for `ConditionalUncertaintyReductionMDP`
+include("test_conditional.jl")
