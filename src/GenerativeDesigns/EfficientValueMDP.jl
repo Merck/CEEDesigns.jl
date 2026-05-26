@@ -19,7 +19,7 @@ Internally, the reward associated with a particular experimental `evidence` and 
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
 """
-struct EfficientValueMDP <: POMDPs.MDP{State, Vector{String}}
+struct EfficientValueMDP{S, V} <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
 
@@ -31,18 +31,18 @@ struct EfficientValueMDP <: POMDPs.MDP{State, Vector{String}}
     discount::Float64
 
     ## sample readouts from the posterior
-    sampler::Function
+    sampler::S
     ## measure of utility
-    value::Function
+    value::V
 
     function EfficientValueMDP(
             costs;
-            sampler,
-            value,
+            sampler::S,
+            value::V,
             evidence = Evidence(),
             max_parallel::Int = 1,
             discount = 1.0,
-        )
+        ) where {S, V}
         state = State((evidence, Tuple(zeros(2))))
 
         # Check if `sampler`, `uncertainty` are compatible
@@ -70,7 +70,7 @@ struct EfficientValueMDP <: POMDPs.MDP{State, Vector{String}}
             end for action in costs
         )
 
-        return new(state, costs, max_parallel, discount, sampler, value)
+        return new{S, V}(state, costs, max_parallel, discount, sampler, value)
     end
 end
 

@@ -40,7 +40,7 @@ terminal `-bigM` penalty. Consequently:
   - `bigM`: it refers to the penalty that arises in a scenario where further experimental action is not an option, yet the uncertainty exceeds the allowable limit.
   - `max_experiments`: this denotes the maximum number of experiments that are permissible to be conducted.
 """
-struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
+struct UncertaintyReductionMDP{S, U} <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
@@ -60,14 +60,14 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     bigM::Int64
 
     ## sample readouts from the posterior
-    sampler::Function
+    sampler::S
     ## measure of uncertainty about the ground truth
-    uncertainty::Function
+    uncertainty::U
 
     function UncertaintyReductionMDP(
             costs;
-            sampler,
-            uncertainty,
+            sampler::S,
+            uncertainty::U,
             threshold,
             evidence = Evidence(),
             costs_tradeoff = (1, 0),
@@ -75,7 +75,7 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             discount = 1.0,
             bigM = const_bigM,
             max_experiments = bigM,
-        )
+        ) where {S, U}
         state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
@@ -103,7 +103,7 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             end for action in costs
         )
 
-        return new(
+        return new{S, U}(
             state,
             threshold,
             costs,

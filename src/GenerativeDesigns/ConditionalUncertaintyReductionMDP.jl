@@ -25,7 +25,7 @@ Behavior:
   - Transitions always incorporate sampled evidence; feasibility is enforced
     through the terminal condition and reward-driven solver behavior.
 """
-struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
+struct ConditionalUncertaintyReductionMDP{S, U, W} <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
@@ -45,12 +45,12 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     bigM::Int64
 
     # sample readouts from the posterior
-    sampler::Function
+    sampler::S
     # measure of uncertainty about the ground truth
-    uncertainty::Function
+    uncertainty::U
 
     # NEW: compute current state weights
-    weights::Function
+    weights::W
     # NEW: historical data
     data::DataFrame
     # NEW: (target constraints, belief threshold tau)
@@ -58,8 +58,8 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
 
     function ConditionalUncertaintyReductionMDP(
             costs;
-            sampler,
-            uncertainty,
+            sampler::S,
+            uncertainty::U,
             threshold,
             evidence = Evidence(),
             costs_tradeoff = (1.0, 0.0),
@@ -67,10 +67,10 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             discount = 1.0,
             bigM = const_bigM,
             max_experiments = bigM,
-            weights,
+            weights::W,
             data,
             terminal_condition = (Dict(), 0.0),
-        )
+        ) where {S, U, W}
         state = State((evidence, Tuple(zeros(2))))
 
         @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """
@@ -125,7 +125,7 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             end for action in costs
         )
 
-        return new(
+        return new{S, U, W}(
             state,
             threshold,
             parsed_costs,
