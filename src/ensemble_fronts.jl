@@ -13,7 +13,12 @@ function ensemble_to_dataframe(runs)
         for design in front
             threshold = design[1][2]
             actions = if haskey(design[2], :arrangement)
-                join(sort(design[2][:arrangement]), ",")
+                # `arrangement` is a `Vector{Vector{String}}` (each step wraps the
+                # action set in a vector). Flatten to a `Vector{String}` of action
+                # names before sorting/joining so the column is a clean
+                # comma-separated string rather than the literal vector form.
+                flat_actions = reduce(vcat, design[2][:arrangement]; init = String[])
+                join(sort(flat_actions), ",")
             else
                 ""
             end
@@ -32,6 +37,89 @@ function ensemble_to_dataframe(runs)
             ) for (k, v) in counts
     ]
     return DataFrame(rows)
+end
+
+"""
+    _compute_dispersion(df_copy)
+
+Internal helper used by [`plot_ensemble_pareto`](@ref). Given an action-set
+DataFrame (already coalesced), compute per-threshold horizontal offsets used to
+visually spread points sharing the same threshold and a vector of dispersed
+x-coordinates aligned with `eachrow(df_copy)`.
+
+Returns `(dispersion_offsets, x_coords, action_counts)` where
+`dispersion_offsets::Dict{Float64, Vector{Float64}}` is keyed by threshold,
+`x_coords::Vector{Float64}` aligns with rows of `df_copy`, and
+`action_counts::Dict{Float64, Int}` records how many rows fall under each
+threshold.
+"""
+function _compute_dispersion(df_copy::DataFrame)
+    threshold_groups = groupby(df_copy, :Threshold)
+    dispersion_offsets = Dict{Float64, Vector{Float64}}()
+    action_counts = Dict{Float64, Int}()
+
+    x_range = maximum(df_copy.Average_Utility) - minimum(df_copy.Average_Utility)
+
+    for group in threshold_groups
+        threshold = group.Threshold[1]
+        n_actions = nrow(group)
+        action_counts[threshold] = n_actions
+
+        if n_actions > 1
+            max_offset = min(0.02 * x_range, x_range / 50)
+            offsets = collect(range(-max_offset, max_offset; length = n_actions))
+
+            sorted_indices = sortperm(group.Frequency; rev = true)
+            ordered_offsets = similar(offsets)
+
+            center_first_order = Int[]
+            for i in 1:n_actions
+                if i % 2 == 1
+                    push!(center_first_order, div(n_actions + i, 2))
+                else
+                    push!(center_first_order, div(n_actions - i + 2, 2))
+                end
+            end
+
+            for (idx, sorted_idx) in enumerate(sorted_indices)
+                ordered_offsets[sorted_idx] = offsets[center_first_order[idx]]
+            end
+
+            dispersion_offsets[threshold] = ordered_offsets
+        else
+            dispersion_offsets[threshold] = [0.0]
+        end
+    end
+
+    # Apply dispersion to x-coordinates. The n-th row encountered for a given
+    # threshold while iterating `eachrow(df_copy)` corresponds to position n in
+    # `dispersion_offsets[threshold]`, because `groupby` preserves within-group
+    # row order. An explicit per-threshold counter avoids float `==` lookups
+    # that would collapse duplicate `Average_Utility` rows onto the same offset
+    # slot.
+    x_coords = Float64[]
+    threshold_indices = Dict{Float64, Int}()
+
+    for row in eachrow(df_copy)
+        threshold = row.Threshold
+
+        if !haskey(threshold_indices, threshold)
+            threshold_indices[threshold] = 1
+        else
+            threshold_indices[threshold] += 1
+        end
+        point_index = threshold_indices[threshold]
+
+        if haskey(dispersion_offsets, threshold) &&
+                point_index <= length(dispersion_offsets[threshold])
+            offset = dispersion_offsets[threshold][point_index]
+            push!(x_coords, row.Average_Utility + offset)
+        else
+            push!(x_coords, row.Average_Utility)
+        end
+    end
+
+    return dispersion_offsets, x_coords, action_counts
 end
 
 """
@@ -73,6 +161,15 @@ function plot_ensemble_pareto(
         show_annotations::Bool = true,
         normalization::Symbol = :global,
     )
+    # Guard against empty input. Several downstream calls (e.g.
+    # `maximum(values(threshold_counts))`, `maximum(df_copy.Average_Utility)`)
+    # would otherwise raise an opaque `ArgumentError` from `maximum`/`argmax`.
+    isempty(df) && throw(
+        ArgumentError(
+            "plot_ensemble_pareto requires a non-empty DataFrame (got 0 rows)",
+        ),
+    )
+
     # Calculate normalized frequencies for coloring
     df_copy = copy(df)
 
@@ -82,81 +179,7 @@ function plot_ensemble_pareto(
     end
 
     # Calculate horizontal dispersion for each threshold to show distinct action sets
-    threshold_groups = groupby(df_copy, :Threshold)
-    dispersion_offsets = Dict{Float64, Vector{Float64}}()
-    action_counts = Dict{Float64, Int}()
-
-    x_range = maximum(df_copy.Average_Utility) - minimum(df_copy.Average_Utility)
-
-    for group in threshold_groups
-        threshold = group.Threshold[1]
-        n_actions = nrow(group)
-        action_counts[threshold] = n_actions
-
-        # Calculate systematic offsets to spread points horizontally
-        if n_actions > 1
-            # Create evenly spaced offsets
-            max_offset = min(0.02 * x_range, x_range / 50)  # 2% of x-range or x_range/50, whichever is smaller
-            offsets = collect(range(-max_offset, max_offset; length = n_actions))
-
-            # Sort group by frequency to place higher frequency items in center
-            sorted_indices = sortperm(group.Frequency; rev = true)
-            ordered_offsets = similar(offsets)
-
-            # Arrange offsets so highest frequency is in center
-            center_first_order = Int[]
-            left = 1
-            right = n_actions
-            for i in 1:n_actions
-                if i % 2 == 1
-                    push!(center_first_order, div(n_actions + i, 2))
-                else
-                    push!(center_first_order, div(n_actions - i + 2, 2))
-                end
-            end
-
-            for (idx, sorted_idx) in enumerate(sorted_indices)
-                ordered_offsets[sorted_idx] = offsets[center_first_order[idx]]
-            end
-
-            dispersion_offsets[threshold] = ordered_offsets
-        else
-            dispersion_offsets[threshold] = [0.0]
-        end
-    end
-
-    # Apply dispersion to x-coordinates
-    # IMPORTANT: Process in the same order to maintain alignment with norm_frequencies
-    x_coords = Float64[]
-    threshold_indices = Dict{Float64, Int}()
-
-    for (idx, row) in enumerate(eachrow(df_copy))
-        threshold = row.Threshold
-
-        # Track which index this is within its threshold group
-        if !haskey(threshold_indices, threshold)
-            threshold_indices[threshold] = 1
-        else
-            threshold_indices[threshold] += 1
-        end
-
-        # Get the appropriate offset for this point
-        group_data = filter(r -> r.Threshold == threshold, df_copy)
-        point_index = findfirst(
-            r ->
-            r.Action_Set == row.Action_Set &&
-                r.Average_Utility == row.Average_Utility &&
-                r.Frequency == row.Frequency,
-            eachrow(group_data),
-        )
-
-        if !isnothing(point_index) && haskey(dispersion_offsets, threshold)
-            offset = dispersion_offsets[threshold][point_index]
-            push!(x_coords, row.Average_Utility + offset)
-        else
-            push!(x_coords, row.Average_Utility)
-        end
-    end
+    dispersion_offsets, x_coords, action_counts = _compute_dispersion(df_copy)
 
     # Calculate normalized frequencies based on chosen method
     norm_frequencies = Float64[]
@@ -458,7 +481,10 @@ function plot_ensemble_pareto(
 
             # Only annotate if action set changes
             if current_action_set != prev_action_set
-                # Clean up the label
+                # Labels produced by `ensemble_to_dataframe` are already a clean
+                # comma-separated string. The regex below is retained as a
+                # defensive no-op for any caller that may still pass labels
+                # containing bracket/quote characters.
                 label_text = string(current_action_set)
                 label_text = replace(label_text, r"[\[\]'\"\\]" => "")
                 if length(label_text) > 30

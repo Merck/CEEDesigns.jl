@@ -116,6 +116,16 @@ function optimal_arrangement(
     while state != experiments
         next_action = action(planner, state)
 
+        # Guard: the MDP's `actions` always returns non-empty subsets when
+        # `state != experiments`, so this should be unreachable, but defend
+        # against an empty action to avoid a confusing `maximum` error and to
+        # surface the issue if a custom planner ever returns one.
+        isempty(next_action) && throw(
+            ArgumentError(
+                "planner returned an empty action set at state $state; cannot make progress",
+            ),
+        )
+
         push!(arrangement, next_action)
         monetary_cost +=
             evals[state].filtration * sum(a -> experimental_costs[a][1], next_action)
