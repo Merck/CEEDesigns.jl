@@ -131,3 +131,95 @@ let
     @test weights(e1) ≈ weights(e2)
     @test uncertainty(e1) ≈ uncertainty(e2)
 end
+
+# --- Severe #12: custom `distance` Dict closure must propagate its own errors ---
+
+struct CustomDistanceError <: Exception end
+
+@testset "Custom distance closure errors propagate" begin
+    # User-supplied closure that throws a distinctive error. The previous implementation
+    # wrapped this branch in a generic `try/catch` that masked the error as "unsupported
+    # scitype". The error must now surface with its original message.
+    bad_distance = (x, col; prior = ones(length(col))) -> throw(CustomDistanceError())
+
+    # The custom-distance branch must NOT be wrapped in a try/catch that re-maps the
+    # error to the generic "unsupported scitype" message. The original exception type
+    # has to surface unchanged.
+    r_bad = DistanceBased(
+        data;
+        target = "HeartDisease",
+        uncertainty = Variance(),
+        similarity = Exponential(; λ = 5),
+        distance = Dict("MaxHR" => bad_distance),
+    )
+    @test_throws CustomDistanceError r_bad.weights(Evidence("MaxHR" => 150.0))
+end
+
+# --- Severe #15: collinear column => singular covariance ---
+
+@testset "SquaredMahalanobisDistance: collinear column handling" begin
+    # Synthetic collinear column: exact duplicate of MaxHR.
+    data_collinear = copy(data)
+    data_collinear[!, "MaxHR_dup"] = data_collinear[!, "MaxHR"]
+
+    # diagonal == 0 (default) => singular subset Σ; the failure must be explicit.
+    (; weights) = DistanceBased(
+        data_collinear;
+        target = "HeartDisease",
+        uncertainty = Variance(),
+        similarity = Exponential(; λ = 5),
+        distance = SquaredMahalanobisDistance(; diagonal = 0),
+    )
+    # Evidence covering the collinear pair triggers the singular submatrix.
+    bad_evidence = Evidence("MaxHR" => 150.0, "MaxHR_dup" => 150.0)
+    @test_throws ArgumentError weights(bad_evidence)
+
+    # diagonal > 0 => regularization kicks in, distances/weights are finite.
+    (; weights) = DistanceBased(
+        data_collinear;
+        target = "HeartDisease",
+        uncertainty = Variance(),
+        similarity = Exponential(; λ = 5),
+        distance = SquaredMahalanobisDistance(; diagonal = 1.0),
+    )
+    ok_weights = weights(bad_evidence)
+    @test all(isfinite, ok_weights)
+    @test sum(ok_weights) ≈ 1.0
+end
+
+# --- Severe #15: lazy cache returns the same numbers as a fresh instance ---
+
+@testset "SquaredMahalanobisDistance: lazy-cache equivalence" begin
+    # Build one shared instance whose internal cache will be populated by repeated calls,
+    # and a second "control" instance for each evidence so we can compare against a freshly
+    # computed reference (independent cache).
+    shared = DistanceBased(
+        data;
+        target = "HeartDisease",
+        uncertainty = Variance(),
+        similarity = Exponential(; λ = 5),
+        distance = SquaredMahalanobisDistance(; diagonal = 1.0),
+    )
+
+    fresh_weights(ev) = DistanceBased(
+        data;
+        target = "HeartDisease",
+        uncertainty = Variance(),
+        similarity = Exponential(; λ = 5),
+        distance = SquaredMahalanobisDistance(; diagonal = 1.0),
+    ).weights(ev)
+
+    ev_a = Evidence("MaxHR" => 150.0)
+    ev_b = Evidence("MaxHR" => 150.0, "Cholesterol" => 200.0)
+
+    # First pass: populate the cache.
+    w_a1 = shared.weights(ev_a)
+    w_b1 = shared.weights(ev_b)
+    # Second pass on `ev_a`: must hit the cache and return numerically identical weights.
+    w_a2 = shared.weights(ev_a)
+    @test w_a1 == w_a2
+
+    # The cached weights must match a freshly built instance (no shared cache state).
+    @test w_a1 ≈ fresh_weights(ev_a)
+    @test w_b1 ≈ fresh_weights(ev_b)
+end

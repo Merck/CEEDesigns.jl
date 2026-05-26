@@ -130,19 +130,69 @@ function SquaredMahalanobisDistance(; diagonal = 0)
             @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
         end
 
-        Λ = Dict(
-            Set(features) => begin
-                    Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
-                    # Add diagonal entries.
-                    foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+        # Lazy, memoized cache of inv(Σ_subset). Keys are canonical (sorted-against-`non_targets`)
+        # vectors of feature names. We avoid the previous eager `2^p − 1` precomputation, and
+        # we explicitly handle singular submatrices instead of silently returning Inf/NaN
+        # (Julia's `inv` does not throw on singular matrices).
+        Λ_cache = Dict{Vector{String}, Matrix{Float64}}()
 
-                    inv(Σ)
-                end for features in powerset(non_targets, 1, length(non_targets))
-        )
+        get_Λ = function (features::Vector{String})
+            # `features` is assumed canonical (sorted against `non_targets`); callers are
+            # responsible for canonicalization so the cache key round-trips.
+            cached = get(Λ_cache, features, nothing)
+            if cached !== nothing
+                return cached
+            end
+
+            Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
+            # Add diagonal entries (regularization, if requested).
+            foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+
+            # Detect a singular / near-singular Σ. `inv(Σ)` on a singular matrix may
+            # silently return Inf/NaN entries in Julia, or throw `SingularException`,
+            # depending on the factorization path. We handle both by attempting the
+            # inversion and inspecting the result for non-finite entries.
+            Λ_marginal = nothing
+            singular = false
+            try
+                Λ_marginal = inv(Σ)
+                if !all(isfinite, Λ_marginal)
+                    singular = true
+                end
+            catch err
+                if err isa LinearAlgebra.SingularException
+                    singular = true
+                else
+                    rethrow()
+                end
+            end
+
+            if singular
+                if diagonal > 0
+                    # User requested regularization but Σ + diagonal·I is still singular:
+                    # this would only happen with extreme inputs; report clearly.
+                    throw(
+                        ArgumentError(
+                            """SquaredMahalanobisDistance: covariance submatrix for features $(features) is singular even after adding `diagonal=$(diagonal)` to the diagonal. Increase `diagonal` or remove collinear/constant columns.""",
+                        ),
+                    )
+                else
+                    throw(
+                        ArgumentError(
+                            """SquaredMahalanobisDistance: covariance submatrix for features $(features) is singular (likely due to a collinear or constant column). Pass `diagonal > 0` to `SquaredMahalanobisDistance` for regularization, or remove the offending column from `data`.""",
+                        ),
+                    )
+                end
+            end
+
+            Λ_cache[features] = Λ_marginal
+            return Λ_marginal
+        end
 
         compute_distances = function (evidence::Evidence)
-            # Canonicalize evidence_keys to the column order used when Λ was
-            # built; otherwise the dot product silently misaligns axes.
+            # Canonicalize evidence_keys against `non_targets` so the cache key, the
+            # `vec_evidence` ordering, and the row-slice ordering all agree (otherwise
+            # the dot product silently misaligns axes).
             evidence_keys = filter(k -> haskey(evidence, k), non_targets)
 
             if length(evidence_keys) == 0
@@ -150,12 +200,14 @@ function SquaredMahalanobisDistance(; diagonal = 0)
             end
 
             vec_evidence = map(k -> evidence[k], evidence_keys)
-            Λ_marginal = Λ[Set(evidence_keys)]
+
+            # Retrieve (and lazily compute) the inverse of the covariance matrix
+            # corresponding to the "observed part". See #12 and
+            # https://www.jstor.org/stable/3559861.
+            Λ_marginal = get_Λ(evidence_keys)
 
             factor_p_q = length(non_targets) / length(evidence_keys)
             distances = map(eachrow(data)) do row
-                # We retrieve the precomputed inverse of the covariance matrix coresponding to the "observed part"
-                # See #12 and, in particular, https://www.jstor.org/stable/3559861
                 diff = vec_evidence - Vector(row[evidence_keys])
                 factor_p_q * dot(diff, Λ_marginal * diff)
             end
@@ -222,21 +274,29 @@ function DistanceBased(
 
     if distance isa Dict
         distances = Dict(
-            try
-                    if haskey(distance, colname)
-                        string(colname) => distance[colname]
-                elseif elscitype(data[!, colname]) <: Continuous
-                        string(colname) => QuadraticDistance()
-                elseif elscitype(data[!, colname]) <: Multiclass
-                        string(colname) => DiscreteDistance()
+            begin
+                if haskey(distance, colname)
+                    # User-supplied distance: do NOT wrap in try/catch — let user code throw
+                    # its own errors so the stacktrace is preserved (see Severe #12).
+                    string(colname) => distance[colname]
                 else
-                        error()
+                    # Only the elscitype-default-dispatch path can legitimately fail with a
+                    # clear "unsupported scitype" message; restrict the try/catch to it.
+                    try
+                        if elscitype(data[!, colname]) <: Continuous
+                            string(colname) => QuadraticDistance()
+                        elseif elscitype(data[!, colname]) <: Multiclass
+                            string(colname) => DiscreteDistance()
+                        else
+                            error()
+                        end
+                    catch
+                        error(
+                            """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
+                            Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
+                        )
+                    end
                 end
-            catch
-                    error(
-                        """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
-                        Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
-                    )
             end for colname in names(data[!, Not(target)])
         )
 
