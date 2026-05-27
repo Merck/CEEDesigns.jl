@@ -275,29 +275,29 @@ function DistanceBased(
     if distance isa Dict
         distances = Dict(
             begin
-                if haskey(distance, colname)
-                    # User-supplied distance: do NOT wrap in try/catch — let user code throw
-                    # its own errors so the stacktrace is preserved (see Severe #12).
-                    string(colname) => distance[colname]
+                    if haskey(distance, colname)
+                        # User-supplied distance: do NOT wrap in try/catch — let user code throw
+                        # its own errors so the stacktrace is preserved (see Severe #12).
+                        string(colname) => distance[colname]
                 else
-                    # Only the elscitype-default-dispatch path can legitimately fail with a
-                    # clear "unsupported scitype" message; restrict the try/catch to it.
-                    try
-                        if elscitype(data[!, colname]) <: Continuous
-                            string(colname) => QuadraticDistance()
+                        # Only the elscitype-default-dispatch path can legitimately fail with a
+                        # clear "unsupported scitype" message; restrict the try/catch to it.
+                        try
+                            if elscitype(data[!, colname]) <: Continuous
+                                string(colname) => QuadraticDistance()
                         elseif elscitype(data[!, colname]) <: Multiclass
-                            string(colname) => DiscreteDistance()
+                                string(colname) => DiscreteDistance()
                         else
-                            error()
+                                error()
                         end
                     catch
-                        error(
-                            """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
-                            Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
-                        )
+                            error(
+                                """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
+                                Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
+                            )
                     end
                 end
-            end for colname in names(data[!, Not(target)])
+                end for colname in names(data[!, Not(target)])
         )
 
         compute_distances = sum_of_distances(data, targets, distances; prior)
