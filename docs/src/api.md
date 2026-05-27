@@ -25,6 +25,7 @@ CEEDesigns.GenerativeDesigns.Entropy
 CEEDesigns.GenerativeDesigns.efficient_design
 CEEDesigns.GenerativeDesigns.efficient_designs
 CEEDesigns.GenerativeDesigns.efficient_value
+CEEDesigns.GenerativeDesigns.default_solver
 ```
 
 ### Distance-Based Sampling
