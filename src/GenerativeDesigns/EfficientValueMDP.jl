@@ -5,7 +5,7 @@ Structure that parametrizes the experimental decision-making process. It is used
 
 In this experimental setup, our objective is to maximize the value of the experimental evidence (such as clinical utility), adjusted for experimental costs.
 
-Internally, the reward associated with a particular experimental `evidence` and with total accumulated `monetary_cost` and (optionally) `execution_time` is computed as `value(evidence) - costs_tradeoff' * [monetary_cost, execution_time]`.
+Internally, the reward associated with a particular experimental `evidence` and with total accumulated `monetary_cost` and (optionally) `execution_time` is computed as `value(evidence, costs) - costs_tradeoff' * [monetary_cost, execution_time]`.
 
 # Arguments
 
@@ -14,7 +14,7 @@ Internally, the reward associated with a particular experimental `evidence` and 
 # Keyword Arguments
 
   - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
-  - `value`: a function of `(evidence)`; it quantifies the utility of experimental evidence.
+  - `value`: a function of `(evidence, costs)`, where `costs::NTuple{2, Float64}` is `(monetary cost, execution time)`; it quantifies the utility of experimental evidence.
   - `evidence=Evidence()`: initial experimental evidence.
   - `max_parallel`: maximum number of parallel experiments.
   - `discount`: this is the discounting factor utilized in reward computation.
@@ -45,9 +45,17 @@ struct EfficientValueMDP{S, V} <: POMDPs.MDP{State, Vector{String}}
         ) where {S, V}
         state = State((evidence, Tuple(zeros(2))))
 
-        # Check if `sampler`, `uncertainty` are compatible
-        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
-        @assert hasmethod(value, Tuple{Evidence, NTuple{2, Float64}}) """`value` must implement a method accepting `(evidence, costs)` as its argument, where `costs::NTuple{2, Float64}` is `(monetary cost, execution time)`."""
+        # Check if `sampler`, `value` are compatible
+        hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) || throw(
+            ArgumentError(
+                "`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments.",
+            ),
+        )
+        hasmethod(value, Tuple{Evidence, NTuple{2, Float64}}) || throw(
+            ArgumentError(
+                "`value` must implement a method accepting `(evidence, costs)` as its argument, where `costs::NTuple{2, Float64}` is `(monetary cost, execution time)`.",
+            ),
+        )
 
         # actions and their costs
         costs = Dict{String, ActionCost}(
@@ -164,19 +172,19 @@ function efficient_value(
         sampler,
         value,
         evidence = Evidence(),
-        solver = default_solver(),
+        solver = nothing,
         repetitions = 0,
         mdp_options = (;),
         rng::AbstractRNG = default_rng(),
     )
     mdp = EfficientValueMDP(costs; sampler, value, evidence, mdp_options...)
 
-    # planner
-    planner = solve(solver, mdp)
+    # planner (fresh solver seeded by `rng` unless the caller supplied one)
+    planner = solve(isnothing(solver) ? default_solver(rng) : solver, mdp)
     action, info = action_info(planner, mdp.initial_state)
 
     return if repetitions > 0
-        queue = [Sim(mdp, planner; rng) for _ in 1:repetitions]
+        queue = [Sim(mdp, planner; rng = Xoshiro(rand(rng, UInt64))) for _ in 1:repetitions]
 
         stats = run_parallel(queue) do _, hist
             monetary_cost, time = hist[end][:s].costs

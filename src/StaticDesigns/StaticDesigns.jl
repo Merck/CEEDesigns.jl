@@ -6,6 +6,7 @@ using Combinatorics: powerset
 using POMDPs
 using POMDPTools: Deterministic
 using MCTS
+using Random
 
 using ..CEEDesigns: front
 
@@ -86,7 +87,7 @@ function evaluate_experiments(
         foreach(
             x -> append!(
                 features,
-                experiments[x] isa Pair ? experiments[x][2] : experiments[x],
+                string.(experiments[x] isa Pair ? experiments[x][2] : experiments[x]),
             ),
             exp_set,
         )
@@ -159,7 +160,7 @@ function evaluate_experiments(
         foreach(
             x -> append!(
                 features,
-                experiments[x] isa Pair ? experiments[x][2] : experiments[x],
+                string.(experiments[x] isa Pair ? experiments[x][2] : experiments[x]),
             ),
             exp_set,
         )
@@ -219,6 +220,7 @@ function efficient_designs(
         max_parallel::Int = 1,
         tradeoff = (1, 0),
         mdp_kwargs = default_mdp_kwargs,
+        rng::AbstractRNG = Random.default_rng(),
     ) where {T, S}
     experimental_costs = Dict(e => v isa Pair ? v[1] : v for (e, v) in experiments)
 
@@ -238,7 +240,13 @@ function efficient_designs(
     # lock to prevent race condition
     lk = ReentrantLock()
 
-    Threads.@threads for design in collect(evals)
+    tasks = collect(evals)
+    # Pre-seed one independent rng per task so the threaded arrangement search is
+    # reproducible and free of GLOBAL_RNG contention across worker threads.
+    seeds = rand(rng, UInt64, length(tasks))
+
+    Threads.@threads for i in eachindex(tasks)
+        design = tasks[i]
         arrangement = optimal_arrangement(
             experimental_costs,
             evals,
@@ -246,6 +254,7 @@ function efficient_designs(
             max_parallel,
             tradeoff,
             mdp_kwargs,
+            rng = Xoshiro(seeds[i]),
         )
 
         lock(lk) do

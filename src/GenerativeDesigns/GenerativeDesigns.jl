@@ -8,7 +8,7 @@ using DataFrames, ScientificTypes
 using LinearAlgebra
 using Statistics
 using StatsBase: Weights, countmap, entropy, sample
-using Random: default_rng, AbstractRNG
+using Random: default_rng, AbstractRNG, Xoshiro
 using MCTS
 
 using ..CEEDesigns: front
@@ -61,14 +61,16 @@ const const_bigM = 1_000_000
 """
     default_solver()
 
-Return a fresh `DPWSolver` with the package's default settings.
+Return a fresh `DPWSolver` with the package's default settings, seeded by `rng`.
 
-This is a zero-argument factory rather than a shared constant so that each call
+This is a zero/one-argument factory rather than a shared constant so that each call
 site receives an independent solver. MCTS-style solvers carry mutable RNG and
 internal state, so sharing a single instance across calls (especially with
 parallel runoffs) would compromise reproducibility and concurrency safety.
+Passing an `rng` makes the planning step reproducible from a single seed.
 """
-default_solver() = DPWSolver(; n_iterations = 100_000, tree_in_info = true)
+default_solver(rng::AbstractRNG = default_rng()) =
+    DPWSolver(; n_iterations = 100_000, tree_in_info = true, rng)
 
 # minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 include("UncertaintyReductionMDP.jl")

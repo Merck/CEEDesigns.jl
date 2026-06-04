@@ -80,7 +80,7 @@ end
 # (2) A `value` with the wrong (Evidence, Vector{Float64}) signature must be
 #     rejected. The buggy assertion would have accepted this even though the
 #     MDP itself would later pass `state.costs::NTuple{2, Float64}` and crash.
-@test_throws AssertionError EfficientValueMDP(
+@test_throws ArgumentError EfficientValueMDP(
     experiments;
     sampler,
     value = value_vector,

@@ -69,6 +69,7 @@ function optimal_arrangement(
         max_parallel = 1,
         tradeoff = (1, 0),
         mdp_kwargs = default_mdp_kwargs,
+        rng::AbstractRNG = Random.default_rng(),
     ) where {T}
     # validate that `evals` covers every non-terminal state the MDP rollout may visit.
     # the rollout visits all subsets of `experiments` of size 0..|experiments|-1, so each
@@ -107,7 +108,7 @@ function optimal_arrangement(
 
     mdp = ArrangementMDP(; experiments, experimental_costs, evals, max_parallel, tradeoff)
 
-    solver = DPWSolver(; mdp_kwargs...)
+    solver = DPWSolver(; mdp_kwargs..., rng)
     planner = solve(solver, mdp)
 
     monetary_cost = time = 0.0
