@@ -38,16 +38,32 @@ end
     @test nrow(df2) == 1
     @test df2.Action_Set[1] == "A,B"
     @test df2.Frequency[1] == 2
-    @test df2.Average_Utility[1] == 1.5
+    @test df2.Average_Cost[1] == 1.5
 end
 
-@testset "_compute_dispersion distributes duplicate Average_Utility (M11)" begin
-    # Two rows with identical Average_Utility under the same threshold must NOT
+@testset "ensemble_to_dataframe de-duplicates within a run (M2)" begin
+    # Two identical collapsed points in ONE run (same threshold, same empty
+    # action set) must contribute frequency 1, not 2.
+    dup_design = ((0.0, 0.25), (; monetary_cost = 0.0, time = 0.0))  # no :arrangement => ""
+    df = ensemble_to_dataframe([[dup_design, dup_design]])
+    @test nrow(df) == 1
+    @test df.Frequency[1] == 1
+    @test df.Threshold[1] == 0.25
+    @test df.Action_Set[1] == ""
+
+    # The same key across TWO separate runs still counts as frequency 2.
+    df2 = ensemble_to_dataframe([[dup_design], [dup_design]])
+    @test nrow(df2) == 1
+    @test df2.Frequency[1] == 2
+end
+
+@testset "_compute_dispersion distributes duplicate Average_Cost (M11)" begin
+    # Two rows with identical Average_Cost under the same threshold must NOT
     # both be assigned the slot-1 offset.
     df = DataFrame(;
         Threshold = [0.5, 0.5, 0.5],
         Action_Set = ["A", "B", "C"],
-        Average_Utility = [1.0, 1.0, 2.0],
+        Average_Cost = [1.0, 1.0, 2.0],
         Frequency = [3, 1, 2],
     )
 
@@ -59,7 +75,7 @@ end
     # `range(-max_offset, max_offset; length = n_actions)` of length 3).
     @test length(unique(dispersion_offsets[0.5])) == 3
     # The x_coords vector must produce three distinct values, even though two
-    # rows share Average_Utility. This is the regression: the old findfirst +
+    # rows share Average_Cost. This is the regression: the old findfirst +
     # float-equality logic collapsed both duplicates onto offset slot 1, so
     # x_coords[1] == x_coords[2]. With the per-threshold counter fix they
     # consume slots 1 and 2 respectively.
@@ -71,7 +87,7 @@ end
     empty_df = DataFrame(;
         Threshold = Float64[],
         Action_Set = String[],
-        Average_Utility = Float64[],
+        Average_Cost = Float64[],
         Frequency = Int[],
     )
     @test_throws ArgumentError plot_ensemble_pareto(empty_df, 0.5)

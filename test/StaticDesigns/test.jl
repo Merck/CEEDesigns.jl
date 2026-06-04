@@ -1,4 +1,5 @@
 using Random: seed!
+using Random: Xoshiro
 using CEEDesigns, CEEDesigns.StaticDesigns
 using CSV, DataFrames
 
@@ -144,3 +145,28 @@ truncated_evals = Dict(
     Set(keys(experiments_simple));
     mdp_kwargs = (; n_iterations = 50, depth = 5, exploration_constant = 3.0),
 )
+
+## S3 regression: seeded rng => reproducible arrangement (no GLOBAL_RNG contention).
+let
+    repro_costs = Dict("A" => 1.0, "B" => 2.0, "C" => 3.0)
+    repro_evals =
+        Dict{Set{String}, NamedTuple{(:loss, :filtration), Tuple{Float64, Float64}}}(
+        Set{String}() => (; loss = 1.0, filtration = 1.0),
+        Set(["A"]) => (; loss = 0.7, filtration = 0.9),
+        Set(["B"]) => (; loss = 0.6, filtration = 0.8),
+        Set(["C"]) => (; loss = 0.5, filtration = 0.7),
+        Set(["A", "B"]) => (; loss = 0.4, filtration = 0.6),
+        Set(["A", "C"]) => (; loss = 0.4, filtration = 0.6),
+        Set(["B", "C"]) => (; loss = 0.4, filtration = 0.6),
+    )
+    full = Set(["A", "B", "C"])
+    mdp_kwargs = (; n_iterations = 500, depth = 5, exploration_constant = 3.0)
+    a1 = CEEDesigns.StaticDesigns.optimal_arrangement(
+        repro_costs, repro_evals, full; mdp_kwargs, rng = Xoshiro(123),
+    )
+    a2 = CEEDesigns.StaticDesigns.optimal_arrangement(
+        repro_costs, repro_evals, full; mdp_kwargs, rng = Xoshiro(123),
+    )
+    @test a1.arrangement == a2.arrangement
+    @test a1.combined_cost == a2.combined_cost
+end

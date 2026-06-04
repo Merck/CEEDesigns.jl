@@ -5,6 +5,14 @@ Structure that parametrizes the experimental decision-making process. It is used
 
 In this experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 
+!!! note "Relationship to the paper"
+    The uncertainty measure returned by [`Variance`](@ref) / [`Entropy`](@ref) is
+    *normalized* — it is the fraction of the prior uncertainty — so `threshold` is
+    interpreted on `[0, 1]` (this is why `efficient_designs` sweeps thresholds over
+    `range(0, 1, …)`). The paper's terminal information term is realized here as a
+    **hard terminal condition** (`uncertainty ≤ threshold`) rather than as an additive
+    reward penalty; the objective is otherwise equivalent.
+
 Internally, a state of the decision process is modeled as a tuple `(evidence::Evidence, [total accumulated monetary cost, total accumulated execution time])`.
 
 The per-step reward is the negative marginal cost incurred at that step, i.e.
@@ -79,8 +87,16 @@ struct UncertaintyReductionMDP{S, U} <: POMDPs.MDP{State, Vector{String}}
         state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
-        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
-        @assert hasmethod(uncertainty, Tuple{Evidence}) """`uncertainty` must implement a method accepting `evidence` as its argument."""
+        hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) || throw(
+            ArgumentError(
+                "`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments.",
+            ),
+        )
+        hasmethod(uncertainty, Tuple{Evidence}) || throw(
+            ArgumentError(
+                "`uncertainty` must implement a method accepting `evidence` as its argument.",
+            ),
+        )
 
         # actions and their costs
         costs = Dict{String, ActionCost}(
@@ -129,7 +145,15 @@ function POMDPs.actions(m::UncertaintyReductionMDP, state)
         return !isempty(feats) && !any(f -> haskey(state.evidence, f), feats)
     end
 
-    return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
+    # Count *completed experiments* (all of an experiment's features present), not
+    # raw evidence entries, so prior evidence / multi-feature experiments don't
+    # mis-count against `max_experiments`.
+    n_completed = count(keys(m.costs)) do a
+        feats = m.costs[a].features
+        !isempty(feats) && all(f -> haskey(state.evidence, f), feats)
+    end
+
+    return if !isempty(all_actions) && (n_completed < m.max_experiments)
         collect(powerset(all_actions, 1, m.max_parallel))
     else
         [[eox]]
@@ -228,7 +252,7 @@ function efficient_design(
         uncertainty,
         threshold,
         evidence = Evidence(),
-        solver = default_solver(),
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
@@ -254,12 +278,12 @@ function efficient_design(
             (; monetary_cost = 0.0, time = 0.0),
         )
     else
-        # planner
-        planner = solve(solver, mdp)
+        # planner (fresh solver seeded by `rng` unless the caller supplied one)
+        planner = solve(isnothing(solver) ? default_solver(rng) : solver, mdp)
         action, info = action_info(planner, mdp.initial_state)
 
         if repetitions > 0
-            queue = [Sim(mdp, planner; rng) for _ in 1:repetitions]
+            queue = [Sim(mdp, planner; rng = Xoshiro(rand(rng, UInt64))) for _ in 1:repetitions]
 
             stats = run_parallel(queue) do _, hist
                 monetary_cost, time = hist[end][:s].costs
@@ -362,7 +386,7 @@ function efficient_designs(
         uncertainty,
         thresholds,
         evidence = Evidence(),
-        solver = default_solver(),
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
@@ -372,6 +396,10 @@ function efficient_designs(
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
+        # Each threshold gets an independent rng (derived from the master `rng`)
+        # and, unless the caller supplied a solver, a fresh solver seeded by it.
+        inner_rng = Xoshiro(rand(rng, UInt64))
+        inner_solver = isnothing(solver) ? default_solver(inner_rng) : solver
         push!(
             designs,
             efficient_design(
@@ -380,11 +408,11 @@ function efficient_designs(
                 uncertainty,
                 threshold,
                 evidence,
-                solver,
+                solver = inner_solver,
                 repetitions,
                 realized_uncertainty,
                 mdp_options,
-                rng,
+                rng = inner_rng,
             ),
         )
     end

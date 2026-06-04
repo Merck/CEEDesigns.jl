@@ -5,11 +5,17 @@ using DataFrames
 
 Flatten a vector of Pareto fronts (one per ensemble run) into
 `df::DataFrame`: DataFrame with columns Threshold, Action_Set,
-Frequency, Average_Utility
+Frequency, Average_Cost
 """
 function ensemble_to_dataframe(runs)
     counts = Dict{Tuple{Float64, String}, Tuple{Int, Float64}}()
     for front in runs
+        # De-duplicate identical (threshold, actions) points *within a single run*
+        # before counting. With `realized_uncertainty = true`, several
+        # already-terminal thresholds can collapse onto identical points that
+        # `front()` (correctly) keeps; counting each would inflate this run's
+        # frequency (and the MLASP vote). Each run contributes at most +1 per key.
+        seen = Dict{Tuple{Float64, String}, Float64}()
         for design in front
             threshold = design[1][2]
             actions = if haskey(design[2], :arrangement)
@@ -22,17 +28,20 @@ function ensemble_to_dataframe(runs)
             else
                 ""
             end
-            utility = design[1][1]
+            cost = design[1][1]
             key = (threshold, actions)
+            haskey(seen, key) || (seen[key] = cost)
+        end
+        for (key, cost) in seen
             prev = get(counts, key, (0, 0.0))
-            counts[key] = (prev[1] + 1, prev[2] + utility)
+            counts[key] = (prev[1] + 1, prev[2] + cost)
         end
     end
     rows = [
         (
                 Threshold = k[1],
                 Action_Set = k[2],
-                Average_Utility = v[2] / v[1],
+                Average_Cost = v[2] / v[1],
                 Frequency = v[1],
             ) for (k, v) in counts
     ]
@@ -58,7 +67,7 @@ function _compute_dispersion(df_copy::DataFrame)
     dispersion_offsets = Dict{Float64, Vector{Float64}}()
     action_counts = Dict{Float64, Int}()
 
-    x_range = maximum(df_copy.Average_Utility) - minimum(df_copy.Average_Utility)
+    x_range = maximum(df_copy.Average_Cost) - minimum(df_copy.Average_Cost)
 
     for group in threshold_groups
         threshold = group.Threshold[1]
@@ -95,7 +104,7 @@ function _compute_dispersion(df_copy::DataFrame)
     # threshold while iterating `eachrow(df_copy)` corresponds to position n in
     # `dispersion_offsets[threshold]`, because `groupby` preserves within-group
     # row order. An explicit per-threshold counter avoids float `==` lookups
-    # that would collapse duplicate `Average_Utility` rows onto the same offset
+    # that would collapse duplicate `Average_Cost` rows onto the same offset
     # slot.
     x_coords = Float64[]
     threshold_indices = Dict{Float64, Int}()
@@ -113,9 +122,9 @@ function _compute_dispersion(df_copy::DataFrame)
         if haskey(dispersion_offsets, threshold) &&
                 point_index <= length(dispersion_offsets[threshold])
             offset = dispersion_offsets[threshold][point_index]
-            push!(x_coords, row.Average_Utility + offset)
+            push!(x_coords, row.Average_Cost + offset)
         else
-            push!(x_coords, row.Average_Utility)
+            push!(x_coords, row.Average_Cost)
         end
     end
 
@@ -129,7 +138,7 @@ Create Pareto front visualization for ensemble results with viridis color scheme
 
 # Arguments
 
-  - `df::DataFrame`: DataFrame with columns Threshold, Action_Set, Frequency, Average_Utility
+  - `df::DataFrame`: DataFrame with columns Threshold, Action_Set, Frequency, Average_Cost
 
   - `tau::Float64`: Belief threshold value for labeling
   - `show_annotations::Bool`: Whether to show action set annotations (default: true)
@@ -162,7 +171,7 @@ function plot_ensemble_pareto(
         normalization::Symbol = :global,
     )
     # Guard against empty input. Several downstream calls (e.g.
-    # `maximum(values(threshold_counts))`, `maximum(df_copy.Average_Utility)`)
+    # `maximum(values(threshold_counts))`, `maximum(df_copy.Average_Cost)`)
     # would otherwise raise an opaque `ArgumentError` from `maximum`/`argmax`.
     isempty(df) && throw(
         ArgumentError(
@@ -494,7 +503,7 @@ function plot_ensemble_pareto(
                 push!(
                     annotations_to_place,
                     (
-                        x = row.Average_Utility / scale_factor,  # Scale x-coordinate
+                        x = row.Average_Cost / scale_factor,  # Scale x-coordinate
                         y = row.Threshold,
                         label = label_text,
                     ),

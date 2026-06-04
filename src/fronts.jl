@@ -118,7 +118,7 @@ function front(
 end
 
 """
-    plot_front(designs; grad=cgrad(:Paired_12), xlabel, ylabel, labels=get_labels(designs))
+    plot_front(designs; grad=cgrad(:Paired_12), xlabel, ylabel, labels=make_labels(designs))
 
 Render scatter plot of efficient designs, as returned from `efficient_designs`.
 
@@ -138,6 +138,9 @@ function plot_front(
         xlabel = "combined cost",
         ylabel = "information measure",
         labels = make_labels(designs),
+    )
+    isempty(designs) && throw(
+        ArgumentError("plot_front requires at least one design (got an empty collection)."),
     )
     xs = map(x -> x[1][1], designs)
     ys = map(x -> x[1][2], designs)

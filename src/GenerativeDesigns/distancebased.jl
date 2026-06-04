@@ -6,11 +6,18 @@ This returns an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / σ`.
 If `standardize` is set to `true`, `σ` represents `col`'s variance calculated in relation to `prior`, otherwise `σ` equals one.
 """
 function QuadraticDistance(; λ = 1, standardize = true)
-    σ = nothing
-
+    # NOTE: `σ` is recomputed on every call rather than memoized. A memoized `σ`
+    # would be reused across columns if the same closure instance is shared
+    # (e.g. `Dict(c => qd for c in cols)` with a single `qd`), applying the
+    # first column's variance to the others. Recomputing keeps each call correct.
     return function (x, col; prior = ones(length(col)))
-        if isnothing(σ)
-            σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        if standardize && σ <= 0
+            throw(
+                ArgumentError(
+                    "QuadraticDistance: column has zero variance under the prior (constant column); cannot standardize. Pass `standardize = false` or remove the constant column.",
+                ),
+            )
         end
 
         return λ * (x .- col) .^ 2 / σ
@@ -20,17 +27,23 @@ end
 """
     DiscreteDistance(; λ=1)
 
-Return an anonymous function `(x, col) -> λ * (x .== col)`.
+Return an anonymous function `(x, col) -> λ * (x .!= col)`.
+
+This is a proper distance: matching entries contribute `0` (nearest) and
+mismatching entries contribute `λ`, consistent with [`QuadraticDistance`](@ref).
+The collated distances are passed through the `similarity` functional
+(e.g. [`Exponential`](@ref)), so rows matching the evidence receive the
+highest similarity weight.
 """
 DiscreteDistance(; λ = 1) = function (x, col; _...)
-    return map(y -> y == x ? λ : 0.0, col)
+    return map(y -> y == x ? 0.0 : λ, col)
 end
 
 # Default similarity functional
 """
-    Exponential(; λ=1)
+    Exponential(; λ=1/2)
 
-Return an anonymous function `x -> exp(-λ * sum(x; init=0))`.
+Return an anonymous function `x -> exp(-λ * x)`.
 """
 Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
@@ -72,7 +85,11 @@ it returns an internal function of `weights` that computes the fraction of infor
 """
 function Entropy()
     return function (labels; prior)
-        @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
+        elscitype(labels) <: Multiclass || throw(
+            ArgumentError(
+                "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`",
+            ),
+        )
         initial = compute_entropy(labels; weights = prior)
         initial > 0 || throw(
             ArgumentError(
@@ -232,14 +249,14 @@ A named tuple with the following fields:
 
   - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
-  - `weights`: a function of `evidence`; it returns probabilities (posterior) acrss the rows in `data`.
+  - `weights`: a function of `evidence`; it returns probabilities (posterior) across the rows in `data`.
 
 # Arguments
 
   - `data`: a dataframe with historical data.
   - `target`: target column name or a vector of target columns names.
 
-# Keyword Argumets
+# Keyword Arguments
 
   - `uncertainty`: a function that takes the subdataframe containing columns in targets along with prior, and returns an anonymous function taking a single argument (a probability vector over observations) and returns an uncertainty measure over targets.
   - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
@@ -312,11 +329,13 @@ function DistanceBased(
 
     # If "importance weight" is a function, apply it to the column to get a numeric vector.
     for (colname, val) in importance_weights
-        push!(
-            weights,
-            string(colname) =>
-                (val isa Function ? map(x -> val(x), data[!, colname]) : val),
+        wv = val isa Function ? map(x -> val(x), data[!, colname]) : val
+        length(wv) == nrow(data) || throw(
+            ArgumentError(
+                "`importance_weights` for column `$(colname)` has length $(length(wv)), but `data` has $(nrow(data)) rows.",
+            ),
         )
+        push!(weights, string(colname) => wv)
     end
 
     # Convert "desirable ranges" into importance weights.
