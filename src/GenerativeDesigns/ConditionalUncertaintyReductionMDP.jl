@@ -8,6 +8,16 @@ It adds:
   - data::DataFrame: historical data (rows correspond to weights)
   - terminal_condition = (target_condition::Dict, tau::Float64): constraint ranges + belief threshold
 
+`target_condition` is a `Dict{String, <:AbstractVector}` (or any pair-style
+mapping) whose keys are column names in `data` and whose values are
+two-element ranges `[rmin, rmax]`. The membership test is the inclusive
+range `rmin <= x <= rmax`, so the keyed columns **must be numeric** (i.e.
+`eltype(data[!, colname]) <: Real`). A non-numeric column (e.g. a
+`Multiclass` categorical) raises `ArgumentError` at construction. Rows
+containing `NaN` in any constraint column are excluded from the conditional
+likelihood (because `NaN >= rmin` is `false`); this is documented behavior,
+not silent dropping.
+
 Behavior:
 
   - The MDP is terminal only when uncertainty <= threshold AND
@@ -15,7 +25,7 @@ Behavior:
   - Transitions always incorporate sampled evidence; feasibility is enforced
     through the terminal condition and reward-driven solver behavior.
 """
-struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
+struct ConditionalUncertaintyReductionMDP{S, U, W} <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
@@ -35,12 +45,12 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     bigM::Int64
 
     # sample readouts from the posterior
-    sampler::Function
+    sampler::S
     # measure of uncertainty about the ground truth
-    uncertainty::Function
+    uncertainty::U
 
     # NEW: compute current state weights
-    weights::Function
+    weights::W
     # NEW: historical data
     data::DataFrame
     # NEW: (target constraints, belief threshold tau)
@@ -48,8 +58,8 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
 
     function ConditionalUncertaintyReductionMDP(
             costs;
-            sampler,
-            uncertainty,
+            sampler::S,
+            uncertainty::U,
             threshold,
             evidence = Evidence(),
             costs_tradeoff = (1.0, 0.0),
@@ -57,18 +67,63 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             discount = 1.0,
             bigM = const_bigM,
             max_experiments = bigM,
-            weights,
+            weights::W,
             data,
             terminal_condition = (Dict(), 0.0),
-        )
+        ) where {S, U, W}
         state = State((evidence, Tuple(zeros(2))))
 
-        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """
-            `sampler` must implement a method accepting (evidence, features, rng).
-        """
-        @assert hasmethod(uncertainty, Tuple{Evidence}) """
-            `uncertainty` must implement a method accepting (evidence).
-        """
+        hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) || throw(
+            ArgumentError("`sampler` must implement a method accepting (evidence, features, rng)."),
+        )
+        hasmethod(uncertainty, Tuple{Evidence}) || throw(
+            ArgumentError("`uncertainty` must implement a method accepting (evidence)."),
+        )
+
+        # Validate and normalize `target_condition`. Keys are stringified so Symbol
+        # column names round-trip to the String column names in `data` (otherwise the
+        # likelihood lookup fails at runtime). Columns must be numeric (allowing
+        # `Union{Missing,<:Real}`) because the membership mask uses inclusive
+        # `rmin <= x <= rmax`.
+        raw_target_cond = first(terminal_condition)
+        tau_value = last(terminal_condition)
+        normalized_target_cond = Dict{String, Tuple{Float64, Float64}}()
+        for (colname, range) in raw_target_cond
+            scol = string(colname)
+            if !(scol in names(data))
+                throw(
+                    ArgumentError(
+                        "target_condition references column `$(colname)` which is not present in `data`.",
+                    ),
+                )
+            end
+            col_eltype = eltype(data[!, scol])
+            if !(nonmissingtype(col_eltype) <: Real)
+                throw(
+                    ArgumentError(
+                        "target_condition column `$(colname)` has eltype `$(col_eltype)`, " *
+                            "but conditional ranges (rmin <= x <= rmax) are only supported on numeric columns " *
+                            "(`Union{Missing,<:Real}` is allowed; missing rows are excluded). " *
+                            "Coerce the column to a numeric scitype (e.g. Continuous) before constructing the MDP.",
+                    ),
+                )
+            end
+            if length(range) != 2
+                throw(
+                    ArgumentError(
+                        "target_condition for column `$(colname)` must be a 2-element `[rmin, rmax]`; got `$(range)`.",
+                    ),
+                )
+            end
+            rmin, rmax = Float64(range[1]), Float64(range[2])
+            rmin <= rmax || throw(
+                ArgumentError(
+                    "target_condition for column `$(colname)` has rmin=$(rmin) > rmax=$(rmax).",
+                ),
+            )
+            normalized_target_cond[scol] = (rmin, rmax)
+        end
+        terminal_condition = (normalized_target_cond, Float64(tau_value))
 
         # Parse costs dict into CEED ActionCost format
         parsed_costs = Dict{String, ActionCost}(
@@ -91,7 +146,7 @@ struct ConditionalUncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             end for action in costs
         )
 
-        return new(
+        return new{S, U, W}(
             state,
             threshold,
             parsed_costs,
@@ -117,13 +172,21 @@ function conditional_likelihood(
         target_condition::Dict,
     )
     w = compute_weights(evidence)
-    @assert length(w) == nrow(hist_data) "weights length must match number of rows in hist_data"
+    length(w) == nrow(hist_data) || throw(
+        ArgumentError(
+            "weights length ($(length(w))) must match number of rows in hist_data ($(nrow(hist_data))).",
+        ),
+    )
 
     valid = trues(nrow(hist_data))
     for (colname, range) in target_condition
-        @assert colname in names(hist_data) "Column $colname not found in data."
+        scol = string(colname)
+        scol in names(hist_data) ||
+            throw(ArgumentError("target_condition column `$(colname)` not found in data."))
         rmin, rmax = range
-        valid .&= (hist_data[!, colname] .>= rmin) .& (hist_data[!, colname] .<= rmax)
+        col = hist_data[!, scol]
+        # `coalesce(..., false)` excludes rows whose constraint column is `missing`.
+        valid .&= coalesce.((col .>= rmin) .& (col .<= rmax), false)
     end
 
     return sum(w[valid])
@@ -132,11 +195,19 @@ end
 # --- POMDPs interface ---
 function POMDPs.actions(m::ConditionalUncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
-        !isempty(m.costs[a].features) &&
-            !in(first(m.costs[a].features), keys(state.evidence))
+        feats = m.costs[a].features
+        !isempty(feats) && !any(f -> haskey(state.evidence, f), feats)
     end
 
-    return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
+    # Count *completed experiments* (all of an experiment's features present), not
+    # raw evidence entries, so prior evidence / multi-feature experiments don't
+    # mis-count against `max_experiments`.
+    n_completed = count(keys(m.costs)) do a
+        feats = m.costs[a].features
+        !isempty(feats) && all(f -> haskey(state.evidence, f), feats)
+    end
+
+    return if !isempty(all_actions) && (n_completed < m.max_experiments)
         collect(powerset(all_actions, 1, m.max_parallel))
     else
         [[eox]]
@@ -184,10 +255,7 @@ function POMDPs.transition(m::ConditionalUncertaintyReductionMDP, state, action_
     features = vcat(map(a -> m.costs[a].features, action_set)...)
 
     return ImplicitDistribution() do rng
-        # sampler may return Dict OR (Dict, ...)
-        obs = m.sampler(state.evidence, features, rng)
-        observation = obs isa Dict ? obs : first(obs)
-
+        observation = m.sampler(state.evidence, features, rng)
         return merge(state, observation, (cost_m, cost_t))
     end
 end
@@ -210,11 +278,12 @@ function conditional_efficient_design(
         evidence = Evidence(),
         weights,
         data,
-        terminal_condition = (Dict(), 0.8),
-        solver = default_solver,
+        terminal_condition = (Dict(), 0.0),
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
     mdp = ConditionalUncertaintyReductionMDP(
         costs;
@@ -241,11 +310,11 @@ function conditional_efficient_design(
         )
     end
 
-    planner = solve(solver, mdp)
+    planner = solve(isnothing(solver) ? default_solver(rng) : solver, mdp)
     action, info = action_info(planner, mdp.initial_state)
 
     return if repetitions > 0
-        queue = [Sim(mdp, planner) for _ in 1:repetitions]
+        queue = [Sim(mdp, planner; rng = Xoshiro(rand(rng, UInt64))) for _ in 1:repetitions]
         stats = run_parallel(queue) do _, hist
             monetary_cost, time = hist[end][:s].costs
             return (;
@@ -300,15 +369,19 @@ function conditional_efficient_designs(
         evidence = Evidence(),
         weights,
         data,
-        terminal_condition = (Dict(), 0.8),
-        solver = default_solver,
+        terminal_condition = (Dict(), 0.0),
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
+    thresholds < 2 && throw(ArgumentError("`thresholds` must be at least 2 (got $thresholds); use `conditional_efficient_design` for a single threshold."))
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
+        inner_rng = Xoshiro(rand(rng, UInt64))
+        inner_solver = isnothing(solver) ? default_solver(inner_rng) : solver
         push!(
             designs,
             conditional_efficient_design(
@@ -320,16 +393,34 @@ function conditional_efficient_designs(
                 weights,
                 data,
                 terminal_condition = terminal_condition,
-                solver,
+                solver = inner_solver,
                 repetitions,
                 realized_uncertainty,
                 mdp_options,
+                rng = inner_rng,
             ),
         )
     end
     return front(x -> x[1], designs)
 end
 
+"""
+    perform_ensemble_designs(costs; ..., tau_set = [0.9], N = 30)
+
+Run an ensemble of `N` independent `conditional_efficient_designs` calls per
+belief threshold `tau` in `tau_set` (the legacy name `thred_set` is still
+accepted as an alias), returning a
+`Dict{Float64, Vector}` keyed by `tau::Float64`. Each value is the vector of
+`N` ensemble outputs (each output is itself the Pareto front returned by
+`conditional_efficient_designs`).
+
+Example access pattern:
+
+```julia
+results = perform_ensemble_designs(experiments; ..., tau_set = [0.6, 0.9])
+runs_at_06 = results[0.6]   # Vector of length N
+```
+"""
 function perform_ensemble_designs(
         costs;
         sampler,
@@ -340,18 +431,24 @@ function perform_ensemble_designs(
         data,
         terminal_condition = (Dict(), 0.0),
         realized_uncertainty = false,
-        solver = default_solver,
+        solver = nothing,
         repetitions = 0,
         mdp_options = (;),
-        thred_set = [0.9],
+        tau_set = [0.9],
+        thred_set = nothing,
         N = 30,
+        rng::AbstractRNG = default_rng(),
     )
-    results = Dict()
+    # `thred_set` is the legacy spelling; prefer `tau_set`.
+    tau_values = isnothing(thred_set) ? tau_set : thred_set
+    results = Dict{Float64, Vector}()
 
-    for tau in thred_set
+    for tau in tau_values
         ensemble_results = []
         for i in 1:N
             @info "Running ensemble $i for belief threshold τ=$tau"
+            # Independent, reproducible rng per ensemble run (derived from `rng`).
+            run_rng = Xoshiro(rand(rng, UInt64))
             design = conditional_efficient_designs(
                 costs;
                 sampler = sampler,
@@ -365,10 +462,11 @@ function perform_ensemble_designs(
                 solver = solver,
                 repetitions = repetitions,
                 mdp_options = mdp_options,
+                rng = run_rng,
             )
             push!(ensemble_results, design)
         end
-        results[:belief => tau] = ensemble_results
+        results[Float64(tau)] = ensemble_results
     end
 
     return results

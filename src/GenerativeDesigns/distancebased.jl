@@ -6,11 +6,18 @@ This returns an anonymous function `(x, col; prior) -> λ * (x .- col).^2 / σ`.
 If `standardize` is set to `true`, `σ` represents `col`'s variance calculated in relation to `prior`, otherwise `σ` equals one.
 """
 function QuadraticDistance(; λ = 1, standardize = true)
-    σ = nothing
-
+    # NOTE: `σ` is recomputed on every call rather than memoized. A memoized `σ`
+    # would be reused across columns if the same closure instance is shared
+    # (e.g. `Dict(c => qd for c in cols)` with a single `qd`), applying the
+    # first column's variance to the others. Recomputing keeps each call correct.
     return function (x, col; prior = ones(length(col)))
-        if isnothing(σ)
-            σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        σ = standardize ? var(col, Weights(prior); corrected = false) : 1
+        if standardize && σ <= 0
+            throw(
+                ArgumentError(
+                    "QuadraticDistance: column has zero variance under the prior (constant column); cannot standardize. Pass `standardize = false` or remove the constant column.",
+                ),
+            )
         end
 
         return λ * (x .- col) .^ 2 / σ
@@ -20,17 +27,23 @@ end
 """
     DiscreteDistance(; λ=1)
 
-Return an anonymous function `(x, col) -> λ * (x .== col)`.
+Return an anonymous function `(x, col) -> λ * (x .!= col)`.
+
+This is a proper distance: matching entries contribute `0` (nearest) and
+mismatching entries contribute `λ`, consistent with [`QuadraticDistance`](@ref).
+The collated distances are passed through the `similarity` functional
+(e.g. [`Exponential`](@ref)), so rows matching the evidence receive the
+highest similarity weight.
 """
 DiscreteDistance(; λ = 1) = function (x, col; _...)
-    return map(y -> y == x ? λ : 0.0, col)
+    return map(y -> y == x ? 0.0 : λ, col)
 end
 
 # Default similarity functional
 """
-    Exponential(; λ=1)
+    Exponential(; λ=1/2)
 
-Return an anonymous function `x -> exp(-λ * sum(x; init=0))`.
+Return an anonymous function `x -> exp(-λ * x)`.
 """
 Exponential(; λ = 1 / 2) = x -> exp(-λ * x)
 
@@ -51,6 +64,11 @@ it returns an internal function of `weights` that computes the fraction of varia
 """
 Variance() = function (data; prior)
     initial = compute_variance(data; weights = prior)
+    initial > 0 || throw(
+        ArgumentError(
+            "`Variance()` requires the target to have non-zero variance under the prior; got $initial. Provide a non-degenerate target column or supply a custom uncertainty functional.",
+        ),
+    )
     return weights -> (compute_variance(data; weights) / initial)
 end
 
@@ -67,8 +85,17 @@ it returns an internal function of `weights` that computes the fraction of infor
 """
 function Entropy()
     return function (labels; prior)
-        @assert elscitype(labels) <: Multiclass "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`"
+        elscitype(labels) <: Multiclass || throw(
+            ArgumentError(
+                "labels must be of `Multiclass` scitype, but `elscitype(labels)=$(elscitype(labels))`",
+            ),
+        )
         initial = compute_entropy(labels; weights = prior)
+        initial > 0 || throw(
+            ArgumentError(
+                "`Entropy()` requires the target to have non-zero entropy under the prior; got $initial. Provide labels with at least two represented classes or supply a custom uncertainty functional.",
+            ),
+        )
         return weights -> (compute_entropy(labels; weights) / initial)
     end
 end
@@ -120,18 +147,70 @@ function SquaredMahalanobisDistance(; diagonal = 0)
             @warn "Not all column types in the predictor matrix are numeric ($(eltype.(eachcol(data)))). This may cause errors."
         end
 
-        Λ = Dict(
-            Set(features) => begin
-                    Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
-                    # Add diagonal entries.
-                    foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+        # Lazy, memoized cache of inv(Σ_subset). Keys are canonical (sorted-against-`non_targets`)
+        # vectors of feature names. We avoid the previous eager `2^p − 1` precomputation, and
+        # we explicitly handle singular submatrices instead of silently returning Inf/NaN
+        # (Julia's `inv` does not throw on singular matrices).
+        Λ_cache = Dict{Vector{String}, Matrix{Float64}}()
 
-                    inv(Σ)
-                end for features in powerset(non_targets, 1, length(non_targets))
-        )
+        get_Λ = function (features::Vector{String})
+            # `features` is assumed canonical (sorted against `non_targets`); callers are
+            # responsible for canonicalization so the cache key round-trips.
+            cached = get(Λ_cache, features, nothing)
+            if cached !== nothing
+                return cached
+            end
+
+            Σ = cov(Matrix(data[!, features]), Weights(prior); corrected = false)
+            # Add diagonal entries (regularization, if requested).
+            foreach(i -> Σ[i, i] += diagonal, axes(Σ, 1))
+
+            # Detect a singular / near-singular Σ. `inv(Σ)` on a singular matrix may
+            # silently return Inf/NaN entries in Julia, or throw `SingularException`,
+            # depending on the factorization path. We handle both by attempting the
+            # inversion and inspecting the result for non-finite entries.
+            Λ_marginal = nothing
+            singular = false
+            try
+                Λ_marginal = inv(Σ)
+                if !all(isfinite, Λ_marginal)
+                    singular = true
+                end
+            catch err
+                if err isa LinearAlgebra.SingularException
+                    singular = true
+                else
+                    rethrow()
+                end
+            end
+
+            if singular
+                if diagonal > 0
+                    # User requested regularization but Σ + diagonal·I is still singular:
+                    # this would only happen with extreme inputs; report clearly.
+                    throw(
+                        ArgumentError(
+                            """SquaredMahalanobisDistance: covariance submatrix for features $(features) is singular even after adding `diagonal=$(diagonal)` to the diagonal. Increase `diagonal` or remove collinear/constant columns.""",
+                        ),
+                    )
+                else
+                    throw(
+                        ArgumentError(
+                            """SquaredMahalanobisDistance: covariance submatrix for features $(features) is singular (likely due to a collinear or constant column). Pass `diagonal > 0` to `SquaredMahalanobisDistance` for regularization, or remove the offending column from `data`.""",
+                        ),
+                    )
+                end
+            end
+
+            Λ_cache[features] = Λ_marginal
+            return Λ_marginal
+        end
 
         compute_distances = function (evidence::Evidence)
-            evidence_keys = collect(keys(evidence) ∩ non_targets)
+            # Canonicalize evidence_keys against `non_targets` so the cache key, the
+            # `vec_evidence` ordering, and the row-slice ordering all agree (otherwise
+            # the dot product silently misaligns axes).
+            evidence_keys = filter(k -> haskey(evidence, k), non_targets)
 
             if length(evidence_keys) == 0
                 return zeros(nrow(data))
@@ -139,16 +218,15 @@ function SquaredMahalanobisDistance(; diagonal = 0)
 
             vec_evidence = map(k -> evidence[k], evidence_keys)
 
+            # Retrieve (and lazily compute) the inverse of the covariance matrix
+            # corresponding to the "observed part". See #12 and
+            # https://www.jstor.org/stable/3559861.
+            Λ_marginal = get_Λ(evidence_keys)
+
             factor_p_q = length(non_targets) / length(evidence_keys)
             distances = map(eachrow(data)) do row
-                # We retrieve the precomputed inverse of the covariance matrix coresponding to the "observed part"
-                # See #12 and, in particular, https://www.jstor.org/stable/3559861
-                Λ_marginal = Λ[Set(evidence_keys)]
-
-                factor_p_q * dot(
-                    (vec_evidence - Vector(row[evidence_keys])),
-                    Λ_marginal * (vec_evidence - Vector(row[evidence_keys])),
-                )
+                diff = vec_evidence - Vector(row[evidence_keys])
+                factor_p_q * dot(diff, Λ_marginal * diff)
             end
 
             return distances
@@ -171,14 +249,14 @@ A named tuple with the following fields:
 
   - `sampler`: a function of `(evidence, features, rng)`, in which `evidence` denotes the current experimental evidence, `features` represent the set of features we want to sample from, and `rng` is a random number generator; it returns a dictionary mapping the features to outcomes.
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
-  - `weights`: a function of `evidence`; it returns probabilities (posterior) acrss the rows in `data`.
+  - `weights`: a function of `evidence`; it returns probabilities (posterior) across the rows in `data`.
 
 # Arguments
 
   - `data`: a dataframe with historical data.
   - `target`: target column name or a vector of target columns names.
 
-# Keyword Argumets
+# Keyword Arguments
 
   - `uncertainty`: a function that takes the subdataframe containing columns in targets along with prior, and returns an anonymous function taking a single argument (a probability vector over observations) and returns an uncertainty measure over targets.
   - `similarity`: a function that, for each row, takes distances between `row[col]` and `readout[col]`, and returns a non-negative probability mass for the row.
@@ -213,22 +291,30 @@ function DistanceBased(
 
     if distance isa Dict
         distances = Dict(
-            try
+            begin
                     if haskey(distance, colname)
+                        # User-supplied distance: do NOT wrap in try/catch — let user code throw
+                        # its own errors so the stacktrace is preserved (see Severe #12).
                         string(colname) => distance[colname]
-                elseif elscitype(data[!, colname]) <: Continuous
-                        string(colname) => QuadraticDistance()
-                elseif elscitype(data[!, colname]) <: Multiclass
-                        string(colname) => DiscreteDistance()
                 else
-                        error()
+                        # Only the elscitype-default-dispatch path can legitimately fail with a
+                        # clear "unsupported scitype" message; restrict the try/catch to it.
+                        try
+                            if elscitype(data[!, colname]) <: Continuous
+                                string(colname) => QuadraticDistance()
+                        elseif elscitype(data[!, colname]) <: Multiclass
+                                string(colname) => DiscreteDistance()
+                        else
+                                error()
+                        end
+                    catch
+                            error(
+                                """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
+                                Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
+                            )
+                    end
                 end
-            catch
-                    error(
-                        """column $colname has scitype $(elscitype(data[!, colname])), which is not supported by default.
-                        Please provide a custom readout-column distances functional of the signature `(x, col; prior)`.""",
-                    )
-            end for colname in names(data[!, Not(target)])
+                end for colname in names(data[!, Not(target)])
         )
 
         compute_distances = sum_of_distances(data, targets, distances; prior)
@@ -243,11 +329,13 @@ function DistanceBased(
 
     # If "importance weight" is a function, apply it to the column to get a numeric vector.
     for (colname, val) in importance_weights
-        push!(
-            weights,
-            string(colname) =>
-                (val isa Function ? map(x -> val(x), data[!, colname]) : val),
+        wv = val isa Function ? map(x -> val(x), data[!, colname]) : val
+        length(wv) == nrow(data) || throw(
+            ArgumentError(
+                "`importance_weights` for column `$(colname)` has length $(length(wv)), but `data` has $(nrow(data)) rows.",
+            ),
         )
+        push!(weights, string(colname) => wv)
     end
 
     # Convert "desirable ranges" into importance weights.
@@ -259,33 +347,43 @@ function DistanceBased(
     end
 
     # Convert distances into probabilistic weights.
-    compute_weights = function (evidence::Evidence)
-        similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
-
-        # Perform hard match on target columns.
+    apply_masks! = function (sims, evidence)
+        # Hard match on target columns.
         for colname in collect(keys(evidence)) ∩ targets
-            similarities .*= data[!, colname] .== evidence[colname]
+            sims .*= data[!, colname] .== evidence[colname]
         end
-
-        # Adjustment based on "column-wise" priors.
+        # Per-column importance / filter masks supplied by the caller.
         for colname in keys(evidence)
             if haskey(weights, colname)
-                similarities .*= weights[colname]
+                sims .*= weights[colname]
             end
         end
+        return sims
+    end
 
-        # If all similarities were zero, the `Weights` constructor would error.
-        if sum(similarities) ≈ 0
-            similarities .= 1
-            for colname in collect(keys(evidence)) ∩ targets
-                similarities .*= data[!, colname] .== evidence[colname]
-            end
+    compute_weights = function (evidence::Evidence)
+        similarities = prior .* map(x -> similarity(x), compute_distances(evidence))
+        apply_masks!(similarities, evidence)
+
+        # Distance-driven similarities can underflow to zero (e.g. evidence far
+        # from every historical row, or singular-Σ Mahalanobis subsets). Fall
+        # back to a uniform prior over rows that still satisfy the user-supplied
+        # hard constraints; if no rows survive those constraints either, fail
+        # loudly rather than return a meaningless weight vector.
+        if iszero(sum(similarities))
+            similarities .= 1.0
+            apply_masks!(similarities, evidence)
+            iszero(sum(similarities)) && throw(
+                ArgumentError(
+                    "No historical rows satisfy the hard constraints implied by the current evidence (target hard-match, `filter_range`, or `importance_weights`). Cannot construct a weight vector.",
+                ),
+            )
         end
 
         return Weights(similarities ./ sum(similarities))
     end
 
-    sampler = function (evidence::Evidence, columns, rng = default_rng())
+    sampler = function (evidence::Evidence, columns, rng::AbstractRNG)
         observed = data[sample(rng, compute_weights(evidence)), :]
 
         return Dict(c => observed[c] for c in columns)

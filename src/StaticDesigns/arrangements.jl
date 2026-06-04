@@ -69,7 +69,35 @@ function optimal_arrangement(
         max_parallel = 1,
         tradeoff = (1, 0),
         mdp_kwargs = default_mdp_kwargs,
+        rng::AbstractRNG = Random.default_rng(),
     ) where {T}
+    # validate that `evals` covers every non-terminal state the MDP rollout may visit.
+    # the rollout visits all subsets of `experiments` of size 0..|experiments|-1, so each
+    # such subset must be present in `evals` (its `filtration` is read in `reward`).
+    # This guards against KeyError when callers pass `evals` produced via `evaluate_experiments`
+    # with `max_cardinality` smaller than the full experiment set.
+    missing_states = Set{String}[]
+    for sub in powerset(collect(experiments), 0, length(experiments) - 1)
+        s = Set{String}(sub)
+        if !haskey(evals, s)
+            push!(missing_states, s)
+        end
+    end
+    if !isempty(missing_states)
+        n_missing = length(missing_states)
+        example = first(missing_states)
+        throw(
+            ArgumentError(
+                "`evals` is missing $(n_missing) experimental subset(s) required by the " *
+                    "arrangement search (e.g. $(example)). This typically happens when " *
+                    "`evaluate_experiments` was called with a `max_cardinality` smaller than " *
+                    "the full experiment set. Re-run `evaluate_experiments` without " *
+                    "`max_cardinality` (and with `evaluate_empty_subset = true`) before " *
+                    "computing arrangements over the full set.",
+            ),
+        )
+    end
+
     experimental_costs = Dict{String, NTuple{2, Float64}}(
         k => if v isa Number
                 (convert(Float64, v), v)
@@ -80,7 +108,7 @@ function optimal_arrangement(
 
     mdp = ArrangementMDP(; experiments, experimental_costs, evals, max_parallel, tradeoff)
 
-    solver = DPWSolver(; mdp_kwargs...)
+    solver = DPWSolver(; mdp_kwargs..., rng)
     planner = solve(solver, mdp)
 
     monetary_cost = time = 0.0
@@ -88,6 +116,16 @@ function optimal_arrangement(
     arrangement = Set{String}[]
     while state != experiments
         next_action = action(planner, state)
+
+        # Guard: the MDP's `actions` always returns non-empty subsets when
+        # `state != experiments`, so this should be unreachable, but defend
+        # against an empty action to avoid a confusing `maximum` error and to
+        # surface the issue if a custom planner ever returns one.
+        isempty(next_action) && throw(
+            ArgumentError(
+                "planner returned an empty action set at state $state; cannot make progress",
+            ),
+        )
 
         push!(arrangement, next_action)
         monetary_cost +=

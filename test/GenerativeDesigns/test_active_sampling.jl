@@ -39,7 +39,7 @@ importance_weights = Dict("B" => x -> 2 <= x <= 7)
     evidence_1 = Evidence("A" => 5)
     assigned_weights_1 = weights(evidence_1)
 
-    # Check if weights are zero only in the given range
+    # Check that weights are zero outside the desirable range and positive inside
     @test all(assigned_weights_1[1:2] .== 0.0)
     @test all(assigned_weights_1[9:10] .== 0.0)
     @test all(assigned_weights_1[3:8] .> 0)
@@ -48,7 +48,7 @@ importance_weights = Dict("B" => x -> 2 <= x <= 7)
     assigned_weights_2 = weights(evidence_2)
     @show assigned_weights_2
 
-    # Check if weights are zero only in the given range
+    # Check that weights are zero outside the importance-weighted range and positive inside
     @test all(assigned_weights_2[1] == 0.0)
     @test all(assigned_weights_2[8:10] .== 0)
     @test all(assigned_weights_2[2:7] .> 0.0)

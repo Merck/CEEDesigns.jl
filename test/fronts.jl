@@ -21,6 +21,21 @@ using CEEDesigns
 
     v = [(1, 2), (2, 3), (2, 1)]
     @test front(v) == [(1, 2), (2, 1)]
+
+    # Ties on the first coordinate: the strictly better-y point wins.
+    @test front([(1, 5), (1, 1)]) == [(1, 1)]
+
+    # Identical (c1, c2) pairs are mutually non-dominated and both retained.
+    @test front([(1.0, 2.0), (1.0, 2.0)]) == [(1.0, 2.0), (1.0, 2.0)]
+
+    # A chain of small improvements: every point is on the true front.
+    v_chain = [(1, 10), (2, 9.5), (3, 9.0), (4, 8.5)]
+    @test front(v_chain) == v_chain
+
+    # Tolerance thinning keeps only meaningfully separated points: from
+    # (1,10), (2,9.5) is too close (0.5 < 0.6) and is skipped; (3,9.0) is far
+    # enough (1.0 ≥ 0.6) and is kept; (4,8.5) is then too close to (3,9.0).
+    @test front(v_chain; atol1 = 0.0, atol2 = 0.6) == [(1, 10), (3, 9.0)]
 end
 
 @testset "`front(f, v)` tests" begin

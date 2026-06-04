@@ -15,3 +15,19 @@ _*
 tutorials/build
 .env
 .ipynb_checkpoints
+
+# Local workspace and tooling artifacts (do not commit)
+.claude-plugin/
+.craft-agent/
+.agents/
+.pi-agent/
+.pi-sessions/
+/config.json
+/events.jsonl
+/views.json
+/theme.json
+/labels/
+/statuses/
+/sessions/
+/skills/
+/sources/

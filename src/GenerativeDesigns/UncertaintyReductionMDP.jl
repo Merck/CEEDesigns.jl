@@ -5,7 +5,32 @@ Structure that parametrizes the experimental decision-making process. It is used
 
 In this experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 
+!!! note "Relationship to the paper"
+    The uncertainty measure returned by [`Variance`](@ref) / [`Entropy`](@ref) is
+    *normalized* — it is the fraction of the prior uncertainty — so `threshold` is
+    interpreted on `[0, 1]` (this is why `efficient_designs` sweeps thresholds over
+    `range(0, 1, …)`). The paper's terminal information term is realized here as a
+    **hard terminal condition** (`uncertainty ≤ threshold`) rather than as an additive
+    reward penalty; the objective is otherwise equivalent.
+
 Internally, a state of the decision process is modeled as a tuple `(evidence::Evidence, [total accumulated monetary cost, total accumulated execution time])`.
+
+The per-step reward is the negative marginal cost incurred at that step, i.e.
+`-(costs_tradeoff' * Δcosts)` where `Δcosts` is the increment in
+`(monetary_cost, execution_time)` between successive states. Reaching a state
+where uncertainty is still above `threshold` after `max_experiments` produces a
+terminal `-bigM` penalty. Consequently:
+
+  - With `discount = 1.0` (the default), the discounted return telescopes and
+    the planner maximizes `-(costs_tradeoff' * total_costs)`, i.e. it
+    minimizes the **total** expected experimental cost (subject to the
+    threshold and `bigM` penalty).
+  - With `discount < 1.0`, the planner instead maximizes
+    `-Σₜ γᵗ * (costs_tradeoff' * Δcostsₜ)`, a γ-weighted sum of marginal
+    cost increments. Cost incurred *earlier* in the sequence is weighted more
+    heavily than cost incurred later, so the resulting policy is biased toward
+    deferring expensive experiments rather than minimizing total cost. Use
+    `discount = 1.0` if you want the objective to be total expected cost.
 
 # Arguments
 
@@ -23,7 +48,7 @@ Internally, a state of the decision process is modeled as a tuple `(evidence::Ev
   - `bigM`: it refers to the penalty that arises in a scenario where further experimental action is not an option, yet the uncertainty exceeds the allowable limit.
   - `max_experiments`: this denotes the maximum number of experiments that are permissible to be conducted.
 """
-struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
+struct UncertaintyReductionMDP{S, U} <: POMDPs.MDP{State, Vector{String}}
     # initial state
     initial_state::State
     # uncertainty threshold
@@ -43,14 +68,14 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
     bigM::Int64
 
     ## sample readouts from the posterior
-    sampler::Function
+    sampler::S
     ## measure of uncertainty about the ground truth
-    uncertainty::Function
+    uncertainty::U
 
     function UncertaintyReductionMDP(
             costs;
-            sampler,
-            uncertainty,
+            sampler::S,
+            uncertainty::U,
             threshold,
             evidence = Evidence(),
             costs_tradeoff = (1, 0),
@@ -58,12 +83,20 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             discount = 1.0,
             bigM = const_bigM,
             max_experiments = bigM,
-        )
+        ) where {S, U}
         state = State((evidence, Tuple(zeros(2))))
 
         # check if `sampler`, `uncertainty` are compatible
-        @assert hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) """`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments."""
-        @assert hasmethod(uncertainty, Tuple{Evidence}) """`uncertainty` must implement a method accepting `evidence` as its argument."""
+        hasmethod(sampler, Tuple{Evidence, Vector{String}, AbstractRNG}) || throw(
+            ArgumentError(
+                "`sampler` must implement a method accepting `(evidence, readout features, rng)` as its arguments.",
+            ),
+        )
+        hasmethod(uncertainty, Tuple{Evidence}) || throw(
+            ArgumentError(
+                "`uncertainty` must implement a method accepting `evidence` as its argument.",
+            ),
+        )
 
         # actions and their costs
         costs = Dict{String, ActionCost}(
@@ -86,7 +119,7 @@ struct UncertaintyReductionMDP <: POMDPs.MDP{State, Vector{String}}
             end for action in costs
         )
 
-        return new(
+        return new{S, U}(
             state,
             threshold,
             costs,
@@ -108,11 +141,19 @@ const eox = "EOX"
 
 function POMDPs.actions(m::UncertaintyReductionMDP, state)
     all_actions = filter!(collect(keys(m.costs))) do a
-        return !isempty(m.costs[a].features) &&
-            !in(first(m.costs[a].features), keys(state.evidence))
+        feats = m.costs[a].features
+        return !isempty(feats) && !any(f -> haskey(state.evidence, f), feats)
     end
 
-    return if !isempty(all_actions) && (length(state.evidence) < m.max_experiments)
+    # Count *completed experiments* (all of an experiment's features present), not
+    # raw evidence entries, so prior evidence / multi-feature experiments don't
+    # mis-count against `max_experiments`.
+    n_completed = count(keys(m.costs)) do a
+        feats = m.costs[a].features
+        !isempty(feats) && all(f -> haskey(state.evidence, f), feats)
+    end
+
+    return if !isempty(all_actions) && (n_completed < m.max_experiments)
         collect(powerset(all_actions, 1, m.max_parallel))
     else
         [[eox]]
@@ -174,7 +215,7 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
   - `threshold`: uncertainty threshold.
   - `evidence=Evidence()`: initial experimental evidence.
-  - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
+  - `solver=default_solver()`: a POMDPs.jl compatible solver used to solve the decision process. The default solver, returned by the [`default_solver`](@ref) factory, is a fresh [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/) per call.
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
   - `realized_uncertainty=false`: whenever the initial state uncertainty is below the selected threshold, return the actual uncertainty of this state.
@@ -211,10 +252,11 @@ function efficient_design(
         uncertainty,
         threshold,
         evidence = Evidence(),
-        solver = default_solver,
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
     mdp = UncertaintyReductionMDP(
         costs;
@@ -236,12 +278,12 @@ function efficient_design(
             (; monetary_cost = 0.0, time = 0.0),
         )
     else
-        # planner
-        planner = solve(solver, mdp)
+        # planner (fresh solver seeded by `rng` unless the caller supplied one)
+        planner = solve(isnothing(solver) ? default_solver(rng) : solver, mdp)
         action, info = action_info(planner, mdp.initial_state)
 
         if repetitions > 0
-            queue = [Sim(mdp, planner) for _ in 1:repetitions]
+            queue = [Sim(mdp, planner; rng = Xoshiro(rand(rng, UInt64))) for _ in 1:repetitions]
 
             stats = run_parallel(queue) do _, hist
                 monetary_cost, time = hist[end][:s].costs
@@ -307,7 +349,7 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
   - `uncertainty`: a function of `evidence`; it returns the measure of variance or uncertainty about the target variable, conditioned on the experimental evidence acquired so far.
   - `thresholds`: number of thresholds to consider uniformly in the range between 0 and 1, inclusive.
   - `evidence=Evidence()`: initial experimental evidence.
-  - `solver=default_solver`: a POMDPs.jl compatible solver used to solve the decision process. The default solver is [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/).
+  - `solver=default_solver()`: a POMDPs.jl compatible solver used to solve the decision process. The default solver, returned by the [`default_solver`](@ref) factory, is a fresh [`DPWSolver`](https://juliapomdp.github.io/MCTS.jl/dev/dpw/) per call.
   - `repetitions=0`: number of runoffs used to estimate the expected experimental cost.
   - `mdp_options`: a `NamedTuple` of additional keyword arguments that will be passed to the constructor of [`UncertaintyReductionMDP`](@ref).
   - `realized_uncertainty=false`: whenever the initial state uncertainty is below the selected threshold, return the actual uncertainty of this state.
@@ -344,14 +386,20 @@ function efficient_designs(
         uncertainty,
         thresholds,
         evidence = Evidence(),
-        solver = default_solver,
+        solver = nothing,
         repetitions = 0,
         realized_uncertainty = false,
         mdp_options = (;),
+        rng::AbstractRNG = default_rng(),
     )
+    thresholds < 2 && throw(ArgumentError("`thresholds` must be at least 2 (got $thresholds); use `efficient_design` for a single threshold."))
     designs = []
     for threshold in range(0.0, 1.0, thresholds)
         @info "Current threshold level : $threshold"
+        # Each threshold gets an independent rng (derived from the master `rng`)
+        # and, unless the caller supplied a solver, a fresh solver seeded by it.
+        inner_rng = Xoshiro(rand(rng, UInt64))
+        inner_solver = isnothing(solver) ? default_solver(inner_rng) : solver
         push!(
             designs,
             efficient_design(
@@ -360,10 +408,11 @@ function efficient_designs(
                 uncertainty,
                 threshold,
                 evidence,
-                solver,
+                solver = inner_solver,
                 repetitions,
                 realized_uncertainty,
                 mdp_options,
+                rng = inner_rng,
             ),
         )
     end
