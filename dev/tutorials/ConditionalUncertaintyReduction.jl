@@ -286,7 +286,7 @@ for (idx, evidence) in enumerate(state_init_list)
 
     ## Process results for each tau value
     for tau in taus
-        runs = ensemble_results[:belief => tau]
+        runs = ensemble_results[Float64(tau)]
         df_ensemble = ensemble_to_dataframe(runs)
 
         if !haskey(all_ensemble_dfs, tau)
