@@ -18,3 +18,9 @@ Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+# BetaML 0.13's GMM code calls `DiagNormal(μ, PDiagMat(σ²))`, which stopped
+# resolving in Distributions 0.25.129 (DiagNormal became a parametric alias),
+# breaking BetaML precompilation. Cap below 0.25.129 until BetaML is fixed upstream.
+Distributions = "0.25.0 - 0.25.128"
