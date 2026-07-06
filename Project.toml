@@ -1,5 +1,6 @@
 name = "CEEDesigns"
 uuid = "e939450b-799e-4198-a5f5-3f2f7fb1c671"
+authors = ["Jan Bíma", "Tianchi Chen", "Kamala Dadashova", "Gwenyth Jones", "Otto Ritter", "Sean L. Wu", "Xiang Yu"]
 version = "0.3.9"
 
 [deps]
