@@ -39,11 +39,11 @@ function ensemble_to_dataframe(runs)
     end
     rows = [
         (
-                Threshold = k[1],
-                Action_Set = k[2],
-                Average_Cost = v[2] / v[1],
-                Frequency = v[1],
-            ) for (k, v) in counts
+            Threshold = k[1],
+            Action_Set = k[2],
+            Average_Cost = v[2] / v[1],
+            Frequency = v[1],
+        ) for (k, v) in counts
     ]
     return DataFrame(rows)
 end

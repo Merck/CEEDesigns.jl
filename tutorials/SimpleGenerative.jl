@@ -331,11 +331,11 @@ push!(
     experiments_costs_df,
     [
         [
-                e,
-                experiments_costs[e][1][1],
-                experiments_costs[e][1][2],
-                only(experiments_costs[e][2]),
-            ] for e in keys(experiments_costs)
+            e,
+            experiments_costs[e][1][1],
+            experiments_costs[e][1][2],
+            only(experiments_costs[e][2]),
+        ] for e in keys(experiments_costs)
     ]...,
 );
 experiments_costs_df
@@ -480,11 +480,11 @@ push!(
     experiments_costs_df,
     [
         [
-                e,
-                experiments_costs[e][1][1],
-                experiments_costs[e][1][2],
-                only(experiments_costs[e][2]),
-            ] for e in keys(experiments_costs)
+            e,
+            experiments_costs[e][1][1],
+            experiments_costs[e][1][2],
+            only(experiments_costs[e][2]),
+        ] for e in keys(experiments_costs)
     ]...,
 );
 experiments_costs_df

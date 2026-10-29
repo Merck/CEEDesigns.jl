@@ -101,21 +101,21 @@ struct UncertaintyReductionMDP{S, U} <: POMDPs.MDP{State, Vector{String}}
         # actions and their costs
         costs = Dict{String, ActionCost}(
             try
-                    if action isa Pair && action[2] isa Pair
-                        string(action[1]) => (;
-                            costs = Tuple(Float64[action[2][1]..., 0][1:2]),
-                            features = convert(Vector{String}, action[2][2]),
-                        )
+                if action isa Pair && action[2] isa Pair
+                    string(action[1]) => (;
+                        costs = Tuple(Float64[action[2][1]..., 0][1:2]),
+                        features = convert(Vector{String}, action[2][2]),
+                    )
                 elseif action isa Pair
-                        string(action[1]) => (;
-                            costs = Tuple(Float64[action[2]..., 0][1:2]),
-                            features = String[action[1]],
-                        )
+                    string(action[1]) => (;
+                        costs = Tuple(Float64[action[2]..., 0][1:2]),
+                        features = String[action[1]],
+                    )
                 else
-                        error()
+                    error()
                 end
             catch
-                    error("could not parse $action as an action")
+                error("could not parse $action as an action")
             end for action in costs
         )
 
