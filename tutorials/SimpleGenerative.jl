@@ -517,3 +517,20 @@ designs = efficient_designs(
 );
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
+
+# **Interpreting the results:**
+#
+# Each point represents a cost-efficient sequential experimental
+# design corresponding to a particular uncertainty target.
+#
+# The horizontal axis shows the expected experimental cost,
+# while the vertical axis represents the remaining uncertainty.
+# Lower uncertainty generally requires additional experimental
+# resources.
+#
+# Unlike static designs, generative designs adapt the choice
+# of subsequent experiments based on previously observed results.
+#
+# This visualization helps researchers understand the trade-off
+# between reducing uncertainty and the resources needed
+# to achieve that reduction.
