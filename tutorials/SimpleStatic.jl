@@ -173,3 +173,18 @@ designs = efficient_designs(
 # prefixed with a number).
 
 plot_front(designs; labels = make_labels(designs), ylabel = "loss")
+
+# **Interpreting the results:**
+#
+# Each point represents a different combination of experiments.
+# The horizontal axis shows the combined experimental cost,
+# accounting for monetary cost and execution time.
+# The vertical axis shows the loss associated with each design,
+# where lower values indicate better performance.
+#
+# The Pareto frontier identifies designs for which no alternative
+# achieves both lower cost and lower loss.
+#
+# This visualization helps researchers compare experimental
+# strategies and determine whether the improvement in
+# performance justifies the additional resources required.
