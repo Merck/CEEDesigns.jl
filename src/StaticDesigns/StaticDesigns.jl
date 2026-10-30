@@ -226,12 +226,12 @@ function efficient_designs(
 
     evals = Dict{Set{String}, ExperimentalEval}(
         if e isa Number
-                s => (; loss = convert(Float64, e), filtration = 1.0)
+            s => (; loss = convert(Float64, e), filtration = 1.0)
         else
-                s => (;
-                    loss = convert(Float64, e.loss),
-                    filtration = convert(Float64, e.filtration),
-                )
+            s => (;
+                loss = convert(Float64, e.loss),
+                filtration = convert(Float64, e.filtration),
+            )
         end for (s, e) in evals
     )
 

@@ -100,9 +100,9 @@ function optimal_arrangement(
 
     experimental_costs = Dict{String, NTuple{2, Float64}}(
         k => if v isa Number
-                (convert(Float64, v), v)
+            (convert(Float64, v), v)
         else
-                (convert(Float64, v[1]), convert(Float64, v[2]))
+            (convert(Float64, v[1]), convert(Float64, v[2]))
         end for (k, v) in costs
     )
 
