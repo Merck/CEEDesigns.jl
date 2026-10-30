@@ -520,17 +520,33 @@ plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
 # **Interpreting the results:**
 #
-# Each point represents a cost-efficient sequential experimental
-# design corresponding to a particular uncertainty target.
+# Unlike in the static case, a point on this front is not a fixed
+# list of experiments. It is an adaptive *policy* (in the
+# reinforcement-learning sense): a rule that looks at the
+# evidence gathered so far and decides which experiment(s) to run
+# next, or whether to stop. A separate policy is constructed for
+# each uncertainty threshold, and it stops as soon as the
+# uncertainty about $y$ falls to or below that threshold.
 #
-# The horizontal axis shows the expected experimental cost,
-# while the vertical axis represents the remaining uncertainty.
-# Lower uncertainty generally requires additional experimental
-# resources.
+# The vertical axis shows the threshold, as a fraction of the
+# initial uncertainty; it is the target the policy must reach,
+# not an observed result. The horizontal axis shows the
+# *expected* combined cost of following the policy until it
+# stops, as estimated by the planner from readouts simulated from
+# the historical data. For a particular entity, the realized cost
+# can be lower or higher: an informative first readout may end
+# the process early, while an ambiguous one calls for further
+# experiments.
 #
-# Unlike static designs, generative designs adapt the choice
-# of subsequent experiments based on previously observed results.
+# The label of each point shows only the policy's first action
+# (hence the `1:` prefix), i.e., the experiment(s) to run now;
+# experiments listed together are run in parallel. The follow-up
+# is not fixed in advance: once the readout is available, it is
+# added to the evidence and the policy selects the next action
+# based on it. The point labelled ∅ corresponds to a threshold
+# that the initial evidence already meets, so no experiment is
+# needed.
 #
-# This visualization helps researchers understand the trade-off
-# between reducing uncertainty and the resources needed
-# to achieve that reduction.
+# Read from top to bottom, the front shows how much more must be
+# spent, in expectation, to push the uncertainty about $y$ down
+# to stricter targets.
