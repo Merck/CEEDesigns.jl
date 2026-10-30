@@ -375,7 +375,9 @@ designs = efficient_designs(
     mdp_options = mdp_options,
 );
 
-# We plot the Pareto-efficient actions.
+# We plot the Pareto front. Each point is an adaptive policy constructed for one uncertainty threshold, labelled by its
+# first action only; the follow-up experiments depend on the readouts. See the interpretation following the last plot
+# of this tutorial for details.
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 

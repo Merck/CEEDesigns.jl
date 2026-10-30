@@ -43,7 +43,7 @@ Assuming the information values and optimized experimental costs for each subset
 ```@raw html
 <figure style="float: right; width: 400px;">
   <img src="assets/front_generative.png" alt="Personalized Pareto fronts of generative experimental designs" width="400">
-  <figcaption>Pareto front for generative designs: the difference here is that a personalized front is generated for each experimental entity.</figcaption>
+  <figcaption>Pareto front for generative designs: a personalized front is generated for each experimental entity. Each point is an adaptive policy for one uncertainty threshold, labelled by its first experiment; the follow-up experiments depend on the readouts.</figcaption>
 </figure>
 ```
 
