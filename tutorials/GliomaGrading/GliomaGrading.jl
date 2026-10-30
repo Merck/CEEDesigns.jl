@@ -253,6 +253,13 @@ begin
         ylabel = "accuracy (1-logloss)",
     ) # fill("", (1, length(designs)))
 end
+# **Interpreting the plot:** Each point represents a cost-efficient
+# subset of mutation tests. The horizontal axis shows the total
+# testing cost, while the vertical axis shows predictive log loss
+# (lower is better). The Pareto frontier identifies combinations
+# for which no alternative offers both lower cost and better
+# predictive performance. This helps researchers evaluate whether
+# additional testing costs are justified by improved predictions.
 
 # ╔═╡ 01646835-55a9-42af-8eb3-29816c9780b7
 md"We proceed to construct the set of cost-efficient experimental designs. In doing so, our goal is to identify the optimal sets of mutation factors for the glioma grading task, balancing the conflicting objectives of enhancing prediction accuracy and reducing incurred costs."
