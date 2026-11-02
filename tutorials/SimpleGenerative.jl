@@ -520,35 +520,4 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# **Interpreting the results:**
-#
-# Unlike in the static case, a point on this front is not a fixed
-# list of experiments. It is an adaptive *policy* (in the
-# reinforcement-learning sense): a rule that looks at the
-# evidence gathered so far and decides which experiment(s) to run
-# next, or whether to stop. A separate policy is constructed for
-# each uncertainty threshold, and it stops as soon as the
-# uncertainty about $y$ falls to or below that threshold.
-#
-# The vertical axis shows the threshold, as a fraction of the
-# initial uncertainty; it is the target the policy must reach,
-# not an observed result. The horizontal axis shows the
-# *expected* combined cost of following the policy until it
-# stops, as estimated by the planner from readouts simulated from
-# the historical data. For a particular entity, the realized cost
-# can be lower or higher: an informative first readout may end
-# the process early, while an ambiguous one calls for further
-# experiments.
-#
-# The label of each point shows only the policy's first action
-# (hence the `1:` prefix), i.e., the experiment(s) to run now;
-# experiments listed together are run in parallel. The follow-up
-# is not fixed in advance: once the readout is available, it is
-# added to the evidence and the policy selects the next action
-# based on it. The point labelled ∅ corresponds to a threshold
-# that the initial evidence already meets, so no experiment is
-# needed.
-#
-# Read from top to bottom, the front shows how much more must be
-# spent, in expectation, to push the uncertainty about $y$ down
-# to stricter targets.
+# **Interpreting the results:** Each point is a policy constructed for one uncertainty threshold (the vertical axis, as a fraction of the initial uncertainty): rather than a fixed list of experiments, it selects the next experiment(s) based on the readouts gathered so far, and stops once the uncertainty about $y$ falls to the threshold. Because the readouts are not known in advance, the cost of following a policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks thresholds that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.
