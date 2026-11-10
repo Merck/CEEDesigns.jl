@@ -22,6 +22,8 @@
 # entity has its own "row." Our tools are able to handle the entire spectrum of such scenarios though distance based similarity,
 # described below.
 
+# The same reasoning applies once experiments are under way: each readout tells us more about the entity, and hence about which experiment to perform next. In the generative setting, an experimental design is therefore a *design policy*: a rule that selects the next experiment from the evidence gathered so far ([Huan & Marzouk, 2016](https://arxiv.org/abs/1604.08320); [Foster et al., 2021](https://arxiv.org/abs/2103.02438)). Whereas a static design fixes a subset of experiments upfront, a design policy fixes only the first action; the follow-up experiments depend on the readouts.
+
 # ## Theoretical Framework
 
 # ### Historical Data
@@ -375,7 +377,7 @@ designs = efficient_designs(
     mdp_options = mdp_options,
 );
 
-# We plot the Pareto front. Each point is an adaptive policy constructed for one uncertainty threshold, labelled by its
+# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold, labelled by its
 # first action only; the follow-up experiments depend on the readouts. See the interpretation following the last plot
 # of this tutorial for details.
 
@@ -520,4 +522,4 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# **Interpreting the results:** Each point is a policy constructed for one uncertainty threshold (the vertical axis, as a fraction of the initial uncertainty): rather than a fixed list of experiments, it selects the next experiment(s) based on the readouts gathered so far, and stops once the uncertainty about $y$ falls to the threshold. Because the readouts are not known in advance, the cost of following a policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks thresholds that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.
+# **Interpreting the results:** Each point is a design policy constructed for one uncertainty threshold (the vertical axis, as a fraction of the initial uncertainty): rather than a fixed list of experiments, it selects the next experiment(s) based on the readouts gathered so far, and stops once the uncertainty about $y$ falls to the threshold. Because the readouts are not known in advance, the cost of following a design policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks thresholds that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.
