@@ -15,7 +15,7 @@ designs = efficient_designs(experiments, perf_eval)
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 ```
 
-**Reading the output:** The resulting [glioma grading Pareto-frontier plot](tutorials/GliomaGrading.md#Cost-Efficient-Feature-Selection) shows one cost-efficient experimental design per point. The horizontal axis is the sum of the illustrative testing costs; the vertical axis is predictive log loss (**lower is better**). A design is Pareto-efficient if no other evaluated design has both an equal or lower cost and an equal or lower loss, with at least one strict improvement. The figure allows readers to judge how much additional predictive performance is associated with spending more on molecular testing, rather than prescribing one universal choice. These results illustrate a computational workflow, not a clinically validated diagnostic recommendation.
+**Reading the output:** The resulting [glioma grading Pareto-frontier plot](tutorials/GliomaGrading.md#Cost-Efficient-Feature-Selection) shows one cost-efficient experimental design per point. The horizontal axis is the sum of the illustrative testing costs; the vertical axis is predictive log loss (**lower is better**). A design is Pareto-efficient if no other evaluated design has both an equal or lower cost and an equal or lower loss, with at least one strict improvement. That plot allows readers to judge how much additional predictive performance is associated with spending more on molecular testing, rather than prescribing one universal choice. These results illustrate a computational workflow, not a clinically validated diagnostic recommendation.
 
 ```@raw html
 <figure style="float: right; width: 400px;">

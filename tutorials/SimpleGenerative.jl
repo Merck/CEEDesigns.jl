@@ -22,7 +22,7 @@
 # entity has its own "row." Our tools are able to handle the entire spectrum of such scenarios through distance-based similarity,
 # described below.
 
-# The same reasoning applies once experiments are under way: each readout tells us more about the entity, and hence about which experiment(s) to perform next. In the generative setting, an experimental design is therefore a *design policy*: a rule that selects the next experiment(s) from the evidence gathered so far ([Huan & Marzouk, 2016](https://arxiv.org/abs/1604.08320); [Foster et al., 2021](https://arxiv.org/abs/2103.02438)). Whereas a static design fixes a subset of experiments upfront, a design policy determines in advance only the first experiment(s) for an entity's current evidence; the follow-up experiments depend on the readouts.
+# The same reasoning applies once experiments are under way: each readout tells us more about the entity, and hence about which experiment(s) to perform next. In the generative setting, an experimental design is therefore a *design policy*: a rule that selects the next experiment(s) from the evidence gathered so far ([Huan & Marzouk, 2016](https://arxiv.org/abs/1604.08320); [Foster et al., 2021](https://arxiv.org/abs/2103.02438)). Whereas a static design fixes a subset of experiments upfront, a design policy determines in advance only the first experiment(s), given the entity's current evidence; the follow-up experiments depend on the readouts.
 
 # ## Theoretical Framework
 
@@ -91,7 +91,7 @@
 #
 # For distance metrics assuming independence of features (Kronecker delta and squared distance), given the new entity's experimental state with readouts over the feature set $F = \bigcup X_{e}$, where $e \in S$, we can calculate
 # the distance from the $j$-th historical entity as $d_j = \sum_{x\in F} \rho_x (\hat x, x_j)$, where $\hat x$ and $x_j$ denote the readout
-# for feature $x$ for the entity being tested and the entity recorded in $j$-th column.
+# for feature $x$ for the entity being tested and the entity recorded in the $j$-th row.
 # The squared Mahalanobis distance directly takes in "rows", $\rho(\hat{x},x_{j})$.
 #
 # Next, we convert distances $d_j$ into probabilistic weights $w_j$. By default, we use a rescaled exponential function, i.e.,
@@ -109,7 +109,7 @@
 
 # Given these parts, searching for an optimal design policy depends on what our objective sense is.
 #
-# - The search may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the search (considered as a "negative" reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with an "infinitely negative" reward.
+# - Experimentation may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the experiments (considered as a "negative" reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with an "infinitely negative" reward.
 # - We may aim to minimize the expected uncertainty while being constrained by the combined costs of the experiment.
 # - Alternatively, we could maximize the value of experimental evidence, adjusted for the incurred experimental costs.
 
@@ -522,4 +522,4 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# **Interpreting the results:** Each point is a design policy constructed for one uncertainty threshold (the vertical axis, relative to the uncertainty about $y$ before any evidence is observed) and stops once the uncertainty about $y$ falls to that threshold. Because the readouts are not known in advance, the cost of following a design policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks the strictest threshold that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.
+# **Interpreting the results:** Each point is a design policy constructed for one uncertainty threshold (the vertical axis, relative to the uncertainty about $y$ before any evidence is observed); the design policy stops once the uncertainty about $y$ falls to or below that threshold. Because the readouts are not known in advance, the cost of following a design policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks the strictest threshold that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.

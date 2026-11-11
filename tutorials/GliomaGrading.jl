@@ -26,7 +26,7 @@
 #
 # Given the constraint on the maximum number of parallel experiments, we devise an arrangement $o$ of experiments $S$ such that, for a fixed tradeoff between monetary cost and execution time, the expected combined cost $c_{(o, \lambda)} = \lambda m_o + (1-\lambda) t_o$ is minimized (i.e., the execution time is minimized).
 #
-# In fact, it can be readily demonstrated that the optimal arrangement can be found by ordering the experiments in set $S$ in descending order according to their execution times. Consequently, the experiments are grouped sequentially into sets whose size equals to the maximum number of parallel experiments, except possibly for the final set.
+# In fact, it can be readily demonstrated that the optimal arrangement can be found by ordering the experiments in set $S$ in descending order according to their execution times. Consequently, the experiments are grouped sequentially into sets whose size equals the maximum number of parallel experiments, except possibly for the final set.
 #
 # Continuing our example and assuming a maximum of two parallel experiments, the optimal arrangement is to conduct $e_1$ in parallel with $e_2$, and $e_3$ with $e_4$. This results in an arrangement $o = (\{ e_1, e_2 \}, \{ e_3, e_4 \})$ with a total cost of $m_o = 4$ and $t_o = 2 + 4 = 6$.
 #
@@ -44,10 +44,10 @@
 #
 # In this dataset, the instances represent patient records of those diagnosed with brain glioma. The dataset is publicly available at [Glioma Grading Clinical and Mutation Features](https://archive.ics.uci.edu/dataset/759/glioma+grading+clinical+and+mutation+features+dataset). It is constructed based on the TCGA-LGG and TCGA-GBM brain glioma projects available at the [NIH GDC Data Portal](https://portal.gdc.cancer.gov).
 #
-# Each record is characterized by
+# In the version of the dataset used here (`data/glioma_grading.csv`), each record is characterized by
 #
 # - 3 clinical features (age, gender, race),
-# - 7 mutation factors (IDH1, TP53, ATRX, PTEN, EGFR, CIC, MUC16; each of which can be 'mutated' or 'not_mutated').
+# - 7 mutation factors (IDH1, TP53, ATRX, PTEN, EGFR, CIC, MUC16; each of which can be `MUTATED` or `NOT_MUTATED`).
 #
 # We list somatic mutations with the highest number of affected cases in cohort:
 #
