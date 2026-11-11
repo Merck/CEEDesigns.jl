@@ -4,7 +4,7 @@
 # For details on the theoretical background and notation, please see our tutorial on [generative experimental designs](@ref simple_generative). This tutorial
 # is a concrete application of the tools described in that document.
 
-# Importantly, we aim to design personalized adaptive policies for each patient. At the beginning of the triage process, we use a patient's prior data, such as sex, age, or type of chest pain, to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model probable experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific decision policy from this set and acquiring additional experimental readouts, we adjust the continuation based on this evidence.
+# Importantly, we aim to construct personalized design policies for each patient. At the beginning of the triage process, we use a patient's prior data, such as sex, age, or type of chest pain, to project a range of cost-efficient experimental designs. Internally, while constructing these designs, we incorporate multiple-step-ahead lookups to model probable experimental outcomes and consider the subsequent decisions for each outcome. Then after choosing a specific design policy from this set and acquiring additional experimental readouts, we adjust the continuation based on this evidence.
 
 # ## Heart Disease Dataset
 
@@ -167,11 +167,11 @@ designs = efficient_designs(
     repetitions = 5,
 );
 
-# We plot the Pareto-efficient actions:
+# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold rather than a fixed sequence of experiments: it is plotted at its expected combined cost and labelled by its first experiment only, and which experiment follows depends on the readout (see the [generative experimental designs](@ref simple_generative) tutorial for a detailed interpretation):
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# We render the search tree for the second design, sorted in descending order based on the uncertainty threshold:
+# We render the search tree for the second design policy, sorted in descending order based on the uncertainty threshold. The tree makes the adaptive nature explicit: below the first action, the branches correspond to simulated readouts, each followed by its own choice of the next experiment:
 
 using D3Trees
 d3tree = D3Tree(designs[2][2].tree; init_expand = 2)
@@ -210,7 +210,7 @@ designs = efficient_designs(
     repetitions = 5,
 );
 
-# We plot the Pareto-efficient actions:
+# We plot the Pareto front. As before, each point is a design policy labelled by its first action, which may now consist of two experiments run in parallel:
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
