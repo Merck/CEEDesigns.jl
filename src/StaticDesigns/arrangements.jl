@@ -50,7 +50,7 @@ Find the optimal arrangement of a set of `experiments` given their costs and ass
 Otherwise, the function returns a named tuple `(; arrangement, combined cost, monetary cost, time, planner)`, where `planner` is the MDP planner.
 
 # Arguments
-- `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+- `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 - `evals`: a dictionary containing pairs `experimental subset => (; filtration rate, loss)`.
 - `experiments`: a set of experiments to be executed.
 

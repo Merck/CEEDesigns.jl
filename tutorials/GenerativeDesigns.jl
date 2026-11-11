@@ -140,7 +140,7 @@ p
 
 # In this experimental setup, our objective is to minimize the expected experimental cost while ensuring the uncertainty remains below a specified threshold.
 
-# We use the provided function `efficient_designs` to construct the set of cost-efficient experimental designs for various levels of uncertainty threshold. In the following example, we generate 6 thresholds spaces evenly between 0 and 1, inclusive.
+# We use the provided function `efficient_designs` to construct the set of cost-efficient experimental designs for various levels of uncertainty threshold. In the following example, we generate 6 thresholds spaced evenly between 0 and 1, inclusive.
 
 # Internally, for each choice of the uncertainty threshold, an instance of a Markov decision problem in [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl) is created, and the `POMDPs.solve` is called on the problem. Afterwards, a number of simulations of the decision-making problem is run, all starting with the experimental `state`.
 
@@ -167,11 +167,11 @@ designs = efficient_designs(
     repetitions = 5,
 );
 
-# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold rather than a fixed sequence of experiments: it is plotted at its expected combined cost and labelled by its first experiment only, and which experiment follows depends on the readout (see the [generative experimental designs](@ref simple_generative) tutorial for a detailed interpretation):
+# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold rather than a fixed sequence of experiments: it is plotted at its expected combined cost and labeled by its first experiment only, and which experiment follows depends on the readout (see the [generative experimental designs](@ref simple_generative) tutorial for a detailed interpretation):
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# We render the search tree for the second design policy, sorted in descending order based on the uncertainty threshold. The tree makes the adaptive nature explicit: below the first action, the branches correspond to simulated readouts, each followed by its own choice of the next experiment:
+# We render the search tree for the second design policy, sorted in descending order based on the uncertainty threshold. The tree makes the adaptive nature explicit. The root branches into the candidate first actions explored by the planner, each annotated with its estimated value Q and visit count N. Below each action, the branches are simulated readouts, and below each readout the planner again weighs the candidate next actions, so the preferred follow-up can differ from one readout to another:
 
 using D3Trees
 d3tree = D3Tree(designs[2][2].tree; init_expand = 2)
@@ -210,7 +210,7 @@ designs = efficient_designs(
     repetitions = 5,
 );
 
-# We plot the Pareto front. As before, each point is a design policy labelled by its first action, which may now consist of two experiments run in parallel:
+# We plot the Pareto front. As before, each point is a design policy labeled by its first action, which may now consist of two experiments run in parallel:
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 

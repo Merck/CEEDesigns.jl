@@ -2,17 +2,11 @@
 
 A decision-making framework for the cost-efficient design of experiments, balancing the value of acquired experimental evidence and incurred costs. We have considered two different experimental setups, which are outlined below.
 
-```@raw html
-<figure style="float: right; width: 400px;">
-  <img src="assets/front_static.png" alt="Pareto front of static experimental designs" width="400">
-  <figcaption>Pareto front of experimental designs: each point is a set of experiments lying on the optimal tradeoff between information gain and incurred costs.</figcaption>
-</figure>
-```
 ## Motivating example: Cost-efficient glioma grading
 
-Consider the task of distinguishing lower-grade glioma (LGG) from glioblastoma (GBM) using clinical information and molecular tests. Testing more genes may improve prediction, but each additional test incurs a cost. CEEDesigns.jl helps researchers compare combinations of tests without assuming that the most extensive panel is necessarily the best use of resources.
+Consider the task of distinguishing lower-grade glioma (LGG) from glioblastoma (GBM) using clinical information and molecular tests. Testing more genes may improve prediction, but each additional test incurs a cost. CEEDesigns.jl helps researchers compare experimental designs (combinations of tests) without assuming that the most extensive panel is necessarily the best use of resources.
 
-In the [glioma grading tutorial](tutorials/GliomaGrading.md), the costs of seven illustrative gene-mutation tests are stored in `experiments`, and the cross-validated predictive log loss for each experimental design (combination of tests) is stored in `perf_eval`. Once these inputs have been prepared, the decision and visualization require only a few lines:
+In the [glioma grading tutorial](tutorials/GliomaGrading.md), the costs of seven illustrative gene-mutation tests are stored in `experiments`, and the cross-validated predictive log loss for each experimental design is stored in `perf_eval`. Once these inputs have been prepared, the decision and visualization require only a few lines:
 
 ```julia
 using CEEDesigns, CEEDesigns.StaticDesigns
@@ -21,7 +15,14 @@ designs = efficient_designs(experiments, perf_eval)
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 ```
 
-**Reading the output:** The resulting [glioma grading Pareto-frontier plot](tutorials/GliomaGrading.md#Cost-Efficient-Feature-Selection) shows one cost-efficient experimental design per point. The horizontal axis is the sum of the illustrative testing costs; the vertical axis is predictive log loss (**lower is better**). A design is Pareto-efficient if no other evaluated design has both an equal or lower cost and an equal or lower loss, with at least one strict improvement. The figure allows readers to judge how much additional predictive performance is associated with spending more on molecular testing, rather than prescribing one universal choice. These results illustrate a computational workflow, not a clinically validated diagnostic recommendation.
+**Reading the output:** The resulting [glioma grading Pareto-frontier plot](tutorials/GliomaGrading.md#Cost-Efficient-Feature-Selection) shows one cost-efficient experimental design per point. The horizontal axis is the sum of the illustrative testing costs; the vertical axis is predictive log loss (**lower is better**). A design is Pareto-efficient if no other evaluated design has both an equal or lower cost and an equal or lower loss, with at least one strict improvement. That plot allows readers to judge how much additional predictive performance is associated with spending more on molecular testing, rather than prescribing one universal choice. These results illustrate a computational workflow, not a clinically validated diagnostic recommendation.
+
+```@raw html
+<figure style="float: right; width: 400px;">
+  <img src="assets/front_static.png" alt="Pareto front of static experimental designs" width="400">
+  <figcaption>Pareto front of experimental designs: each point is a set of experiments lying on the optimal tradeoff between information gain and incurred costs.</figcaption>
+</figure>
+```
 
 ## Static experimental designs
 Here we assume that the same experimental design will be used for a population of examined entities, hence the word "static".
@@ -35,7 +36,7 @@ Assuming the information values and optimized experimental costs for each subset
 ```@raw html
 <figure style="float: right; width: 400px;">
   <img src="assets/front_generative.png" alt="Personalized Pareto fronts of generative experimental designs" width="400">
-  <figcaption>Pareto front for generative designs: a personalized front is generated for each experimental entity. Each point is a design policy for one uncertainty threshold, labelled by its first experiment; the follow-up experiments depend on the readouts.</figcaption>
+  <figcaption>Pareto front for generative designs: a personalized front is generated for each experimental entity. Each point is a design policy for one uncertainty threshold, labeled by its first experiment; the follow-up experiments depend on the readouts.</figcaption>
 </figure>
 ```
 
