@@ -34,7 +34,7 @@ terminal `-bigM` penalty. Consequently:
 
 # Arguments
 
-  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 
 # Keyword Arguments
 
@@ -207,7 +207,7 @@ In the uncertainty reduction setup, minimize the expected experimental cost whil
 
 # Arguments
 
-  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 
 # Keyword Arguments
 
@@ -341,7 +341,7 @@ Internally, an instance of the `UncertaintyReductionMDP` structure is created fo
 
 # Arguments
 
-  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 
 # Keyword Arguments
 

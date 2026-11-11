@@ -9,7 +9,7 @@ Internally, the reward associated with a particular experimental `evidence` and 
 
 # Arguments
 
-  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 
 # Keyword Arguments
 
@@ -130,7 +130,7 @@ Internally, an instance of the `EfficientValueMDP` structure is created and a su
 
 # Arguments
 
-  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modelled as a monetary cost) or a tuple `(monetary cost, execution time)`.
+  - `costs`: a dictionary containing pairs `experiment => cost`, where `cost` can either be a scalar cost (modeled as a monetary cost) or a tuple `(monetary cost, execution time)`.
 
 # Keyword Arguments
 
