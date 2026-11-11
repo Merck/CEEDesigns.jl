@@ -5,7 +5,7 @@
 
 # ## Setting
 
-# Generative experimental designs differ from static designs in that the experimental design is specific for (or "personalized") to an incoming entity.
+# Generative experimental designs differ from static designs in that the experimental design is specific to (or "personalized" for) an incoming entity.
 # Personalized cost-efficient experimental designs for the new entity are made based on existing information (if any) about the new entity,
 # and from posterior distributions of unobserved features of that entity conditional on its observed features and historical data.
 # The entities may be patients, molecular compounds, or any other objects where one has a store of historical data
@@ -17,12 +17,12 @@
 # ![information value matrix](assets/information_value_matrix.png)
 
 # In the context of static designs, we do not aspire to capture variation in information gain across different entities. Instead, we assume all entities come from a "Population" with a uniform information gain, in which case "Experiment C" would provide the maximum information value.
-# On the other hand, if we have the ability to discern if the entity belong to subpopulations "Population 1" or "Population 2," then we can tailor our
-# design to suggest either "Experiment A" or "Experiment B." Clearly, in the limit of a maximally heterogenous population, each
-# entity has its own "row." Our tools are able to handle the entire spectrum of such scenarios though distance based similarity,
+# On the other hand, if we have the ability to discern if the entity belongs to subpopulations "Population 1" or "Population 2," then we can tailor our
+# design to suggest either "Experiment A" or "Experiment B." Clearly, in the limit of a maximally heterogeneous population, each
+# entity has its own "row." Our tools are able to handle the entire spectrum of such scenarios through distance-based similarity,
 # described below.
 
-# The same reasoning applies once experiments are under way: each readout tells us more about the entity, and hence about which experiment to perform next. In the generative setting, an experimental design is therefore a *design policy*: a rule that selects the next experiment from the evidence gathered so far ([Huan & Marzouk, 2016](https://arxiv.org/abs/1604.08320); [Foster et al., 2021](https://arxiv.org/abs/2103.02438)). Whereas a static design fixes a subset of experiments upfront, a design policy fixes only the first action; the follow-up experiments depend on the readouts.
+# The same reasoning applies once experiments are under way: each readout tells us more about the entity, and hence about which experiment(s) to perform next. In the generative setting, an experimental design is therefore a *design policy*: a rule that selects the next experiment(s) from the evidence gathered so far ([Huan & Marzouk, 2016](https://arxiv.org/abs/1604.08320); [Foster et al., 2021](https://arxiv.org/abs/2103.02438)). Whereas a static design fixes a subset of experiments upfront, a design policy determines in advance only the first experiment(s) for an entity's current evidence; the follow-up experiments depend on the readouts.
 
 # ## Theoretical Framework
 
@@ -107,7 +107,7 @@
 
 # ### Policy Search
 
-# Given these parts, searching for optimal experimental designs (actions arranged in an efficient way) depends on what our objective sense is.
+# Given these parts, searching for an optimal design policy depends on what our objective sense is.
 #
 # - The search may continue until the uncertainty about the posterior distribution of the target variable falls below a certain level. Our aim is to minimize the anticipated combined monetary cost and execution time of the search (considered as a "negative" reward). If all experiments are conducted without reaching below the required uncertainty level, or if the maximum number of experiments is exceeded, we penalize this scenario with an "infinitely negative" reward.
 # - We may aim to minimize the expected uncertainty while being constrained by the combined costs of the experiment.
@@ -129,7 +129,7 @@
 
 # The expansion phase is where the algorithm grows the search tree by adding new nodes, representing new state-action pairs, to the tree. This is done based on a predefined rule that dictates when and how much the tree should be expanded. This allows the algorithm to methodically discover and consider new potential actions without becoming overwhelmed with choices.
 
-# Lastly, the rollout stage, also known as a simulation stage, is where the algorithm plays out a series of actions to the end of a game or scenario using a specific policy (like a random policy). The results of these rollouts are then used to update the estimates of the values of state-action pairs, increasing the accuracy of future decisions.
+# Lastly, the rollout stage, also known as a simulation stage, is where the algorithm plays out a series of actions to the end of a game or scenario using a simple rollout policy (such as choosing actions at random). The results of these rollouts are then used to update the estimates of the values of state-action pairs, increasing the accuracy of future decisions.
 
 # ![One iteration of the MCTS algorithm, taken from https://ieeexplore.ieee.org/document/6145622](assets/mcts.png)
 
@@ -377,7 +377,7 @@ designs = efficient_designs(
     mdp_options = mdp_options,
 );
 
-# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold, labelled by its
+# We plot the Pareto front. Each point is a design policy constructed for one uncertainty threshold, labeled by its
 # first action only; the follow-up experiments depend on the readouts. See the interpretation following the last plot
 # of this tutorial for details.
 
@@ -522,4 +522,4 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "% uncertainty")
 
-# **Interpreting the results:** Each point is a design policy constructed for one uncertainty threshold (the vertical axis, as a fraction of the initial uncertainty): rather than a fixed list of experiments, it selects the next experiment(s) based on the readouts gathered so far, and stops once the uncertainty about $y$ falls to the threshold. Because the readouts are not known in advance, the cost of following a design policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks thresholds that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.
+# **Interpreting the results:** Each point is a design policy constructed for one uncertainty threshold (the vertical axis, relative to the uncertainty about $y$ before any evidence is observed) and stops once the uncertainty about $y$ falls to that threshold. Because the readouts are not known in advance, the cost of following a design policy is random; the horizontal axis shows its expected combined cost, as estimated by the planner, and the realized cost for a particular entity may be lower or higher. The label shows only the first action (hence the `1:` prefix), and ∅ marks the strictest threshold that the initial evidence already meets, so no experiment is needed. Read from top to bottom, the front shows how much more must be spent, in expectation, to reach stricter uncertainty targets.

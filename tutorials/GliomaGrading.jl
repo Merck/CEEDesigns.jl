@@ -47,7 +47,7 @@
 # Each record is characterized by
 #
 # - 3 clinical features (age, gender, race),
-# - 5 mutation factors (IDH1, TP53, ATRX, PTEN, EGFR; each of which can be 'mutated' or 'not_mutated').
+# - 7 mutation factors (IDH1, TP53, ATRX, PTEN, EGFR, CIC, MUC16; each of which can be 'mutated' or 'not_mutated').
 #
 # We list somatic mutations with the highest number of affected cases in cohort:
 #
@@ -133,7 +133,7 @@ perf_eval = evaluate_experiments(
 designs = efficient_designs(experiments, perf_eval)
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 
-# **Interpreting the plot:** Each point is a cost-efficient experimental design, i.e., a subset of mutation tests. The horizontal axis shows the total testing cost, and the vertical axis shows the cross-validated predictive log loss (lower is better). A design lies on the Pareto front if no other design offers both lower cost and lower loss; moving along the front shows whether additional testing costs are justified by improved predictions.
+# **Interpreting the plot:** Each point is a cost-efficient experimental design, i.e., a subset of mutation tests. The horizontal axis shows the total testing cost, and the vertical axis shows the cross-validated predictive log loss (lower is better). A design lies on the Pareto front if no other design has both an equal or lower cost and an equal or lower loss, with at least one strict improvement; moving along the front shows whether additional testing costs are justified by improved predictions.
 
 # ## Assessing the Impact of Histopathology Image Analysis on the Experimental Cost-Efficiency
 #
@@ -151,7 +151,7 @@ plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 #
 # ![classifier accuracy](assets/glioma_accuracy.png)
 #
-# We will artificially produce the grade predictions, modelling them as predictor outputs with the defined sensitivity and specificity. Note that we will not incorporate any further correlations with other features such as clinical factors, mutation factors, or histology.
+# We will artificially produce the grade predictions, modeling them as predictor outputs with the defined sensitivity and specificity. Note that we will not incorporate any further correlations with other features such as clinical factors, mutation factors, or histology.
 #
 # In addition, we consider the cost of the predictive classifier development.
 

@@ -114,8 +114,8 @@ end
 
 # The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo $k_\text{puu}$ assay.
 
-# The solver finds the Pareto-optimal sequences that trade off total cost against terminal uncertainty, recommending the cheapest
-# plan that meets the confidence requirements.
+# The solver finds Pareto-efficient design policies that trade off expected total cost against the uncertainty threshold; for each
+# threshold, it recommends the design policy with the lowest expected cost that meets the confidence requirements.
 
 experiments = Dict(
     "100nM_PgP" => (400.0, 7.0),
@@ -316,7 +316,7 @@ plot(all_plots[2])
 # - `Constraint` - whether the initial belief already meets the constraint $P \geq \tau$ without any physical assays.
 # - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
 # - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions
-#    (assays) recommended by the ensemble policies at each stage. For each uncertainty threshold we report the assay set that
+#    (assays) recommended by the planners in the ensemble at each stage. For each uncertainty threshold we report the assay set that
 #    won the majority vote across the ensemble.
 
 tau_summary = []
