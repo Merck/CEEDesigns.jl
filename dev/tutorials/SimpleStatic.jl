@@ -174,4 +174,4 @@ designs = efficient_designs(
 
 plot_front(designs; labels = make_labels(designs), ylabel = "loss")
 
-# **Interpreting the results:** Each point is a subset of experiments; lower loss is better, and the combined cost accounts for both monetary cost and execution time. A subset lies on the front if no other subset achieves both lower cost and lower loss.
+# **Interpreting the results:** Each point is a subset of experiments; lower loss is better, and the combined cost accounts for both monetary cost and execution time. A subset lies on the front if no other subset has both an equal or lower cost and an equal or lower loss, with at least one strict improvement.

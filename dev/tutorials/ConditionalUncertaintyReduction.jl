@@ -112,10 +112,10 @@ end
 # Each experiment is specified as `name => (monetary_cost, time_in_days)`. We trade off cost vs uncertainty only; extending to time is
 # straightforward by setting the second weight > 0.
 
-# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 7) for the in vivo $k_\text{puu}$ assay.
+# The operational costs are defined as (400, 7) for each in vitro assay and (4000, 21) for the in vivo $k_\text{puu}$ assay.
 
-# The solver finds the Pareto-optimal sequences that trade off total cost against terminal uncertainty, recommending the cheapest
-# plan that meets the confidence requirements.
+# The solver finds Pareto-efficient design policies that trade off expected total cost against the uncertainty threshold; for each
+# threshold, the planner seeks the design policy with the lowest expected cost that meets the confidence requirements.
 
 experiments = Dict(
     "100nM_PgP" => (400.0, 7.0),
@@ -232,7 +232,7 @@ scenarios = [
 # more robust recommendation (the MLASP) than any single run, and the spread across runs gives an empirical measure of
 # policy variance. The ensemble results are then evaluated at various levels of uncertainty threshold. In the following
 # example, we generate 5 thresholds spaced evenly between 0 and 1, inclusive. Majority voting across runs at each
-# uncertainty level yields the  Maximum-Likelihood Action-Sets Path (MLASP), the most robust assay recommendation.
+# uncertainty level yields the Maximum-Likelihood Action-Sets Path (MLASP), the most robust assay recommendation.
 
 all_designs = Dict()
 all_ensemble_dfs = Dict()
@@ -315,8 +315,8 @@ plot(all_plots[2])
 #   the desirable range given QSAR features alone (before any physical assays).
 # - `Constraint` - whether the initial belief already meets the constraint $P \geq \tau$ without any physical assays.
 # - `Cost_Range` and `Unc_Range` - the cost and uncertainty ranges across the Pareto front of designs that meet the constraint.
-# - `MLASP` - the Most Likely Action-Set Path or final recommendation which is constructed by majority vote over the actions
-#    (assays) recommended by the ensemble policies at each stage. For each uncertainty threshold we report the assay set that
+# - `MLASP` - the Maximum-Likelihood Action-Sets Path or final recommendation which is constructed by majority vote over the actions
+#    (assays) recommended by the planners in the ensemble at each stage. For each uncertainty threshold we report the assay set that
 #    won the majority vote across the ensemble.
 
 tau_summary = []
