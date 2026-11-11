@@ -167,9 +167,11 @@ designs = efficient_designs(
 );
 
 # Finally we may produce a plot of the set of cost-efficient experimental designs. The set of designs
-# is plotted along a Pareto frontier giving tradeoff between informatio value (y-axis) and combined cost (x-axis).
+# is plotted along a Pareto frontier giving tradeoff between information value (y-axis) and combined cost (x-axis).
 # Note that because we set the maximum number of parallel experiments equal to 2, the efficient design for the complete set
 # of experiments groups the experiments with long execution times together (see plot legend; each group within a partition is
 # prefixed with a number).
 
 plot_front(designs; labels = make_labels(designs), ylabel = "loss")
+
+# **Interpreting the results:** Each point is a subset of experiments; lower loss is better, and the combined cost accounts for both monetary cost and execution time. A subset lies on the front if no other subset achieves both lower cost and lower loss.

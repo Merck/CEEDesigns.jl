@@ -133,6 +133,8 @@ perf_eval = evaluate_experiments(
 designs = efficient_designs(experiments, perf_eval)
 plot_front(designs; labels = make_labels(designs), ylabel = "logloss")
 
+# **Interpreting the plot:** Each point is a cost-efficient experimental design, i.e., a subset of mutation tests. The horizontal axis shows the total testing cost, and the vertical axis shows the cross-validated predictive log loss (lower is better). A design lies on the Pareto front if no other design offers both lower cost and lower loss; moving along the front shows whether additional testing costs are justified by improved predictions.
+
 # ## Assessing the Impact of Histopathology Image Analysis on the Experimental Cost-Efficiency
 #
 # Building on the previous example, we will consider the introduction of a new feature in the task of glioma grading, where this feature will essentially function as a predictor of the glioma grade.
